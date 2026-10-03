@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Shirt, Sparkles, Calendar, Layers, Camera, Heart, Plus } from 'lucide-react';
+import { Shirt, Sparkles, Calendar, Layers, Camera } from 'lucide-react';
 import WardrobeGrid from './components/WardrobeGrid';
 import UploadView from './components/UploadView';
 import GarmentDetailView from './components/GarmentDetailView';
@@ -90,7 +90,6 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-neutral-950 text-white flex flex-col items-center p-4 sm:p-8 font-sans selection:bg-amber-300 selection:text-neutral-950">
-      {/* Barra de Navegación Superior */}
       <nav className="w-full max-w-5xl flex flex-wrap justify-between items-center gap-4 bg-neutral-900/90 border border-neutral-800 px-6 py-4 rounded-3xl backdrop-blur-xl shadow-2xl mb-8">
         <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setCurrentView('wardrobe')}>
           <div className="w-9 h-9 rounded-xl bg-amber-300 flex items-center justify-center text-neutral-950 font-black shadow-lg">
@@ -133,7 +132,6 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Renderizado de Vistas Dinámicas */}
       <div className="w-full flex justify-center pb-12">
         {currentView === 'wardrobe' && (
           <WardrobeGrid 
