@@ -1,5 +1,5 @@
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -12,9 +12,30 @@ model User {
   name             String?   
   email            String    @unique
   password         String
-  role             String    @default("USER") // Valores: USER, SELLER, ADMIN
+  role             String    @default("USER") // USER, SELLER, ADMIN
   verificationCode String?   
   isVerified       Boolean   @default(false)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
+  
+  garments         Garment[] 
+}
+
+model Garment {
+  id            String   @id @default(cuid())
+  name          String
+  category      String   // 'tops', 'bottoms', 'shoes', 'outerwear'
+  vibe          String?
+  url           String   @db.Text   // Vital para que quepan las imágenes en Base64 sin romperse
+  price         String?
+  storeUrl      String?
+  description   String?
+  vendorName    String?
+  vendorContact String?
+  
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

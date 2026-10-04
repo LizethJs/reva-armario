@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Upload, Check, ChevronLeft, Sparkles } from 'lucide-react';
 import { removeBackground } from '@imgly/background-removal';
 import { Garment } from '../page';
+import { createGarment } from '@/actions/garments';
 
 interface Props {
   onSave: (newGarment: Garment) => void;
@@ -58,7 +59,7 @@ export default function UploadView({ onSave, onBack }: Props) {
     await processImageToTransparent(file);
   };
 
-  const handleSaveClick = () => {
+  const handleSaveClick = async () => {
     if (!selectedImage) return;
 
     if (!garmentName.trim() || !garmentPrice.trim()) {
@@ -66,20 +67,50 @@ export default function UploadView({ onSave, onBack }: Props) {
       return;
     }
 
-    const newGarment: Garment = {
-      id: Date.now().toString(),
-      url: selectedImage,
-      category: selectedCategory,
-      name: garmentName.trim(),
-      brand: 'Colección Personal',
-      price: garmentPrice.trim(),
-      description: 'Prenda subida y procesada con IA.',
-      isAvailableInCountry: true,
-      storeUrl: 'https://www.google.com',
-      colorHex: garmentColor
-    };
+    try {
+      setIsProcessing(true);
+      setProcessingStatus('Guardando en Supabase...');
 
-    onSave(newGarment);
+      // 1. Crear FormData para enviar a la Server Action de Supabase
+      const formData = new FormData();
+      formData.append('name', garmentName.trim());
+      formData.append('category', selectedCategory);
+      formData.append('url', selectedImage);
+      formData.append('price', garmentPrice.trim());
+      formData.append('description', 'Prenda subida y procesada con IA.');
+      formData.append('vendorName', 'Colección Personal');
+
+      // Llamada a la Server Action conectada a Supabase
+      const result = await createGarment(formData);
+
+      if (!result.success) {
+        triggerLocalNotification(result.error || 'Error al guardar en la base de datos.');
+        setIsProcessing(false);
+        return;
+      }
+
+      // 2. Objeto para actualizar la vista localmente
+      const newGarment: Garment = {
+        id: result.garment?.id || Date.now().toString(),
+        url: selectedImage,
+        category: selectedCategory,
+        name: garmentName.trim(),
+        brand: 'Colección Personal',
+        price: garmentPrice.trim(),
+        description: 'Prenda subida y procesada con IA.',
+        isAvailableInCountry: true,
+        storeUrl: 'https://www.google.com',
+        colorHex: garmentColor
+      };
+
+      onSave(newGarment);
+    } catch (error) {
+      console.error('Error al guardar prenda:', error);
+      triggerLocalNotification('Error de conexión al guardar la prenda.');
+    } finally {
+      setIsProcessing(false);
+      setProcessingStatus('');
+    }
   };
 
   return (
