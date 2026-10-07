@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, User, Phone, ShieldCheck, ArrowRight } from 'lucide-react';
+// Importamos tus Server Actions reales desde auth.ts (ajusta la ruta relativa si es necesario, ej: '../auth')
+import { registerUser, verifyUserCode, loginUser } from '@/app/auth'; 
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,7 +17,6 @@ export default function LoginPage() {
   
   // Estados para el flujo de verificación por correo (OTP)
   const [verificationStep, setVerificationStep] = useState<'form' | 'code_sent'>('form');
-  const [generatedCode, setGeneratedCode] = useState('');
   const [inputCode, setInputCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,7 +25,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
 
-    if (!email || !password || (isRegistering && (!name || !contact))) {
+    if (!email || !password || (isRegistering && verificationStep === 'form' && (!name || !contact))) {
       setError('Por favor complete todos los campos obligatorios.');
       return;
     }
@@ -32,29 +33,18 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      // 1. FLUJO DE REGISTRO - PASO 1: Enviar datos y disparar correo con Prisma y Nodemailer
       if (isRegistering && verificationStep === 'form') {
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-        setGeneratedCode(code);
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('email', email);
+        formData.append('password', password);
+        formData.append('role', role);
 
-        try {
-          // Intentar conectar con la API de Nodemailer
-          const response = await fetch('/api/send-otp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, code })
-          });
+        const res = await registerUser(formData);
 
-          const contentType = response.headers.get("content-type");
-          if (!contentType || !contentType.includes("application/json")) {
-            // Si el servidor devuelve HTML (como un 404), usamos el modo seguro de respaldo
-            console.warn("API /api/send-otp no disponible o devolvió HTML. Usando modo simulación OTP.");
-          } else {
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Error al enviar el correo');
-          }
-        } catch (apiErr) {
-          // Fallback controlado si la API no está desplegada o configurada aún
-          console.log(`[Modo Respaldo OTP] Código generado para ${email}: ${code}`);
+        if (!res.success) {
+          throw new Error(res.error || 'Error al registrar el usuario');
         }
 
         setVerificationStep('code_sent');
@@ -62,24 +52,42 @@ export default function LoginPage() {
         return;
       }
 
+      // 2. FLUJO DE REGISTRO - PASO 2: Verificar el código OTP ingresado
       if (isRegistering && verificationStep === 'code_sent') {
-        if (inputCode !== generatedCode) {
-          setError('El código de verificación ingresado es incorrecto.');
-          setIsLoading(false);
-          return;
+        const formData = new FormData();
+        formData.append('email', email);
+        formData.append('code', inputCode);
+
+        const res = await verifyUserCode(formData);
+
+        if (!res.success) {
+          throw new Error(res.error || 'Código incorrecto');
         }
+
+        // Si se verifica correctamente, redirigimos al login o inicio
+        alert('¡Cuenta verificada con éxito! Por favor inicia sesión.');
+        setIsRegistering(false);
+        setVerificationStep('form');
+        setIsLoading(false);
+        return;
       }
 
-      // Guardar sesión validada en localStorage
-      const sessionData = {
-        name: name || email.split('@')[0],
-        email,
-        contact: contact || '+57 300 0000000',
-        role
-      };
+      // 3. FLUJO DE INICIO DE SESIÓN NORMAL (Login)
+      const formData = new FormData();
+      formData.append('email', email);
+      formData.append('password', password);
 
-      localStorage.setItem('user_session', JSON.stringify(sessionData));
+      const res = await loginUser(formData);
+
+      if (!res.success) {
+        throw new Error(res.error || 'Correo o contraseña incorrectos');
+      }
+
+      // Guardar una cookie básica o sesión para el middleware si es necesario, y redirigir
+      document.cookie = `session=active; path=/; max-age=86400`; // Permite que el middleware reconozca la sesión
       router.push('/');
+      router.refresh();
+
     } catch (err: any) {
       setError(err.message || 'Ocurrió un error en el proceso.');
       setIsLoading(false);
@@ -116,8 +124,7 @@ export default function LoginPage() {
             <div className="flex flex-col gap-4 animate-in fade-in">
               <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800 text-center flex flex-col gap-2">
                 <ShieldCheck className="w-8 h-8 text-amber-400 mx-auto" />
-                <span className="text-xs text-neutral-300">Código enviado para <strong className="text-amber-400">{email}</strong></span>
-                <span className="text-[10px] text-neutral-500">(Revisa tu consola si usas modo local o tu bandeja si configuraste Nodemailer)</span>
+                <span className="text-xs text-neutral-300">Código enviado al correo <strong className="text-amber-400">{email}</strong></span>
               </div>
               <input
                 type="text"
@@ -133,7 +140,7 @@ export default function LoginPage() {
                 disabled={isLoading}
                 className="w-full py-3.5 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-black text-xs rounded-xl shadow-xl transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {isLoading ? 'Verificando...' : <>Verificar y Acceder <ArrowRight className="w-4 h-4" /></>}
+                {isLoading ? 'Verificando...' : <>Verificar Cuenta <ArrowRight className="w-4 h-4" /></>}
               </button>
             </div>
           ) : (
@@ -217,6 +224,7 @@ export default function LoginPage() {
         {verificationStep === 'form' && (
           <div className="text-center">
             <button
+              type="button"
               onClick={() => {
                 setIsRegistering(!isRegistering);
                 setError('');
