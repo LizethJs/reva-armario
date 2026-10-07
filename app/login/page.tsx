@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, User, Phone, ShieldCheck, ArrowRight } from 'lucide-react';
 // Importamos tus Server Actions reales desde auth.ts (ajusta la ruta relativa si es necesario, ej: '../auth')
-import { registerUser, verifyUserCode, loginUser } from '@/app/auth'; 
+import { registerUser, verifyUserCode, loginUser } from '../actions/auth';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -72,22 +72,22 @@ export default function LoginPage() {
         return;
       }
 
-      // 3. FLUJO DE INICIO DE SESIÓN NORMAL (Login)
+      // 3. FLUJO DE INICIO DE SESIÓN NORMAL (Login) - CORREGIDO
       const formData = new FormData();
       formData.append('email', email);
       formData.append('password', password);
 
       const res = await loginUser(formData);
 
-      if (!res.success) {
-        // CORRECCIÓN: Aseguramos limpiar el loading aquí mismo si la Server Action rechaza el login
-        setError(res.error || 'Correo o contraseña incorrectos');
+      if (!res || !res.success) {
+        setError(res?.error || 'Correo o contraseña incorrectos');
         setIsLoading(false);
         return;
       }
 
       // Guardar una cookie básica o sesión para el middleware si es necesario, y redirigir
       document.cookie = `session=active; path=/; max-age=86400`; // Permite que el middleware reconozca la sesión
+      setIsLoading(false);
       router.push('/');
       router.refresh();
 
