@@ -1,61 +1,36 @@
-import { createServerClient } from '@ssr/supabase' // O la ruta que use tu proyecto para supabase
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+export function middleware(request: NextRequest) {
+  // Obtenemos la ruta actual a la que intenta entrar el usuario
+  const path = request.nextUrl.pathname
 
-  // Aquí validamos la sesión actual del usuario con Supabase
-  // Asegúrate de usar tus variables de entorno públicas configuradas
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
+  // Definimos qué rutas son PÚBLICAS (las que no exigen iniciar sesión)
+  const isPublicPath = 
+    path === '/login' || 
+    path === '/register' || 
+    path.startsWith('/auth') || 
+    path.startsWith('/api')
 
-  // IMPORTANTE: Evita refrescar la sesión en rutas estáticas o de API públicas si es necesario
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Buscamos si existe una cookie de sesión (puedes cambiar 'session' por el nombre de la cookie que uses)
+  const session = request.cookies.get('session')?.value || request.cookies.get('token')?.value
 
-  // Si el usuario no ha iniciado sesión y quiere entrar a una ruta protegida (ej: /armario o /dashboard)
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/auth') &&
-    request.nextUrl.pathname !== '/' // Cambia esto si la raíz '/' debe ser privada
-  ) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login' // Redirige a tu vista de inicio de sesión
-    return NextResponse.redirect(url)
+  // CASO 1: Si intenta entrar a una ruta privada (como /dashboard o /armario) y NO tiene sesión
+  if (!isPublicPath && !session) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  return supabaseResponse
+  // CASO 2: Si ya tiene sesión e intenta ir al login o registro, lo mandamos a la app principal
+  if (isPublicPath && session && (path === '/login' || path === '/register')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url)) // Cambia '/dashboard' por tu ruta principal privada
+  }
+
+  return NextResponse.next()
 }
 
 export const config = {
   matcher: [
     /*
-     * Coincide con todas las rutas de solicitudes excepto las que empiezan por:
-     * - _next/static (archivos estáticos)
-     * - _next/image (archivos de optimización de imágenes)
-     * - favicon.ico (archivo de favicon)
+     * Coincide con todas las rutas excepto archivos estáticos de Next.js e imágenes
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
