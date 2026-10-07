@@ -80,7 +80,10 @@ export default function LoginPage() {
       const res = await loginUser(formData);
 
       if (!res.success) {
-        throw new Error(res.error || 'Correo o contraseña incorrectos');
+        // CORRECCIÓN: Aseguramos limpiar el loading aquí mismo si la Server Action rechaza el login
+        setError(res.error || 'Correo o contraseña incorrectos');
+        setIsLoading(false);
+        return;
       }
 
       // Guardar una cookie básica o sesión para el middleware si es necesario, y redirigir
