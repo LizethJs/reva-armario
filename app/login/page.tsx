@@ -3,26 +3,26 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock, Mail, User, Phone, ShieldCheck, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
-// Importa tus Server Actions reales:
-// import { registerUser, verifyUserCode, loginUser } from '../actions/auth';
+// Importamos tus Server Actions reales desde actions/auth.ts
+import { registerUser, verifyUserCode, loginUser } from '../actions/auth';
 
 export default function LoginPage() {
   const router = useRouter();
   const [isRegistering, setIsRegistering] = useState(false);
   
-  // Estados del formulario
+  // Estados para formulario de registro / login
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [contact, setContact] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'USER' | 'SELLER' | 'ADMIN'>('USER');
   
-  // Estados para el flujo de OTP
+  // Estados para el flujo de verificación por correo (OTP)
   const [verificationStep, setVerificationStep] = useState<'form' | 'code_sent'>('form');
   const [inputCode, setInputCode] = useState('');
   
-  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,20 +36,18 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // 1. FLUJO DE REGISTRO - PASO 1: Enviar datos y disparar correo
+      // 1. FLUJO DE REGISTRO - PASO 1: Enviar datos y disparar correo con Prisma y Nodemailer
       if (isRegistering && verificationStep === 'form') {
-        // const formData = new FormData();
-        // formData.append('name', name);
-        // formData.append('email', email);
-        // formData.append('password', password);
-        // formData.append('role', role);
-        // const res = await registerUser(formData);
-        
-        // Simulación si usas tu Server Action real:
-        const res = { success: true };
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('email', email);
+        formData.append('password', password);
+        formData.append('role', role);
 
-        if (!res.success) {
-          throw new Error('Error al registrar el usuario');
+        const res = await registerUser(formData);
+
+        if (!res || !res.success) {
+          throw new Error(res?.error || 'Error al registrar el usuario');
         }
 
         setVerificationStep('code_sent');
@@ -57,17 +55,16 @@ export default function LoginPage() {
         return;
       }
 
-      // 2. FLUJO DE REGISTRO - PASO 2: Verificar el código OTP
+      // 2. FLUJO DE REGISTRO - PASO 2: Verificar el código OTP ingresado
       if (isRegistering && verificationStep === 'code_sent') {
-        // const formData = new FormData();
-        // formData.append('email', email);
-        // formData.append('code', inputCode);
-        // const res = await verifyUserCode(formData);
+        const formData = new FormData();
+        formData.append('email', email);
+        formData.append('code', inputCode);
 
-        const res = { success: true };
+        const res = await verifyUserCode(formData);
 
-        if (!res.success) {
-          throw new Error('Código incorrecto');
+        if (!res || !res.success) {
+          throw new Error(res?.error || 'Código incorrecto');
         }
 
         alert('¡Cuenta verificada con éxito! Por favor inicia sesión.');
@@ -77,38 +74,30 @@ export default function LoginPage() {
         return;
       }
 
-      // 3. FLUJO DE INICIO DE SESIÓN (LOGIN)
-      // const formData = new FormData();
-      // formData.append('email', email);
-      // formData.append('password', password);
-      // const res = await loginUser(formData);
+      // 3. FLUJO DE INICIO DE SESIÓN NORMAL (Login)
+      const formData = new FormData();
+      formData.append('email', email);
+      formData.append('password', password);
 
-      // Simulación de respuesta exitosa del servidor:
-      const res = {
-        success: true,
-        user: {
-          name: name || email.split('@')[0],
-          role: role || 'USER',
-          contact: contact || email
-        }
-      };
+      const res = await loginUser(formData);
 
       if (!res || !res.success) {
-        setError('Correo o contraseña incorrectos');
+        setError(res?.error || 'Correo o contraseña incorrectos');
         setIsLoading(false);
         return;
       }
 
-      // Guardamos la sesión en el localStorage para que tu Home no te saque
+      // 🔑 GUARDAMOS LA SESIÓN EN EL LOCALSTORAGE
+      // Esto es lo que app/page.tsx lee con localStorage.getItem('user_session')
       const userSessionData = {
-        name: res.user?.name || email.split('@')[0],
+        name: res.name || name || email.split('@')[0],
         email: email,
-        role: res.user?.role || 'USER',
-        contact: res.user?.contact || email
+        role: res.role || role || 'USER',
+        contact: contact || email
       };
-      
+
       localStorage.setItem('user_session', JSON.stringify(userSessionData));
-      document.cookie = `session=active; path=/; max-age=86400`;
+      document.cookie = `session=active; path=/; max-age=86400`; // Cookie para el middleware
 
       setIsLoading(false);
       router.push('/');
@@ -124,8 +113,10 @@ export default function LoginPage() {
     <main className="min-h-screen bg-neutral-950 text-white flex items-center justify-center p-4 selection:bg-amber-400 selection:text-neutral-950">
       <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 p-8 rounded-3xl shadow-2xl flex flex-col gap-6 relative overflow-hidden">
         
+        {/* Adorno superior en gradiente */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600"></div>
 
+        {/* Cabecera */}
         <div className="flex flex-col items-center text-center gap-2">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-neutral-950 font-black shadow-lg text-xl tracking-wider">
             R
@@ -133,11 +124,12 @@ export default function LoginPage() {
           <h1 className="text-base font-black tracking-widest text-white mt-1">PORTAL RËVA</h1>
           <p className="text-xs text-neutral-400">
             {verificationStep === 'code_sent' 
-              ? 'Ingrese el código de verificación' 
+              ? 'Ingrese el código de verificación enviado a tu correo' 
               : isRegistering ? 'Registro de cuenta con validación OTP' : 'Acceso seguro al probador virtual'}
           </p>
         </div>
 
+        {/* Mensaje de Error */}
         {error && (
           <div className="bg-red-950/40 border border-red-900/50 text-red-300 text-xs p-3 rounded-xl flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
@@ -145,6 +137,7 @@ export default function LoginPage() {
           </div>
         )}
 
+        {/* Formulario */}
         <form onSubmit={handleAuthSubmit} className="flex flex-col gap-4">
           
           {verificationStep === 'code_sent' ? (
@@ -190,7 +183,7 @@ export default function LoginPage() {
                     <Phone className="absolute left-3.5 top-3.5 w-4 h-4 text-neutral-500" />
                     <input
                       type="text"
-                      placeholder="Número de Teléfono / Contacto"
+                      placeholder="Número de Teléfono / Contacto / NIT"
                       value={contact}
                       onChange={e => setContact(e.target.value)}
                       className="w-full bg-neutral-950 border border-neutral-800 pl-10 pr-4 py-3 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
@@ -243,7 +236,7 @@ export default function LoginPage() {
                 className="w-full py-3.5 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-black text-xs rounded-xl shadow-xl transition cursor-pointer mt-2 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin text-neutral-950" />
                 ) : (
                   <span>{isRegistering ? 'Continuar con Verificación OTP' : 'Iniciar Sesión'}</span>
                 )}
@@ -252,6 +245,7 @@ export default function LoginPage() {
           )}
         </form>
 
+        {/* BOTÓN PARA ALTERNAR ENTRE REGISTRO E INICIO DE SESIÓN */}
         {verificationStep === 'form' && (
           <div className="text-center pt-2 border-t border-neutral-800">
             <button
