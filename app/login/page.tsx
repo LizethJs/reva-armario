@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { registerUser, verifyOtp, resendOtp } from "@/app/actions/authActions";
+import { registerUser, verifyOtp, resendOtp } from "@/actions/auth";
 
 export default function AuthPage() {
-  const [isRegistering, setIsRegistering] = useState(true); // Alterna entre Registro y Login
-  const [step, setStep] = useState<"form" | "otp">("form"); // 'form' o 'otp'
+  const [isRegistering, setIsRegistering] = useState(true);
+  const [step, setStep] = useState<"form" | "otp">("form");
 
-  // Estados del Formulario de Registro
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -16,21 +15,17 @@ export default function AuthPage() {
     password: "",
   });
 
-  // Estados de Verificación OTP
   const [activeEmail, setActiveEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
 
-  // Mensajes de Alerta/Estado
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [canResend, setCanResend] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Manejador del Registro
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
@@ -49,7 +44,6 @@ export default function AuthPage() {
     }
   };
 
-  // Manejador de Confirmación de OTP
   const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
@@ -63,7 +57,7 @@ export default function AuthPage() {
       setSuccessMessage(res.message);
       setTimeout(() => {
         setStep("form");
-        setIsRegistering(false); // Redirigir al inicio de sesión
+        setIsRegistering(false);
         setSuccessMessage("Cuenta verificada. Por favor ingresa tus credenciales.");
       }, 2000);
     } else {
@@ -71,7 +65,6 @@ export default function AuthPage() {
     }
   };
 
-  // Manejador para Reenviar OTP manualmente
   const handleResend = async () => {
     setErrorMessage("");
     setSuccessMessage("");
@@ -91,7 +84,6 @@ export default function AuthPage() {
     <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-4 text-white">
       <div className="w-full max-w-md rounded-2xl bg-zinc-900/90 p-8 shadow-2xl border border-zinc-800">
         
-        {/* Encabezado Logo */}
         <div className="text-center mb-6">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500 text-black font-bold text-xl mb-2">
             R
@@ -106,7 +98,6 @@ export default function AuthPage() {
           </p>
         </div>
 
-        {/* Mensajes de Estado */}
         {errorMessage && (
           <div className="mb-4 rounded-lg bg-red-950/80 border border-red-800 p-3 text-xs text-red-200">
             ⚠️ {errorMessage}
@@ -119,7 +110,6 @@ export default function AuthPage() {
           </div>
         )}
 
-        {/* PASO 1: VISTA DE CÓDIGO OTP */}
         {step === "otp" ? (
           <form onSubmit={handleOtpSubmit} className="space-y-4">
             <div>
@@ -157,7 +147,6 @@ export default function AuthPage() {
             </div>
           </form>
         ) : (
-          /* PASO 2: FORMULARIO DE REGISTRO / LOGIN */
           <form onSubmit={handleRegisterSubmit} className="space-y-3">
             {isRegistering && (
               <>
@@ -238,7 +227,6 @@ export default function AuthPage() {
           </form>
         )}
 
-        {/* Conmutador entre Registro y Login */}
         {step === "form" && (
           <div className="mt-4 text-center">
             <button
