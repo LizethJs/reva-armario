@@ -251,7 +251,7 @@ export default function AuthPage() {
               className="text-xs text-zinc-400 hover:text-amber-400 transition"
             >
               {isRegistering
-                ? "¿Ya tienes cuenta? Inicia sesión"[cite: 8]
+                ? "¿Ya tienes cuenta? Inicia sesión"
                 : "¿No tienes cuenta? Regístrate aquí"}
             </button>
           </div>

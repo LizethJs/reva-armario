@@ -1,7 +1,7 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
-import { sendOtpEmail } from "@/lib/nodemailer"; // Revisa que esta ruta coincida con la ubicación de tu función Nodemailer
+import { prisma } from "../lib/prisma";
+import { sendOtpEmail } from "../lib/nodemailer";
 import bcrypt from "bcryptjs";
 
 // --- ACTION 1: REGISTRO / RE-GENERACIÓN DE OTP SI NO ESTÁ VERIFICADO ---
@@ -20,13 +20,13 @@ export async function registerUser(formData: {
       where: { email },
     });
 
-    // Generar código OTP de 6 dígitos y tiempo de expiración a 15 minutos
+    // Generar código OTP de 6 dígitos y expiración a 15 minutos
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = new Date(Date.now() + 15 * 60 * 1000);
     const hashedPassword = await bcrypt.hash(password, 10);
 
     if (existingUser) {
-      // CASO A: El usuario ya existe Y ESTÁ VERIFICADO -> Bloquear con error
+      // CASO A: Si el usuario existe Y ESTÁ VERIFICADO -> Error
       if (existingUser.emailVerified) {
         return {
           success: false,
@@ -34,7 +34,7 @@ export async function registerUser(formData: {
         };
       }
 
-      // CASO B: El usuario existe PERO NO ESTÁ VERIFICADO -> Actualizar datos, generar nuevo OTP y reenviar
+      // CASO B: Si el usuario existe PERO NO ESTÁ VERIFICADO -> Actualizar datos y re-generar OTP
       await prisma.user.update({
         where: { email },
         data: {
@@ -53,7 +53,7 @@ export async function registerUser(formData: {
         success: true,
         redirectToOtp: true,
         email,
-        message: "Tu cuenta no estaba verificada. Se ha enviado un nuevo código OTP a tu correo.",
+        message: "Tu cuenta no estaba verificada. Te hemos enviado un nuevo código OTP a tu correo.",
       };
     }
 
@@ -107,7 +107,7 @@ export async function verifyOtp(email: string, otpInput: string) {
       return { success: false, message: "El código OTP ha expirado. Por favor solicita uno nuevo." };
     }
 
-    // Marcar la cuenta como verificada y limpiar los datos temporales del OTP
+    // Marcar cuenta como verificada y limpiar datos del OTP
     await prisma.user.update({
       where: { email },
       data: {
@@ -127,7 +127,7 @@ export async function verifyOtp(email: string, otpInput: string) {
   }
 }
 
-// --- ACTION 3: REENVIAR CÓDIGO OTP MANUALMENTE ---
+// --- ACTION 3: REENVIAR CÓDIGO OTP ---
 export async function resendOtp(email: string) {
   try {
     const user = await prisma.user.findUnique({
