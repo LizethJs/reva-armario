@@ -1,7 +1,7 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
-import { sendOtpEmail } from "@/lib/nodemailer";
+import { prisma } from "../lib/prisma";
+import { sendOtpEmail } from "../lib/nodemailer"; // O cambia a "../utils/nodemailer" si tu archivo está en utils
 import bcrypt from "bcryptjs";
 
 // --- ACTION 1: REGISTRO / RE-GENERACIÓN DE OTP SI NO ESTÁ VERIFICADO ---
