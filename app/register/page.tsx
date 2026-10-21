@@ -2,279 +2,241 @@
 
 import { useState } from "react";
 import { registerUser, verifyOtp, resendOtp } from "../actions/auth";
+import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [step, setStep] = useState<"form" | "otp">("form");
-  const [emailForOtp, setEmailForOtp] = useState("");
-  const [isVerifiedSuccess, setIsVerifiedSuccess] = useState(false);
-
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
-    role: "Cliente (Usuario Estándar)",
+    role: "CLIENTE (Armario Personal)",
     email: "",
     password: "",
   });
-
+  
+  const [otp, setOtp] = useState("");
+  const [registeredEmail, setRegisteredEmail] = useState("");
+  const [userName, setUserName] = useState("");
+  const [userRole, setUserRole] = useState("CLIENT");
   const [loading, setLoading] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
   const [message, setMessage] = useState({ text: "", success: false });
-  const [otpInput, setOtpInput] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const goToLogin = (e?: React.MouseEvent) => {
-    if (e) e.preventDefault();
-    window.location.href = "/login";
-  };
-
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage({ text: "", success: false });
 
     try {
       const res = await registerUser(formData);
-
-      if (res.redirectToOtp) {
-        setEmailForOtp(res.email || formData.email);
+      if (res.success && res.redirectToOtp) {
+        setRegisteredEmail(res.email || formData.email);
+        setUserName(formData.name);
+        setUserRole(formData.role.includes("Diseñador") || formData.role.includes("SELLER") ? "SELLER" : "CLIENT");
         setStep("otp");
         setMessage({ text: res.message, success: true });
       } else {
-        setMessage({ text: res.message, success: res.success });
+        setMessage({ text: res.message || "Error al registrarse.", success: false });
       }
-    } catch (error) {
-      setMessage({ text: "Ocurrió un error en el servidor al procesar tu solicitud.", success: false });
+    } catch (err) {
+      setMessage({ text: "Error de conexión con el servidor.", success: false });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
+  const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage({ text: "", success: false });
 
     try {
-      const res = await verifyOtp(emailForOtp, otpInput);
-
+      const res = await verifyOtp(registeredEmail, otp);
       if (res.success) {
-        setMessage({ text: res.message, success: true });
-        setIsVerifiedSuccess(true);
+        // AQUÍ ESTÁ LA CLAVE: Guardamos la sesión exactamente como app/page.tsx la necesita
+        const userSession = {
+          name: userName,
+          email: registeredEmail,
+          role: userRole,
+        };
+        localStorage.setItem("user_session", JSON.stringify(userSession));
+
+        setMessage({ text: "¡Cuenta verificada! Entrando a tu armario...", success: true });
+        
+        // Redirección directa e ininterrumpida al armario digital principal
+        setTimeout(() => {
+          window.location.replace("/");
+        }, 500);
       } else {
-        setMessage({ text: res.message, success: false });
+        setMessage({ text: res.message || "Código OTP incorrecto.", success: false });
+        setLoading(false);
       }
-    } catch (error) {
-      setMessage({ text: "Error al validar el código OTP.", success: false });
-    } finally {
+    } catch (err) {
+      setMessage({ text: "Error al verificar el código.", success: false });
       setLoading(false);
     }
   };
 
-  const handleResendOtp = async () => {
-    setResendLoading(true);
-    setMessage({ text: "", success: false });
-
-    try {
-      const res = await resendOtp(emailForOtp);
-      setMessage({ text: res.message, success: res.success });
-    } catch (error) {
-      setMessage({ text: "Error al solicitar el reenvío del código OTP.", success: false });
-    } finally {
-      setResendLoading(false);
-    }
+  const handleResend = async () => {
+    setLoading(true);
+    const res = await resendOtp(registeredEmail);
+    setMessage({ text: res.message, success: res.success });
+    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white px-4">
-      <div className="relative max-w-sm w-full bg-[#181818] p-8 rounded-2xl shadow-2xl border-t-2 border-amber-500">
+    <div className="min-h-screen flex items-center justify-center bg-neutral-950 text-white px-4 py-8">
+      <div className="relative max-w-md w-full bg-neutral-900 border border-neutral-800 p-8 rounded-3xl shadow-2xl">
         
         <div className="flex flex-col items-center justify-center mb-6">
-          <div className="w-12 h-12 bg-amber-500 text-black font-extrabold text-xl rounded-xl flex items-center justify-center mb-3 shadow-md shadow-amber-500/20">
+          <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-amber-600 text-neutral-950 font-black text-xl rounded-2xl flex items-center justify-center mb-3 shadow-lg">
             R
           </div>
-          <h1 className="text-xl font-extrabold tracking-wider text-white">
-            PORTAL RËVA
-          </h1>
-          <p className="text-xs text-zinc-400 mt-1 text-center font-light">
-            {step === "form"
-              ? "Acceso seguro al probador virtual"
-              : `Ingresa el código enviado a ${emailForOtp}`}
+          <h1 className="text-xl font-black tracking-widest text-white">RËVA PORTAL</h1>
+          <p className="text-xs text-neutral-400 mt-1 text-center font-light">
+            {step === "form" ? "Crea tu cuenta para acceder al armario digital" : "Verificación de seguridad por correo"}
           </p>
         </div>
 
         {message.text && (
-          <div
-            className={`p-3 mb-5 rounded-xl text-xs font-medium text-center border ${
-              message.success
-                ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
-                : "bg-red-950/50 border-red-800/60 text-red-300"
-            }`}
-          >
+          <div className={`p-3 mb-5 rounded-xl text-xs font-medium text-center border ${
+            message.success ? "bg-amber-400/10 border-amber-400/30 text-amber-300" : "bg-red-950/50 border-red-900/40 text-red-300"
+          }`}>
             {message.text}
           </div>
         )}
 
         {step === "form" ? (
-          <form onSubmit={handleRegister} className="space-y-3.5">
-            <div className="relative">
-              <span className="absolute left-3.5 top-3 text-zinc-400 text-sm">👤</span>
+          <form onSubmit={handleRegisterSubmit} className="space-y-3.5 text-xs">
+            <div>
+              <label className="block text-neutral-400 mb-1">Nombre Completo</label>
               <input
                 type="text"
                 name="name"
                 required
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full pl-10 pr-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:border-amber-500 outline-none text-xs transition"
-                placeholder="Nombre completo"
+                className="w-full px-3.5 py-2.5 bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:border-amber-400 transition"
+                placeholder="Tu nombre"
               />
             </div>
 
-            <div className="relative">
-              <span className="absolute left-3.5 top-3 text-zinc-400 text-sm">📞</span>
+            <div>
+              <label className="block text-neutral-400 mb-1">Teléfono o Contacto</label>
               <input
                 type="text"
                 name="phone"
                 required
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full pl-10 pr-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:border-amber-500 outline-none text-xs transition"
-                placeholder="Teléfono"
+                className="w-full px-3.5 py-2.5 bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:border-amber-400 transition"
+                placeholder="3001234567"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] text-zinc-400 mb-1 ml-1">
-                Rol en la Plataforma:
-              </label>
+              <label className="block text-neutral-400 mb-1">Tipo de Usuario / Rol</label>
               <select
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white focus:border-amber-500 outline-none text-xs transition"
+                className="w-full px-3.5 py-2.5 bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:border-amber-400 transition"
               >
-                <option value="Cliente (Usuario Estándar)">Cliente (Usuario Estándar)</option>
-                <option value="Diseñador / Marca">Diseñador / Marca</option>
+                <option value="CLIENTE (Armario Personal)">CLIENTE (Armario Personal & Wishlist)</option>
+                <option value="SELLER (Diseñador / Vendedor)">SELLER (Diseñador / Vendedor - Publicar Prendas)</option>
               </select>
             </div>
 
-            <div className="relative">
-              <span className="absolute left-3.5 top-3 text-zinc-400 text-sm">✉️</span>
+            <div>
+              <label className="block text-neutral-400 mb-1">Correo Electrónico</label>
               <input
                 type="email"
                 name="email"
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full pl-10 pr-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:border-amber-500 outline-none text-xs transition"
-                placeholder="Correo electrónico"
+                className="w-full px-3.5 py-2.5 bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:border-amber-400 transition"
+                placeholder="correo@ejemplo.com"
               />
             </div>
 
-            <div className="relative">
-              <span className="absolute left-3.5 top-3 text-zinc-400 text-sm">🔒</span>
+            <div>
+              <label className="block text-neutral-400 mb-1">Contraseña</label>
               <input
                 type="password"
                 name="password"
                 required
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full pl-10 pr-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:border-amber-500 outline-none text-xs transition"
-                placeholder="Contraseña"
+                className="w-full px-3.5 py-2.5 bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:border-amber-400 transition"
+                placeholder="••••••••"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-[#b38308] hover:bg-amber-600 text-black font-extrabold rounded-xl transition duration-200 disabled:opacity-50 text-xs cursor-pointer mt-2 shadow-md"
+              className="w-full py-3 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-black rounded-xl transition cursor-pointer shadow-lg mt-2 disabled:opacity-50"
             >
-              {loading ? "Procesando..." : "Continuar con Verificación OTP"}
+              {loading ? "Registrando..." : "Registrarse y Enviar OTP"}
             </button>
 
             <div className="text-center pt-3">
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-neutral-400">
                 ¿Ya tienes cuenta?{" "}
-                <button
-                  type="button"
-                  onClick={goToLogin}
-                  className="text-zinc-300 hover:text-amber-400 font-semibold underline transition cursor-pointer bg-transparent border-none p-0 inline"
-                >
+                <a href="/login" className="text-amber-400 hover:underline font-semibold">
                   Inicia sesión
-                </button>
+                </a>
               </p>
             </div>
           </form>
         ) : (
-          <div className="space-y-4">
-            {!isVerifiedSuccess ? (
-              <form onSubmit={handleVerifyOtp} className="space-y-4">
-                <div>
-                  <label className="block text-xs text-zinc-400 mb-2 text-center">
-                    Código OTP de 6 dígitos
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={6}
-                    required
-                    value={otpInput}
-                    onChange={(e) => setOtpInput(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#101010] border border-zinc-800 rounded-xl text-center tracking-[0.4em] text-xl font-bold text-amber-400 focus:border-amber-500 outline-none transition"
-                    placeholder="123456"
-                  />
-                </div>
+          <form onSubmit={handleVerifyOtpSubmit} className="space-y-4 text-xs">
+            <p className="text-neutral-300 text-center text-xs">
+              Hemos enviado un código de 6 dígitos a <span className="text-amber-400 font-bold">{registeredEmail}</span>.
+            </p>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 bg-[#b38308] hover:bg-amber-600 text-black font-extrabold rounded-xl transition duration-200 disabled:opacity-50 text-xs cursor-pointer shadow-md"
-                >
-                  {loading ? "Validando..." : "Verificar Código OTP"}
-                </button>
+            <div>
+              <input
+                type="text"
+                required
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                className="w-full px-4 py-3 bg-neutral-950 border border-neutral-800 rounded-xl text-white text-center text-lg tracking-widest font-black outline-none focus:border-amber-400 transition"
+                placeholder="123456"
+              />
+            </div>
 
-                <div className="text-center mt-3 space-y-2">
-                  <div>
-                    <button
-                      type="button"
-                      onClick={handleResendOtp}
-                      disabled={resendLoading}
-                      className="text-xs text-zinc-400 hover:text-amber-400 transition font-medium disabled:opacity-50 cursor-pointer bg-transparent border-none"
-                    >
-                      {resendLoading ? "Enviando..." : "¿No recibiste el código? Reenviar OTP"}
-                    </button>
-                  </div>
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => setStep("form")}
-                      className="text-xs text-amber-400 hover:underline font-semibold cursor-pointer bg-transparent border-none mr-3"
-                    >
-                      ← Cambiar datos
-                    </button>
-                    <button
-                      type="button"
-                      onClick={goToLogin}
-                      className="text-xs text-zinc-400 hover:text-amber-400 underline font-semibold cursor-pointer bg-transparent border-none"
-                    >
-                      Inicia sesión
-                    </button>
-                  </div>
-                </div>
-              </form>
-            ) : (
-              <div className="pt-2 text-center space-y-4">
-                <button
-                  type="button"
-                  onClick={goToLogin}
-                  className="w-full py-3 bg-[#b38308] hover:bg-amber-600 text-black font-extrabold text-center rounded-xl transition duration-200 text-xs shadow-md cursor-pointer"
-                >
-                  Iniciar Sesión de una vez
-                </button>
-              </div>
-            )}
-          </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-black rounded-xl transition cursor-pointer shadow-lg disabled:opacity-50"
+            >
+              {loading ? "Verificando..." : "Confirmar Código y Entrar"}
+            </button>
+
+            <div className="flex items-center justify-between pt-2">
+              <button
+                type="button"
+                onClick={handleResend}
+                className="text-neutral-400 hover:text-amber-400 underline transition text-xs"
+              >
+                Reenviar código
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep("form")}
+                className="text-neutral-400 hover:text-white underline transition text-xs"
+              >
+                Volver al registro
+              </button>
+            </div>
+          </form>
         )}
       </div>
     </div>
