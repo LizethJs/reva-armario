@@ -2,11 +2,9 @@
 
 import { useState } from "react";
 import { registerUser, verifyOtp, resendOtp } from "../actions/auth";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function RegisterPage() {
-  const router = useRouter();
-  
   const [step, setStep] = useState<"form" | "otp">("form");
   const [emailForOtp, setEmailForOtp] = useState("");
   const [isVerifiedSuccess, setIsVerifiedSuccess] = useState(false);
@@ -26,12 +24,6 @@ export default function RegisterPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  // Función para redirigir directamente al Login sin interferencia del formulario
-  const goToLogin = (e?: React.MouseEvent) => {
-    if (e) e.preventDefault();
-    router.push("/login");
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -92,30 +84,27 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white px-4 selection:bg-yellow-400 selection:text-black">
-      {/* Glow de fondo corporativo RËVA */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-yellow-500/10 via-black to-black pointer-events-none" />
-
-      <div className="relative max-w-md w-full bg-zinc-950/90 backdrop-blur-xl p-8 rounded-3xl border border-yellow-500/20 shadow-[0_0_50px_-12px_rgba(234,179,8,0.15)]">
+    <div className="min-h-screen flex items-center justify-center bg-[#0d0f12] text-white px-4">
+      <div className="max-w-md w-full bg-[#16191e] p-8 rounded-2xl shadow-2xl border border-zinc-800">
         
-        {/* Marca RËVA */}
+        {/* Título de Marca RËVA Original */}
         <div className="text-center mb-6">
-          <h1 className="text-4xl font-black tracking-widest text-yellow-400 mb-1 drop-shadow-[0_0_10px_rgba(250,204,21,0.3)]">
-            RËVA
+          <h1 className="text-4xl font-extrabold text-yellow-400 tracking-wider mb-2">
+            REVA
           </h1>
-          <p className="text-xs text-zinc-400 font-light">
+          <p className="text-xs text-zinc-400">
             {step === "form"
               ? "Ingresa tus datos para comenzar tu experiencia virtual"
               : `Hemos enviado un código de 6 dígitos a ${emailForOtp}`}
           </p>
         </div>
 
-        {/* Mensaje de respuesta */}
+        {/* Mensajes de respuesta del servidor */}
         {message.text && (
           <div
-            className={`p-3.5 mb-6 rounded-2xl text-xs font-semibold text-center border transition-all ${
+            className={`p-3 mb-6 rounded-xl text-xs font-medium text-center border ${
               message.success
-                ? "bg-yellow-400/10 border-yellow-400/40 text-yellow-300"
+                ? "bg-yellow-400/10 border-yellow-500/40 text-yellow-300"
                 : "bg-red-500/10 border-red-500/40 text-red-400"
             }`}
           >
@@ -127,7 +116,7 @@ export default function RegisterPage() {
         {step === "form" ? (
           <form onSubmit={handleRegister} className="space-y-4">
             <div>
-              <label className="block text-[11px] uppercase tracking-wider font-semibold text-zinc-300 mb-1.5">
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">
                 Nombre Completo
               </label>
               <input
@@ -136,13 +125,13 @@ export default function RegisterPage() {
                 required
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white placeholder-zinc-600 outline-none transition text-sm font-light [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_#18181b_inset]"
-                placeholder="Tu nombre"
+                className="w-full px-4 py-2.5 bg-[#1f2329] border border-zinc-700 rounded-xl focus:border-yellow-400 text-white placeholder-zinc-500 outline-none transition"
+                placeholder="valeria"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] uppercase tracking-wider font-semibold text-zinc-300 mb-1.5">
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">
                 Teléfono
               </label>
               <input
@@ -151,20 +140,20 @@ export default function RegisterPage() {
                 required
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white placeholder-zinc-600 outline-none transition text-sm font-light [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_#18181b_inset]"
-                placeholder="3001234567"
+                className="w-full px-4 py-2.5 bg-[#1f2329] border border-zinc-700 rounded-xl focus:border-yellow-400 text-white placeholder-zinc-500 outline-none transition"
+                placeholder="123456"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] uppercase tracking-wider font-semibold text-zinc-300 mb-1.5">
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">
                 Rol
               </label>
               <select
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white outline-none transition text-sm font-light"
+                className="w-full px-4 py-2.5 bg-[#1f2329] border border-zinc-700 rounded-xl focus:border-yellow-400 text-white outline-none transition"
               >
                 <option value="Cliente (Usuario Estándar)">Cliente (Usuario Estándar)</option>
                 <option value="Diseñador / Marca">Diseñador / Marca</option>
@@ -172,7 +161,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-[11px] uppercase tracking-wider font-semibold text-zinc-300 mb-1.5">
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">
                 Correo Electrónico
               </label>
               <input
@@ -181,13 +170,13 @@ export default function RegisterPage() {
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white placeholder-zinc-600 outline-none transition text-sm font-light [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_#18181b_inset]"
-                placeholder="correo@ejemplo.com"
+                className="w-full px-4 py-2.5 bg-[#1f2329] border border-zinc-700 rounded-xl focus:border-yellow-400 text-white placeholder-zinc-500 outline-none transition"
+                placeholder="ciberpruebas893@gmail.com"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] uppercase tracking-wider font-semibold text-zinc-300 mb-1.5">
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">
                 Contraseña
               </label>
               <input
@@ -196,7 +185,7 @@ export default function RegisterPage() {
                 required
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white placeholder-zinc-600 outline-none transition text-sm font-light [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_#18181b_inset]"
+                className="w-full px-4 py-2.5 bg-[#1f2329] border border-zinc-700 rounded-xl focus:border-yellow-400 text-white placeholder-zinc-500 outline-none transition"
                 placeholder="••••••••"
               />
             </div>
@@ -204,22 +193,21 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold rounded-xl transition-all duration-300 disabled:opacity-50 mt-2 text-sm tracking-wider shadow-[0_0_20px_rgba(250,204,21,0.25)] hover:shadow-[0_0_25px_rgba(250,204,21,0.45)] cursor-pointer active:scale-[0.99]"
+              className="w-full py-3 bg-yellow-400 hover:bg-yellow-300 text-black font-bold rounded-xl transition duration-200 disabled:opacity-50 mt-2 text-sm"
             >
               {loading ? "Procesando registro..." : "Registrarse"}
             </button>
 
-            {/* Redirección forzada e inmediata mediante goToLogin */}
+            {/* Enlace directo a /login usando Link nativo */}
             <div className="pt-3 text-center">
               <p className="text-xs text-zinc-400">
                 ¿Ya tienes una cuenta?{" "}
-                <button
-                  type="button"
-                  onClick={goToLogin}
-                  className="text-yellow-400 hover:text-yellow-300 underline font-bold transition-colors cursor-pointer inline-block"
+                <Link
+                  href="/login"
+                  className="text-yellow-400 hover:underline font-bold transition"
                 >
                   Inicia sesión
-                </button>
+                </Link>
               </p>
             </div>
           </form>
@@ -229,7 +217,7 @@ export default function RegisterPage() {
             {!isVerifiedSuccess ? (
               <form onSubmit={handleVerifyOtp} className="space-y-4">
                 <div>
-                  <label className="block text-[11px] uppercase tracking-wider font-semibold text-zinc-300 mb-2 text-center">
+                  <label className="block text-xs font-semibold text-zinc-300 mb-2 text-center">
                     Código OTP (6 dígitos)
                   </label>
                   <input
@@ -238,7 +226,7 @@ export default function RegisterPage() {
                     required
                     value={otpInput}
                     onChange={(e) => setOtpInput(e.target.value)}
-                    className="w-full px-4 py-3.5 bg-zinc-900 border border-zinc-800 rounded-xl text-center tracking-[0.4em] text-2xl font-black focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-yellow-400 outline-none transition [&:-webkit-autofill]:[-webkit-text-fill-color:#facc15] [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_#18181b_inset]"
+                    className="w-full px-4 py-3 bg-[#1f2329] border border-zinc-700 rounded-xl text-center tracking-[0.4em] text-2xl font-bold focus:border-yellow-400 text-yellow-400 outline-none transition"
                     placeholder="123456"
                   />
                 </div>
@@ -246,7 +234,7 @@ export default function RegisterPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold rounded-xl transition-all duration-300 disabled:opacity-50 text-sm tracking-wider shadow-[0_0_20px_rgba(250,204,21,0.25)] hover:shadow-[0_0_25px_rgba(250,204,21,0.45)] cursor-pointer active:scale-[0.99]"
+                  className="w-full py-3 bg-yellow-400 hover:bg-yellow-300 text-black font-bold rounded-xl transition duration-200 disabled:opacity-50 text-sm"
                 >
                   {loading ? "Verificando..." : "Verificar Cuenta"}
                 </button>
@@ -257,32 +245,30 @@ export default function RegisterPage() {
                       type="button"
                       onClick={handleResendOtp}
                       disabled={resendLoading}
-                      className="text-xs text-zinc-400 hover:text-yellow-400 transition font-medium disabled:opacity-50 cursor-pointer"
+                      className="text-xs text-zinc-400 hover:text-yellow-400 transition font-medium disabled:opacity-50"
                     >
                       {resendLoading ? "Enviando..." : "¿No recibiste el código? Reenviar OTP"}
                     </button>
                   </div>
                   <div>
-                    <button
-                      type="button"
-                      onClick={goToLogin}
-                      className="text-xs text-yellow-400 hover:underline font-bold cursor-pointer inline-block"
+                    <Link
+                      href="/login"
+                      className="text-xs text-yellow-400 hover:underline font-bold"
                     >
                       Volver a Iniciar Sesión
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </form>
             ) : (
               /* Botón directo tras verificar */
               <div className="pt-2 text-center space-y-4">
-                <button
-                  type="button"
-                  onClick={goToLogin}
-                  className="w-full py-3.5 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold text-center rounded-xl transition-all duration-300 text-sm tracking-wider shadow-[0_0_25px_rgba(250,204,21,0.4)] cursor-pointer active:scale-[0.99]"
+                <Link
+                  href="/login"
+                  className="block w-full py-3 bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-center rounded-xl transition duration-200 text-sm"
                 >
-                  INICIAR SESIÓN AHORA
-                </button>
+                  Iniciar Sesión de una vez
+                </Link>
               </div>
             )}
           </div>
