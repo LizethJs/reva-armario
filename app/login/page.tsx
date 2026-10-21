@@ -24,14 +24,9 @@ export default function LoginPage() {
     try {
       const res = await loginUser(formData);
 
-      if (res.success) {
-        // Guardar sesión para que app/page.tsx cargue la cámara y el armario correctamente
-        const sessionPayload = {
-          name: res.user?.name || "Usuario RËVA",
-          email: formData.email,
-          role: res.user?.role || "CLIENT",
-        };
-        localStorage.setItem("user_session", JSON.stringify(sessionPayload));
+      if (res.success && res.user) {
+        // Almacenamos la estructura completa que espera app/page.tsx
+        localStorage.setItem("user_session", JSON.stringify(res.user));
 
         setMessage({ text: "¡Inicio de sesión exitoso! Entrando al probador...", success: true });
         setTimeout(() => {
