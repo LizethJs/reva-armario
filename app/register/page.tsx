@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { registerUser, verifyOtp, resendOtp } from "../actions/auth";
-import Link from "next/link";
 
 export default function RegisterPage() {
   const [step, setStep] = useState<"form" | "otp">("form");
@@ -24,6 +23,11 @@ export default function RegisterPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // Navegación nativa hacia la ruta /login (app/login/page.tsx)
+  const goToLogin = () => {
+    window.location.href = "/login";
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -85,143 +89,136 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-white px-4">
-      <div className="max-w-md w-full bg-[#121316] p-8 rounded-3xl border border-zinc-800 shadow-2xl">
+      {/* Tarjeta con línea superior dorada estilo RËVA */}
+      <div className="relative max-w-sm w-full bg-[#181818] p-8 rounded-2xl shadow-2xl border-t-2 border-amber-500">
         
-        {/* LOGO E INSI GNIA DE TU CAPTURA */}
+        {/* Logo 'R' y Encabezado de la interfaz */}
         <div className="flex flex-col items-center justify-center mb-6">
-          <div className="w-14 h-14 bg-[#facc15] text-black font-black text-2xl rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-yellow-500/10">
+          <div className="w-12 h-12 bg-amber-500 text-black font-extrabold text-xl rounded-xl flex items-center justify-center mb-3 shadow-md shadow-amber-500/20">
             R
           </div>
-          <h1 className="text-2xl font-extrabold tracking-wider text-white">
+          <h1 className="text-xl font-extrabold tracking-wider text-white">
             PORTAL RËVA
           </h1>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-xs text-zinc-400 mt-1 text-center font-light">
             {step === "form"
-              ? "Registro de cuenta con validación OTP"
-              : `Código de verificación enviado a ${emailForOtp}`}
+              ? "Acceso seguro al probador virtual"
+              : `Código OTP enviado a ${emailForOtp}`}
           </p>
         </div>
 
-        {/* ALERTA VISUAL IDÉNTICA A TU CAPTURA */}
+        {/* Notificaciones de servidor */}
         {message.text && (
           <div
-            className={`p-3.5 mb-6 rounded-2xl text-xs font-medium text-center border ${
+            className={`p-3 mb-5 rounded-xl text-xs font-medium text-center border ${
               message.success
-                ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-300"
-                : "bg-red-950/40 border-red-800/60 text-red-300"
+                ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                : "bg-red-950/50 border-red-800/60 text-red-300"
             }`}
           >
-            <div className="flex items-center justify-center gap-2">
-              <span>⚠️</span>
-              <span>{message.text}</span>
-            </div>
+            {message.text}
           </div>
         )}
 
-        {/* VISTA 1: FORMULARIO */}
+        {/* VISTA 1: FORMULARIO DE REGISTRO */}
         {step === "form" ? (
-          <form onSubmit={handleRegister} className="space-y-4">
-            {/* Nombre */}
+          <form onSubmit={handleRegister} className="space-y-3.5">
             <div className="relative">
-              <span className="absolute left-4 top-3.5 text-zinc-500 text-sm">👤</span>
+              <span className="absolute left-3.5 top-3 text-zinc-400 text-sm">👤</span>
               <input
                 type="text"
                 name="name"
                 required
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full pl-11 pr-4 py-3 bg-[#181a1f] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:border-yellow-400 outline-none text-sm font-light transition"
+                className="w-full pl-10 pr-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:border-amber-500 outline-none text-xs transition"
                 placeholder="Nombre completo"
               />
             </div>
 
-            {/* Teléfono */}
             <div className="relative">
-              <span className="absolute left-4 top-3.5 text-zinc-500 text-sm">📞</span>
+              <span className="absolute left-3.5 top-3 text-zinc-400 text-sm">📞</span>
               <input
                 type="text"
                 name="phone"
                 required
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full pl-11 pr-4 py-3 bg-[#181a1f] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:border-yellow-400 outline-none text-sm font-light transition"
+                className="w-full pl-10 pr-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:border-amber-500 outline-none text-xs transition"
                 placeholder="Teléfono"
               />
             </div>
 
-            {/* Rol */}
             <div>
-              <label className="block text-xs font-semibold text-zinc-400 mb-1 ml-1">
+              <label className="block text-[11px] text-zinc-400 mb-1 ml-1">
                 Rol en la Plataforma:
               </label>
               <select
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-[#181a1f] border border-zinc-800 rounded-xl text-white focus:border-yellow-400 outline-none text-sm font-light transition"
+                className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white focus:border-amber-500 outline-none text-xs transition"
               >
                 <option value="Cliente (Usuario Estándar)">Cliente (Usuario Estándar)</option>
                 <option value="Diseñador / Marca">Diseñador / Marca</option>
               </select>
             </div>
 
-            {/* Correo */}
             <div className="relative">
-              <span className="absolute left-4 top-3.5 text-zinc-500 text-sm">✉️</span>
+              <span className="absolute left-3.5 top-3 text-zinc-400 text-sm">✉️</span>
               <input
                 type="email"
                 name="email"
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full pl-11 pr-4 py-3 bg-[#181a1f] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:border-yellow-400 outline-none text-sm font-light transition"
+                className="w-full pl-10 pr-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:border-amber-500 outline-none text-xs transition"
                 placeholder="Correo electrónico"
               />
             </div>
 
-            {/* Contraseña */}
             <div className="relative">
-              <span className="absolute left-4 top-3.5 text-zinc-500 text-sm">🔒</span>
+              <span className="absolute left-3.5 top-3 text-zinc-400 text-sm">🔒</span>
               <input
                 type="password"
                 name="password"
                 required
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full pl-11 pr-4 py-3 bg-[#181a1f] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:border-yellow-400 outline-none text-sm font-light transition"
+                className="w-full pl-10 pr-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:border-amber-500 outline-none text-xs transition"
                 placeholder="Contraseña"
               />
             </div>
 
-            {/* BOTÓN AMARILLO DE TU CAPTURA */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold rounded-xl transition duration-200 disabled:opacity-50 text-sm cursor-pointer mt-2 shadow-md shadow-yellow-500/10"
+              className="w-full py-3 bg-[#b38308] hover:bg-amber-600 text-black font-extrabold rounded-xl transition duration-200 disabled:opacity-50 text-xs cursor-pointer mt-2 shadow-md"
             >
               {loading ? "Procesando..." : "Continuar con Verificación OTP"}
             </button>
 
-            {/* ENLACE FUNCIONAL A LOGIN */}
+            {/* Redirección limpia hacia app/login/page.tsx */}
             <div className="text-center pt-3">
               <p className="text-xs text-zinc-400">
                 ¿Ya tienes cuenta?{" "}
-                <Link
-                  href="/login"
-                  className="text-zinc-300 hover:text-yellow-400 font-semibold underline transition cursor-pointer"
+                <button
+                  type="button"
+                  onClick={goToLogin}
+                  className="text-zinc-300 hover:text-amber-400 font-semibold underline transition cursor-pointer bg-transparent border-none p-0 inline"
                 >
                   Inicia sesión
-                </Link>
+                </button>
               </p>
             </div>
           </form>
         ) : (
-          /* VISTA 2: CÓDIGO OTP */
+          /* VISTA 2: VERIFICACIÓN OTP */
           <div className="space-y-4">
             {!isVerifiedSuccess ? (
               <form onSubmit={handleVerifyOtp} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-400 mb-2 text-center">
+                  <label className="block text-xs text-zinc-400 mb-2 text-center">
                     Ingresa el código OTP (6 dígitos)
                   </label>
                   <input
@@ -230,7 +227,7 @@ export default function RegisterPage() {
                     required
                     value={otpInput}
                     onChange={(e) => setOtpInput(e.target.value)}
-                    className="w-full px-4 py-3.5 bg-[#181a1f] border border-zinc-800 rounded-xl text-center tracking-[0.4em] text-2xl font-black text-yellow-400 focus:border-yellow-400 outline-none transition"
+                    className="w-full px-4 py-3 bg-[#101010] border border-zinc-800 rounded-xl text-center tracking-[0.4em] text-xl font-bold text-amber-400 focus:border-amber-500 outline-none transition"
                     placeholder="123456"
                   />
                 </div>
@@ -238,7 +235,7 @@ export default function RegisterPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold rounded-xl transition duration-200 disabled:opacity-50 text-sm cursor-pointer shadow-md"
+                  className="w-full py-3 bg-[#b38308] hover:bg-amber-600 text-black font-extrabold rounded-xl transition duration-200 disabled:opacity-50 text-xs cursor-pointer shadow-md"
                 >
                   {loading ? "Validando..." : "Verificar Código OTP"}
                 </button>
@@ -249,30 +246,31 @@ export default function RegisterPage() {
                       type="button"
                       onClick={handleResendOtp}
                       disabled={resendLoading}
-                      className="text-xs text-zinc-400 hover:text-yellow-400 transition font-medium disabled:opacity-50 cursor-pointer"
+                      className="text-xs text-zinc-400 hover:text-amber-400 transition font-medium disabled:opacity-50 cursor-pointer bg-transparent border-none"
                     >
                       {resendLoading ? "Enviando..." : "¿No recibiste el código? Reenviar OTP"}
                     </button>
                   </div>
                   <div>
-                    <Link
-                      href="/login"
-                      className="text-xs text-yellow-400 hover:underline font-semibold"
+                    <button
+                      type="button"
+                      onClick={goToLogin}
+                      className="text-xs text-amber-400 hover:underline font-semibold cursor-pointer bg-transparent border-none"
                     >
                       Volver a Iniciar Sesión
-                    </Link>
+                    </button>
                   </div>
                 </div>
               </form>
             ) : (
-              /* TRAS VERIFICAR CON ÉXITO */
               <div className="pt-2 text-center space-y-4">
-                <Link
-                  href="/login"
-                  className="block w-full py-3.5 bg-[#facc15] hover:bg-yellow-300 text-black font-extrabold text-center rounded-xl transition duration-200 text-sm shadow-md"
+                <button
+                  type="button"
+                  onClick={goToLogin}
+                  className="w-full py-3 bg-[#b38308] hover:bg-amber-600 text-black font-extrabold text-center rounded-xl transition duration-200 text-xs shadow-md cursor-pointer"
                 >
                   Iniciar Sesión de una vez
-                </Link>
+                </button>
               </div>
             )}
           </div>
