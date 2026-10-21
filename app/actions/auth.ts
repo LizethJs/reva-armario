@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 
-// Configuración de Nodemailer interna para asegurar estabilidad en el servidor
+// Configuración interna de Nodemailer para evitar errores de importaciones externas
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_SERVER_HOST || "smtp.gmail.com",
   port: Number(process.env.EMAIL_SERVER_PORT) || 587,
@@ -36,7 +36,7 @@ async function sendOtpEmailDirect(email: string, otp: string) {
   }
 }
 
-// --- 1. REGISTRO INTELIGENTE (Maneja cuentas ya creadas pero no verificadas) ---
+// --- 1. REGISTRO INTELIGENTE ---
 export async function registerUser(formData: {
   name: string;
   phone: string;
@@ -56,7 +56,6 @@ export async function registerUser(formData: {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     if (existingUser) {
-      // CASO A: Ya está registrado y ya verificó su cuenta
       if (existingUser.emailVerified) {
         return {
           success: false,
@@ -64,7 +63,6 @@ export async function registerUser(formData: {
         };
       }
 
-      // CASO B: Está registrado pero NO verificado -> Actualiza y reenvía OTP automáticamente
       await prisma.user.update({
         where: { email },
         data: {
@@ -87,7 +85,6 @@ export async function registerUser(formData: {
       };
     }
 
-    // CASO C: Usuario completamente nuevo
     await prisma.user.create({
       data: {
         name,
@@ -118,7 +115,7 @@ export async function registerUser(formData: {
   }
 }
 
-// --- 2. VERIFICAR CÓDIGO OTP ---
+// --- 2. VERIFICAR CÓDIGO OTP (EXPORTADO) ---
 export async function verifyOtp(email: string, otpInput: string) {
   try {
     const user = await prisma.user.findUnique({
@@ -156,7 +153,7 @@ export async function verifyOtp(email: string, otpInput: string) {
   }
 }
 
-// --- 3. REENVIAR CÓDIGO OTP (Para la interfaz o pantallas de acceso) ---
+// --- 3. REENVIAR CÓDIGO OTP (EXPORTADO) ---
 export async function resendOtp(email: string) {
   try {
     const user = await prisma.user.findUnique({
