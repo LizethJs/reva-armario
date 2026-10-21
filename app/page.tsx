@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { VirtualTryOnCam } from './components/VirtualTryOnCam';
 import WardrobeManager from './components/WardrobeManager';
 import { Plus, LogOut, UserCheck, X, ShoppingBag, User as UserIcon, ExternalLink } from 'lucide-react';
@@ -25,7 +24,6 @@ export interface WishlistItem extends Garment {
 }
 
 export default function Home() {
-  const router = useRouter();
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: string; contact?: string } | null>(null);
   const [loadingSession, setLoadingSession] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -33,7 +31,7 @@ export default function Home() {
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [showWishlistDrawer, setShowWishlistDrawer] = useState(false);
 
-  // Armario con prendas iniciales de la nube / repositorio
+  // Armario digital inicial con datos de demostración
   const [wardrobe, setWardrobe] = useState<Garment[]>([
     {
       id: '1',
@@ -73,8 +71,8 @@ export default function Home() {
   const [newVendorContact, setNewVendorContact] = useState('');
 
   useEffect(() => {
-    // REVISIÓN STRICTA DE SESIÓN:
-    // Si no hay sesión válida tras login/registro, redirige inmediatamente a /login
+    // VALIDACIÓN ESTRICTA DE SEGURIDAD:
+    // Si no existe una sesión activa y verificada en localStorage, expulsa a /login inmediatamente.
     const sessionData = localStorage.getItem('user_session');
 
     if (!sessionData) {
@@ -85,9 +83,11 @@ export default function Home() {
     try {
       const parsedUser = JSON.parse(sessionData);
       if (!parsedUser || !parsedUser.email) {
+        localStorage.removeItem('user_session');
         window.location.href = '/login';
         return;
       }
+
       setCurrentUser(parsedUser);
       if (parsedUser.role === 'SELLER') {
         setNewVendorName(parsedUser.name || '');
@@ -100,7 +100,6 @@ export default function Home() {
     }
   }, []);
 
-  // Subida de imagen con conversión/procesamiento base64 (remoción de fondo previa en componentes)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -161,12 +160,12 @@ export default function Home() {
     setWishlist(prev => prev.filter(item => !(item.id === id && (!size || item.selectedSize === size))));
   };
 
-  // Indicador de verificación de sesión antes de renderizar la cámara
+  // Pantalla de carga mientras se valida la sesión
   if (loadingSession) {
     return (
       <div className="min-h-screen bg-neutral-950 text-amber-400 flex flex-col items-center justify-center font-bold tracking-widest text-sm gap-3">
         <div className="w-10 h-10 border-4 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
-        VERIFICANDO AUTENTICACIÓN Y ENTORNO RËVA...
+        VERIFICANDO CREDENCIALES RËVA...
       </div>
     );
   }
@@ -199,7 +198,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Acciones del Encabezado */}
+        {/* Acciones */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center w-full md:w-auto">
           <button
             onClick={() => setShowWishlistDrawer(true)}
@@ -219,7 +218,7 @@ export default function Home() {
               onClick={() => setShowAddModal(true)}
               className="bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-extrabold px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xl"
             >
-              <Plus className="w-4 h-4"/> Publicar Prenda
+              <Plus className="w-4 h-4"/> Publicar
             </button>
           )}
 
@@ -269,13 +268,13 @@ export default function Home() {
         </div>
       )}
 
-      {/* MODAL DE PUBLICAR PRENDA (SUBIDA Y REMOCIÓN DE FONDO) */}
+      {/* MODAL DE PUBLICAR PRENDA */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-neutral-950/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 p-6 rounded-3xl shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
               <h3 className="text-sm font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                <Plus className="w-4 h-4"/> Publicar Prenda
+                <Plus className="w-4 h-4"/> Publicar Nueva Prenda
               </h3>
               <button onClick={() => setShowAddModal(false)} className="text-neutral-400 hover:text-white bg-neutral-800 p-1.5 rounded-xl cursor-pointer">
                 <X className="w-4 h-4"/>
@@ -331,7 +330,7 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="block text-neutral-400 mb-1">URL de Tienda Externa</label>
+                <label className="block text-neutral-400 mb-1">URL de Compra Externa</label>
                 <input
                   type="url"
                   value={newStoreUrl}
@@ -403,7 +402,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* CÁMARA Y ARMARIO DIGITAL */}
+      {/* COMPONENTES PRINCIPALES */}
       <div className="w-full max-w-6xl flex flex-col gap-6">
         <VirtualTryOnCam onAddToCart={handleAddToCart} wardrobe={wardrobe} />
         <WardrobeManager 

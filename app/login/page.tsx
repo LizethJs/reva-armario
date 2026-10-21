@@ -6,34 +6,27 @@ import { loginUser } from "../actions/auth";
 export default function LoginPage() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMessage("");
 
     try {
       const res = await loginUser(formData);
 
       if (res && res.success && res.user) {
         localStorage.setItem("user_session", JSON.stringify(res.user));
+        window.location.href = "/";
       } else {
-        const sessionBackup = {
-          name: formData.email ? formData.email.split("@")[0] : "Diseñador RËVA",
-          email: formData.email || "admin@reva.com",
-          role: "SELLER"
-        };
-        localStorage.setItem("user_session", JSON.stringify(sessionBackup));
+        setErrorMessage(res?.message || "Correo o contraseña incorrectos.");
+        setLoading(false);
       }
-    } catch (err) {
-      const sessionBackup = {
-        name: "Diseñador RËVA",
-        email: formData.email || "admin@reva.com",
-        role: "SELLER"
-      };
-      localStorage.setItem("user_session", JSON.stringify(sessionBackup));
+    } catch (err: any) {
+      setErrorMessage("Error al conectar con la base de datos.");
+      setLoading(false);
     }
-
-    window.location.href = "/";
   };
 
   return (
@@ -46,6 +39,12 @@ export default function LoginPage() {
           <h1 className="text-xl font-extrabold tracking-wider text-white">PORTAL RËVA</h1>
           <p className="text-xs text-zinc-400 mt-1">Acceso al armario digital y probador</p>
         </div>
+
+        {errorMessage && (
+          <div className="p-3 mb-4 rounded-xl text-xs font-medium text-center bg-red-950/50 border border-red-800 text-red-300">
+            {errorMessage}
+          </div>
+        )}
 
         <form onSubmit={handleLogin} className="space-y-4">
           <input
@@ -73,7 +72,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-extrabold rounded-xl text-xs transition cursor-pointer disabled:opacity-50"
           >
-            {loading ? "Entrando..." : "Iniciar Sesión"}
+            {loading ? "Validando cuenta..." : "Iniciar Sesión"}
           </button>
 
           <div className="text-center pt-2">
