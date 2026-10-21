@@ -1,10 +1,42 @@
 "use server";
 
-import { prisma } from "../lib/prisma";
-import { sendOtpEmail } from "../lib/nodemailer"; // O cambia a "../utils/nodemailer" si tu archivo está en utils
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import nodemailer from "nodemailer";
 
-// --- ACTION 1: REGISTRO / RE-GENERACIÓN DE OTP SI NO ESTÁ VERIFICADO ---
+// Configuración de Nodemailer interna para asegurar estabilidad en el servidor
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_SERVER_HOST || "smtp.gmail.com",
+  port: Number(process.env.EMAIL_SERVER_PORT) || 587,
+  secure: false,
+  auth: {
+    user: process.env.EMAIL_SERVER_USER,
+    pass: process.env.EMAIL_SERVER_PASSWORD,
+  },
+});
+
+async function sendOtpEmailDirect(email: string, otp: string) {
+  try {
+    await transporter.sendMail({
+      from: `"RËVA Soporte" <${process.env.EMAIL_SERVER_USER}>`,
+      to: email,
+      subject: "Código de Verificación OTP - RËVA",
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h2 style="color: #4f46e5;">Bienvenido a RËVA</h2>
+          <p>Tu código de verificación OTP es:</p>
+          <h1 style="background: #f3f4f6; padding: 10px 20px; display: inline-block; letter-spacing: 5px; color: #111;">${otp}</h1>
+          <p>Este código expirará en 15 minutos.</p>
+        </div>
+      `,
+    });
+  } catch (error) {
+    console.error("Error al enviar el correo con nodemailer:", error);
+    throw new Error("No se pudo enviar el correo electrónico.");
+  }
+}
+
+// --- 1. REGISTRO INTELIGENTE (Maneja cuentas ya creadas pero no verificadas) ---
 export async function registerUser(formData: {
   name: string;
   phone: string;
@@ -24,13 +56,15 @@ export async function registerUser(formData: {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     if (existingUser) {
+      // CASO A: Ya está registrado y ya verificó su cuenta
       if (existingUser.emailVerified) {
         return {
           success: false,
-          message: "El correo electrónico ya está registrado y verificado.",
+          message: "El correo electrónico ya está registrado y verificado. Por favor inicia sesión.",
         };
       }
 
+      // CASO B: Está registrado pero NO verificado -> Actualiza y reenvía OTP automáticamente
       await prisma.user.update({
         where: { email },
         data: {
@@ -43,16 +77,17 @@ export async function registerUser(formData: {
         },
       });
 
-      await sendOtpEmail(email, otpCode);
+      await sendOtpEmailDirect(email, otpCode);
 
       return {
         success: true,
         redirectToOtp: true,
         email,
-        message: "Tu cuenta no estaba verificada. Te hemos enviado un nuevo código OTP a tu correo.",
+        message: "Este correo ya estaba registrado pero no verificado. Te hemos enviado un nuevo código OTP.",
       };
     }
 
+    // CASO C: Usuario completamente nuevo
     await prisma.user.create({
       data: {
         name,
@@ -66,7 +101,7 @@ export async function registerUser(formData: {
       },
     });
 
-    await sendOtpEmail(email, otpCode);
+    await sendOtpEmailDirect(email, otpCode);
 
     return {
       success: true,
@@ -83,7 +118,7 @@ export async function registerUser(formData: {
   }
 }
 
-// --- ACTION 2: VERIFICAR CÓDIGO OTP ---
+// --- 2. VERIFICAR CÓDIGO OTP ---
 export async function verifyOtp(email: string, otpInput: string) {
   try {
     const user = await prisma.user.findUnique({
@@ -99,7 +134,7 @@ export async function verifyOtp(email: string, otpInput: string) {
     }
 
     if (user.otpExpires && new Date() > new Date(user.otpExpires)) {
-      return { success: false, message: "El código OTP ha expirado. Por favor solicita uno nuevo." };
+      return { success: false, message: "El código OTP ha expirado. Solicita uno nuevo." };
     }
 
     await prisma.user.update({
@@ -121,7 +156,7 @@ export async function verifyOtp(email: string, otpInput: string) {
   }
 }
 
-// --- ACTION 3: REENVIAR CÓDIGO OTP ---
+// --- 3. REENVIAR CÓDIGO OTP (Para la interfaz o pantallas de acceso) ---
 export async function resendOtp(email: string) {
   try {
     const user = await prisma.user.findUnique({
@@ -133,7 +168,7 @@ export async function resendOtp(email: string) {
     }
 
     if (user.emailVerified) {
-      return { success: false, message: "Esta cuenta ya se encuentra verificada." };
+      return { success: false, message: "Esta cuenta ya se encuentra verificada. Puedes iniciar sesión." };
     }
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -144,11 +179,11 @@ export async function resendOtp(email: string) {
       data: { otpCode, otpExpires },
     });
 
-    await sendOtpEmail(email, otpCode);
+    await sendOtpEmailDirect(email, otpCode);
 
     return {
       success: true,
-      message: "Nuevo código OTP enviado a tu correo.",
+      message: "Se ha enviado un nuevo código OTP a tu correo.",
     };
   } catch (error) {
     console.error("Error en resendOtp:", error);

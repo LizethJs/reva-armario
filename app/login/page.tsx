@@ -1,12 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { registerUser, verifyOtp, resendOtp } from "@/actions/auth";
+import { registerUser, verifyOtp } from "@/actions/auth";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
-export default function AuthPage() {
-  const [isRegistering, setIsRegistering] = useState(true);
+export default function RegisterPage() {
+  const router = useRouter();
+  
+  // Estados del formulario y vistas
   const [step, setStep] = useState<"form" | "otp">("form");
-
+  const [emailForOtp, setEmailForOtp] = useState("");
+  
+  // Datos del formulario de registro
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -15,236 +21,196 @@ export default function AuthPage() {
     password: "",
   });
 
-  const [activeEmail, setActiveEmail] = useState("");
-  const [otpCode, setOtpCode] = useState("");
-
-  const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  // Estados de UI (Carga y Mensajes)
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ text: "", success: false });
+  const [otpInput, setOtpInput] = useState("");
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
+  // Manejar el envío del registro
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage("");
-    setSuccessMessage("");
     setLoading(true);
+    setMessage({ text: "", success: false });
 
-    const res = await registerUser(formData);
-    setLoading(false);
+    try {
+      const res = await registerUser(formData);
 
-    if (res.success && res.redirectToOtp) {
-      setActiveEmail(res.email || formData.email);
-      setSuccessMessage(res.message);
-      setStep("otp");
-    } else {
-      setErrorMessage(res.message);
+      if (res.success && res.redirectToOtp) {
+        setEmailForOtp(res.email || formData.email);
+        setStep("otp");
+        setMessage({ text: res.message, success: true });
+      } else {
+        setMessage({ text: res.message, success: false });
+      }
+    } catch (error) {
+      setMessage({ text: "Ocurrió un error inesperado al registrarse.", success: false });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleOtpSubmit = async (e: React.FormEvent) => {
+  // Manejar la verificación del código OTP
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage("");
-    setSuccessMessage("");
     setLoading(true);
+    setMessage({ text: "", success: false });
 
-    const res = await verifyOtp(activeEmail, otpCode);
-    setLoading(false);
+    try {
+      const res = await verifyOtp(emailForOtp, otpInput);
 
-    if (res.success) {
-      setSuccessMessage(res.message);
-      setTimeout(() => {
-        setStep("form");
-        setIsRegistering(false);
-        setSuccessMessage("Cuenta verificada. Por favor ingresa tus credenciales.");
-      }, 2000);
-    } else {
-      setErrorMessage(res.message);
-    }
-  };
-
-  const handleResend = async () => {
-    setErrorMessage("");
-    setSuccessMessage("");
-    setLoading(true);
-
-    const res = await resendOtp(activeEmail);
-    setLoading(false);
-
-    if (res.success) {
-      setSuccessMessage(res.message);
-    } else {
-      setErrorMessage(res.message);
+      if (res.success) {
+        setMessage({ text: res.message, success: true });
+        setTimeout(() => {
+          router.push("/login");
+        }, 2000);
+      } else {
+        setMessage({ text: res.message, success: false });
+      }
+    } catch (error) {
+      setMessage({ text: "Error al validar el código OTP.", success: false });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-4 text-white">
-      <div className="w-full max-w-md rounded-2xl bg-zinc-900/90 p-8 shadow-2xl border border-zinc-800">
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white px-4">
+      <div className="max-w-md w-full bg-gray-800 p-8 rounded-xl shadow-lg border border-gray-700">
         
-        <div className="text-center mb-6">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500 text-black font-bold text-xl mb-2">
-            R
-          </div>
-          <h1 className="text-2xl font-black tracking-wider uppercase">PORTAL RËVA</h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            {step === "otp"
-              ? "Ingresa el código enviado a tu correo"
-              : isRegistering
-              ? "Registro de cuenta con validación OTP"
-              : "Iniciar Sesión"}
-          </p>
-        </div>
+        <h2 className="text-2xl font-bold mb-2 text-center text-indigo-400">
+          {step === "form" ? "Crear una cuenta en RËVA" : "Verifica tu Correo"}
+        </h2>
+        <p className="text-sm text-gray-400 mb-6 text-center">
+          {step === "form"
+            ? "Ingresa tus datos para comenzar tu experiencia virtual"
+            : `Hemos enviado un código de 6 dígitos a ${emailForOtp}`}
+        </p>
 
-        {errorMessage && (
-          <div className="mb-4 rounded-lg bg-red-950/80 border border-red-800 p-3 text-xs text-red-200">
-            ⚠️ {errorMessage}
-          </div>
-        )}
-
-        {successMessage && (
-          <div className="mb-4 rounded-lg bg-emerald-950/80 border border-emerald-800 p-3 text-xs text-emerald-200">
-            ✅ {successMessage}
+        {/* Mensajes de alerta dinámicos (Validaciones y Errores) */}
+        {message.text && (
+          <div
+            className={`p-3 mb-4 rounded-lg text-sm ${
+              message.success
+                ? "bg-emerald-900/50 border border-emerald-500 text-emerald-200"
+                : "bg-rose-900/50 border border-rose-500 text-rose-200"
+            }`}
+          >
+            {message.text}
           </div>
         )}
 
-        {step === "otp" ? (
-          <form onSubmit={handleOtpSubmit} className="space-y-4">
+        {/* Vista 1: Formulario de Registro */}
+        {step === "form" ? (
+          <form onSubmit={handleRegister} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1">
-                Código de Verificación (OTP) enviado a <span className="text-amber-400">{activeEmail}</span>
-              </label>
+              <label className="block text-xs font-medium text-gray-300 mb-1">Nombre Completo</label>
               <input
                 type="text"
-                maxLength={6}
-                value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value)}
-                placeholder="123456"
+                name="name"
                 required
-                className="w-full rounded-xl bg-zinc-800 px-4 py-3 text-center text-2xl tracking-widest font-mono text-white placeholder-zinc-500 border border-zinc-700 focus:border-amber-500 focus:outline-none"
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 text-white outline-none"
+                placeholder="Tu nombre"
               />
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-amber-500 py-3 font-semibold text-black transition hover:bg-amber-400 disabled:opacity-50"
-            >
-              {loading ? "Validando..." : "Verificar y Completar Registro"}
-            </button>
-
-            <div className="text-center mt-3">
-              <button
-                type="button"
-                onClick={handleResend}
-                disabled={loading}
-                className="text-xs text-amber-500 hover:underline"
-              >
-                ¿No recibiste el código? Volver a enviar
-              </button>
+            <div>
+              <label className="block text-xs font-medium text-gray-300 mb-1">Teléfono</label>
+              <input
+                type="text"
+                name="phone"
+                required
+                value={formData.phone}
+                onChange={handleChange}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 text-white outline-none"
+                placeholder="3001234567"
+              />
             </div>
-          </form>
-        ) : (
-          <form onSubmit={handleRegisterSubmit} className="space-y-3">
-            {isRegistering && (
-              <>
-                <div>
-                  <input
-                    type="text"
-                    name="name"
-                    placeholder="Nombre completo"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full rounded-xl bg-zinc-800/80 px-4 py-2.5 text-sm text-white border border-zinc-700 focus:border-amber-500 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <input
-                    type="text"
-                    name="phone"
-                    placeholder="Teléfono"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full rounded-xl bg-zinc-800/80 px-4 py-2.5 text-sm text-white border border-zinc-700 focus:border-amber-500 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] text-zinc-400 mb-1">Rol en la Plataforma:</label>
-                  <select
-                    name="role"
-                    value={formData.role}
-                    onChange={handleInputChange}
-                    className="w-full rounded-xl bg-zinc-800/80 px-4 py-2.5 text-sm text-white border border-zinc-700 focus:border-amber-500 focus:outline-none"
-                  >
-                    <option value="Cliente (Usuario Estándar)">Cliente (Usuario Estándar)</option>
-                    <option value="Administrador">Administrador</option>
-                  </select>
-                </div>
-              </>
-            )}
 
             <div>
+              <label className="block text-xs font-medium text-gray-300 mb-1">Rol</label>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 text-white outline-none"
+              >
+                <option value="Cliente (Usuario Estándar)">Cliente (Usuario Estándar)</option>
+                <option value="Diseñador / Marca">Diseñador / Marca</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-300 mb-1">Correo Electrónico</label>
               <input
                 type="email"
                 name="email"
-                placeholder="Correo electrónico"
-                value={formData.email}
-                onChange={handleInputChange}
                 required
-                className="w-full rounded-xl bg-zinc-800/80 px-4 py-2.5 text-sm text-white border border-zinc-700 focus:border-amber-500 focus:outline-none"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 text-white outline-none"
+                placeholder="correo@ejemplo.com"
               />
             </div>
 
             <div>
+              <label className="block text-xs font-medium text-gray-300 mb-1">Contraseña</label>
               <input
                 type="password"
                 name="password"
-                placeholder="Contraseña"
-                value={formData.password}
-                onChange={handleInputChange}
                 required
-                className="w-full rounded-xl bg-zinc-800/80 px-4 py-2.5 text-sm text-white border border-zinc-700 focus:border-amber-500 focus:outline-none"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 text-white outline-none"
+                placeholder="••••••••"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-amber-500 py-3 font-semibold text-black transition hover:bg-amber-400 disabled:opacity-50 mt-2"
+              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition duration-200 disabled:opacity-50"
             >
-              {loading
-                ? "Procesando..."
-                : isRegistering
-                ? "Continuar con Verificación OTP"
-                : "Iniciar Sesión"}
+              {loading ? "Procesando registro..." : "Registrarse"}
+            </button>
+
+            <p className="text-center text-sm text-gray-400 mt-4">
+              ¿Ya tienes una cuenta?{" "}
+              <Link href="/login" className="text-indigo-400 hover:underline">
+                Inicia sesión
+              </Link>
+            </p>
+          </form>
+        ) : (
+          /* Vista 2: Ingreso de Código OTP */
+          <form onSubmit={handleVerifyOtp} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-300 mb-1">Código OTP (6 dígitos)</label>
+              <input
+                type="text"
+                maxLength={6}
+                required
+                value={otpInput}
+                onChange={(e) => setOtpInput(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-center tracking-widest text-2xl font-bold focus:ring-2 focus:ring-indigo-500 text-white outline-none"
+                placeholder="123456"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition duration-200 disabled:opacity-50"
+            >
+              {loading ? "Verificando..." : "Verificar Cuenta"}
             </button>
           </form>
         )}
-
-        {step === "form" && (
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsRegistering(!isRegistering);
-                setErrorMessage("");
-                setSuccessMessage("");
-              }}
-              className="text-xs text-zinc-400 hover:text-amber-400 transition"
-            >
-              {isRegistering
-                ? "¿Ya tienes cuenta? Inicia sesión"
-                : "¿No tienes cuenta? Regístrate aquí"}
-            </button>
-          </div>
-        )}
-
       </div>
     </div>
   );
