@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { registerUser, verifyOtp, resendOtp } from "../actions/auth";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -222,7 +221,7 @@ export default function RegisterPage() {
             </div>
           </form>
         ) : (
-          /* VISTA 2: Inserción de OTP y acceso directo */
+          /* VISTA 2: Código OTP y Verificación */
           <div className="space-y-4">
             {!isVerifiedSuccess ? (
               <form onSubmit={handleVerifyOtp} className="space-y-4">
@@ -249,15 +248,26 @@ export default function RegisterPage() {
                   {loading ? "Verificando..." : "VERIFICAR CUENTA"}
                 </button>
 
-                <div className="text-center mt-3">
-                  <button
-                    type="button"
-                    onClick={handleResendOtp}
-                    disabled={resendLoading}
-                    className="text-xs text-zinc-400 hover:text-yellow-400 transition font-medium disabled:opacity-50 cursor-pointer"
-                  >
-                    {resendLoading ? "Enviando..." : "¿No recibiste el código? Reenviar OTP"}
-                  </button>
+                <div className="text-center mt-3 space-y-2">
+                  <div>
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      disabled={resendLoading}
+                      className="text-xs text-zinc-400 hover:text-yellow-400 transition font-medium disabled:opacity-50 cursor-pointer"
+                    >
+                      {resendLoading ? "Enviando..." : "¿No recibiste el código? Reenviar OTP"}
+                    </button>
+                  </div>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => router.push("/login")}
+                      className="text-xs text-yellow-400 hover:underline font-semibold cursor-pointer"
+                    >
+                      Volver a Iniciar Sesión
+                    </button>
+                  </div>
                 </div>
               </form>
             ) : (
