@@ -1,252 +1,124 @@
 "use client";
 
 import { useState } from "react";
-import { registerUser, verifyOtp, resendOtp } from "../actions/auth";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { loginUser } from "../actions/auth";
 
-export default function RegisterPage() {
-  const router = useRouter();
-  
-  const [step, setStep] = useState<"form" | "otp">("form");
-  const [emailForOtp, setEmailForOtp] = useState("");
-  const [isVerifiedSuccess, setIsVerifiedSuccess] = useState(false);
-  
+export default function LoginPage() {
   const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    role: "Cliente (Usuario Estándar)",
     email: "",
     password: "",
   });
 
   const [loading, setLoading] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
   const [message, setMessage] = useState({ text: "", success: false });
-  const [otpInput, setOtpInput] = useState("");
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage({ text: "", success: false });
 
     try {
-      const res = await registerUser(formData);
-
-      if (res.success && res.redirectToOtp) {
-        setEmailForOtp(res.email || formData.email);
-        setStep("otp");
-        setMessage({ text: res.message, success: true });
-      } else {
-        setMessage({ text: res.message, success: false });
-      }
-    } catch (error) {
-      setMessage({ text: "Ocurrió un error inesperado al registrarse.", success: false });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage({ text: "", success: false });
-
-    try {
-      const res = await verifyOtp(emailForOtp, otpInput);
+      const res = await loginUser(formData);
 
       if (res.success) {
-        setMessage({ text: res.message, success: true });
-        setIsVerifiedSuccess(true);
+        setMessage({ text: "¡Inicio de sesión exitoso! Ingresando...", success: true });
+        setTimeout(() => {
+          window.location.href = res.redirectTo || "/";
+        }, 800);
       } else {
-        setMessage({ text: res.message, success: false });
+        setMessage({ text: res.message || "Credenciales inválidas.", success: false });
       }
     } catch (error) {
-      setMessage({ text: "Error al validar el código OTP.", success: false });
+      setMessage({ text: "Ocurrió un error inesperado.", success: false });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResendOtp = async () => {
-    setResendLoading(true);
-    setMessage({ text: "", success: false });
-
-    try {
-      const res = await resendOtp(emailForOtp);
-      setMessage({ text: res.message, success: res.success });
-    } catch (error) {
-      setMessage({ text: "Error al solicitar reenvío de OTP.", success: false });
-    } finally {
-      setResendLoading(false);
-    }
+  const goToRegister = () => {
+    window.location.href = "/register";
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-white px-4">
-      <div className="max-w-md w-full bg-zinc-900 p-8 rounded-2xl shadow-2xl border border-yellow-500/20">
+      <div className="relative max-w-sm w-full bg-[#181818] p-8 rounded-2xl shadow-2xl border-t-2 border-amber-500">
         
-        <h2 className="text-3xl font-extrabold mb-2 text-center text-yellow-400 tracking-wide">
-          {step === "form" ? "Crear una cuenta en RËVA" : "Verifica tu Correo"}
-        </h2>
-        <p className="text-xs text-zinc-400 mb-6 text-center">
-          {step === "form"
-            ? "Ingresa tus datos para comenzar tu experiencia virtual"
-            : `Hemos enviado un código de 6 dígitos a ${emailForOtp}`}
-        </p>
+        <div className="flex flex-col items-center justify-center mb-6">
+          <div className="w-12 h-12 bg-amber-500 text-black font-extrabold text-xl rounded-xl flex items-center justify-center mb-3 shadow-md shadow-amber-500/20">
+            R
+          </div>
+          <h1 className="text-xl font-extrabold tracking-wider text-white">
+            PORTAL RËVA
+          </h1>
+          <p className="text-xs text-zinc-400 mt-1 text-center font-light">
+            Acceso al probador virtual
+          </p>
+        </div>
 
-        {/* Mensajes de Alerta */}
         {message.text && (
           <div
             className={`p-3 mb-5 rounded-xl text-xs font-medium text-center border ${
               message.success
-                ? "bg-yellow-500/10 border-yellow-500/50 text-yellow-300"
-                : "bg-red-500/10 border-red-500/50 text-red-400"
+                ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                : "bg-red-950/50 border-red-800/60 text-red-300"
             }`}
           >
             {message.text}
           </div>
         )}
 
-        {/* VISTA 1: Formulario de Registro */}
-        {step === "form" ? (
-          <form onSubmit={handleRegister} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Nombre Completo</label>
-              <input
-                type="text"
-                name="name"
-                required
-                value={formData.name}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white placeholder-zinc-500 outline-none transition"
-                placeholder="Tu nombre"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Teléfono</label>
-              <input
-                type="text"
-                name="phone"
-                required
-                value={formData.phone}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white placeholder-zinc-500 outline-none transition"
-                placeholder="3001234567"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Rol</label>
-              <select
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white outline-none transition"
-              >
-                <option value="Cliente (Usuario Estándar)">Cliente (Usuario Estándar)</option>
-                <option value="Diseñador / Marca">Diseñador / Marca</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Correo Electrónico</label>
-              <input
-                type="email"
-                name="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white placeholder-zinc-500 outline-none transition"
-                placeholder="correo@ejemplo.com"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-zinc-300 mb-1">Contraseña</label>
-              <input
-                type="password"
-                name="password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white placeholder-zinc-500 outline-none transition"
-                placeholder="••••••••"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 bg-yellow-400 hover:bg-yellow-300 text-black font-bold rounded-xl transition duration-200 disabled:opacity-50 mt-2 shadow-lg shadow-yellow-500/10"
-            >
-              {loading ? "Procesando registro..." : "Registrarse"}
-            </button>
-
-            <p className="text-center text-xs text-zinc-400 mt-4">
-              ¿Ya tienes una cuenta?{" "}
-              <Link href="/login" className="text-yellow-400 hover:underline font-semibold">
-                Inicia sesión
-              </Link>
-            </p>
-          </form>
-        ) : (
-          /* VISTA 2: Código OTP y Verificación */
-          <div className="space-y-4">
-            {!isVerifiedSuccess ? (
-              <form onSubmit={handleVerifyOtp} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1 text-center">
-                    Código OTP (6 dígitos)
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={6}
-                    required
-                    value={otpInput}
-                    onChange={(e) => setOtpInput(e.target.value)}
-                    className="w-full px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-xl text-center tracking-widest text-2xl font-bold focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-yellow-400 outline-none transition"
-                    placeholder="123456"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 bg-yellow-400 hover:bg-yellow-300 text-black font-bold rounded-xl transition duration-200 disabled:opacity-50 shadow-lg shadow-yellow-500/10"
-                >
-                  {loading ? "Verificando..." : "Verificar Cuenta"}
-                </button>
-
-                <div className="text-center mt-3">
-                  <button
-                    type="button"
-                    onClick={handleResendOtp}
-                    disabled={resendLoading}
-                    className="text-xs text-yellow-400 hover:underline font-medium disabled:opacity-50"
-                  >
-                    {resendLoading ? "Enviando..." : "¿No recibiste el código? Reenviar código OTP"}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              /* Botón directo una vez verificado */
-              <div className="pt-2 text-center space-y-4">
-                <Link
-                  href="/login"
-                  className="block w-full py-3 bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-center rounded-xl transition duration-200 shadow-lg shadow-yellow-500/20"
-                >
-                  Iniciar Sesión de una vez
-                </Link>
-              </div>
-            )}
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div className="relative">
+            <span className="absolute left-3.5 top-3 text-zinc-400 text-sm">✉️</span>
+            <input
+              type="email"
+              name="email"
+              required
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full pl-10 pr-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:border-amber-500 outline-none text-xs transition"
+              placeholder="Correo electrónico"
+            />
           </div>
-        )}
+
+          <div className="relative">
+            <span className="absolute left-3.5 top-3 text-zinc-400 text-sm">🔒</span>
+            <input
+              type="password"
+              name="password"
+              required
+              value={formData.password}
+              onChange={handleChange}
+              className="w-full pl-10 pr-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:border-amber-500 outline-none text-xs transition"
+              placeholder="Contraseña"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-[#b38308] hover:bg-amber-600 text-black font-extrabold rounded-xl transition duration-200 disabled:opacity-50 text-xs cursor-pointer mt-2 shadow-md"
+          >
+            {loading ? "Verificando..." : "Iniciar Sesión"}
+          </button>
+
+          <div className="text-center pt-3">
+            <p className="text-xs text-zinc-400">
+              ¿No tienes una cuenta?{" "}
+              <button
+                type="button"
+                onClick={goToRegister}
+                className="text-zinc-300 hover:text-amber-400 font-semibold underline transition cursor-pointer bg-transparent border-none p-0 inline"
+              >
+                Regístrate aquí
+              </button>
+            </p>
+          </div>
+        </form>
       </div>
     </div>
   );

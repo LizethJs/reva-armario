@@ -25,7 +25,6 @@ export default function RegisterPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Forzar la redirección nativa al login
   const goToLogin = (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
     window.location.href = "/login";
@@ -39,15 +38,15 @@ export default function RegisterPage() {
     try {
       const res = await registerUser(formData);
 
-      if (res.success && res.redirectToOtp) {
+      if (res.redirectToOtp) {
         setEmailForOtp(res.email || formData.email);
         setStep("otp");
         setMessage({ text: res.message, success: true });
       } else {
-        setMessage({ text: res.message, success: false });
+        setMessage({ text: res.message, success: res.success });
       }
     } catch (error) {
-      setMessage({ text: "Ocurrió un error en el servidor.", success: false });
+      setMessage({ text: "Ocurrió un error en el servidor al procesar tu solicitud.", success: false });
     } finally {
       setLoading(false);
     }
@@ -82,7 +81,7 @@ export default function RegisterPage() {
       const res = await resendOtp(emailForOtp);
       setMessage({ text: res.message, success: res.success });
     } catch (error) {
-      setMessage({ text: "Error al solicitar reenvío de OTP.", success: false });
+      setMessage({ text: "Error al solicitar el reenvío del código OTP.", success: false });
     } finally {
       setResendLoading(false);
     }
@@ -90,7 +89,6 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-white px-4">
-      {/* Tarjeta con línea brillante superior */}
       <div className="relative max-w-sm w-full bg-[#181818] p-8 rounded-2xl shadow-2xl border-t-2 border-amber-500">
         
         {/* LOGO 'R' Y PORTAL RËVA */}
@@ -104,11 +102,11 @@ export default function RegisterPage() {
           <p className="text-xs text-zinc-400 mt-1 text-center font-light">
             {step === "form"
               ? "Acceso seguro al probador virtual"
-              : `Código OTP enviado a ${emailForOtp}`}
+              : `Ingresa el código enviado a ${emailForOtp}`}
           </p>
         </div>
 
-        {/* ALERTA DEL SERVIDOR */}
+        {/* NOTIFICACIÓN O MENSAJE DE ERROR/ÉXITO */}
         {message.text && (
           <div
             className={`p-3 mb-5 rounded-xl text-xs font-medium text-center border ${
@@ -121,7 +119,7 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* VISTA 1: FORMULARIO CON ICONOS */}
+        {/* VISTA 1: FORMULARIO */}
         {step === "form" ? (
           <form onSubmit={handleRegister} className="space-y-3.5">
             <div className="relative">
@@ -199,7 +197,6 @@ export default function RegisterPage() {
               {loading ? "Procesando..." : "Continuar con Verificación OTP"}
             </button>
 
-            {/* BOTÓN INICIA SESIÓN GARANTIZADO */}
             <div className="text-center pt-3">
               <p className="text-xs text-zinc-400">
                 ¿Ya tienes cuenta?{" "}
@@ -214,13 +211,13 @@ export default function RegisterPage() {
             </div>
           </form>
         ) : (
-          /* VISTA 2: VERIFICACIÓN OTP */
+          /* VISTA 2: VERIFICACIÓN CÓDIGO OTP */
           <div className="space-y-4">
             {!isVerifiedSuccess ? (
               <form onSubmit={handleVerifyOtp} className="space-y-4">
                 <div>
                   <label className="block text-xs text-zinc-400 mb-2 text-center">
-                    Ingresa el código OTP (6 dígitos)
+                    Código OTP de 6 dígitos
                   </label>
                   <input
                     type="text"
@@ -255,10 +252,17 @@ export default function RegisterPage() {
                   <div>
                     <button
                       type="button"
-                      onClick={goToLogin}
-                      className="text-xs text-amber-400 hover:underline font-semibold cursor-pointer bg-transparent border-none"
+                      onClick={() => setStep("form")}
+                      className="text-xs text-amber-400 hover:underline font-semibold cursor-pointer bg-transparent border-none mr-3"
                     >
-                      Volver a Iniciar Sesión
+                      ← Cambiar datos
+                    </button>
+                    <button
+                      type="button"
+                      onClick={goToLogin}
+                      className="text-xs text-zinc-400 hover:text-amber-400 underline font-semibold cursor-pointer bg-transparent border-none"
+                    >
+                      Inicia sesión
                     </button>
                   </div>
                 </div>
