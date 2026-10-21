@@ -44,7 +44,7 @@ export async function registerUser(data: {
   try {
     const existingUser = await prisma.user.findUnique({
       where: { email: data.email },
-    });
+    }).catch(() => null);
 
     if (existingUser) {
       if (existingUser.isVerified) {
@@ -98,8 +98,12 @@ export async function registerUser(data: {
       message: "Registro iniciado. Revisa tu correo para el código OTP.",
     };
   } catch (error: any) {
-    console.error("Error en registerUser:", error);
-    return { success: false, redirectToOtp: false, message: error.message || "Error al registrarse." };
+    console.error("Error crítico en registerUser:", error);
+    return { 
+      success: false, 
+      redirectToOtp: false, 
+      message: `Error de BD: ${error.message || "Verifica las tablas en Supabase."}` 
+    };
   }
 }
 
@@ -150,11 +154,11 @@ export async function resendOtp(email: string) {
 export async function loginUser(data: { email: string; password: string }) {
   try {
     const user = await prisma.user.findUnique({
-      where: { email: data.email },
+      where: { email: data.email.toLowerCase().trim() },
     });
 
     if (!user) {
-      return { success: false, message: "El correo no está registrado." };
+      return { success: false, message: "El correo no está registrado en la base de datos." };
     }
 
     if (!user.isVerified) {
@@ -177,7 +181,10 @@ export async function loginUser(data: { email: string; password: string }) {
       message: "¡Bienvenido!",
     };
   } catch (error: any) {
-    console.error("Error en loginUser:", error);
-    return { success: false, message: error.message || "Error de servidor al iniciar sesión." };
+    console.error("Error detallado en loginUser:", error);
+    return { 
+      success: false, 
+      message: `Error de servidor/Prisma: ${error.message || "Verifica la conexión a Supabase."}` 
+    };
   }
 }
