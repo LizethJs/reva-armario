@@ -4,21 +4,25 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 
-// Configuración interna de Nodemailer para evitar errores de importaciones externas
+// Configuración de Nodemailer segura
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_SERVER_HOST || "smtp.gmail.com",
   port: Number(process.env.EMAIL_SERVER_PORT) || 587,
   secure: false,
   auth: {
-    user: process.env.EMAIL_SERVER_USER,
-    pass: process.env.EMAIL_SERVER_PASSWORD,
+    user: process.env.EMAIL_SERVER_USER || "",
+    pass: process.env.EMAIL_SERVER_PASSWORD || "",
   },
 });
 
 async function sendOtpEmailDirect(email: string, otp: string) {
   try {
+    if (!process.env.EMAIL_SERVER_USER || !process.env.EMAIL_SERVER_PASSWORD) {
+      console.warn("ADVERTENCIA: Faltan credenciales EMAIL_SERVER_USER o EMAIL_SERVER_PASSWORD en .env");
+    }
+
     await transporter.sendMail({
-      from: `"RËVA Soporte" <${process.env.EMAIL_SERVER_USER}>`,
+      from: `"RËVA Soporte" <${process.env.EMAIL_SERVER_USER || "soporte@reva.com"}>`,
       to: email,
       subject: "Código de Verificación OTP - RËVA",
       html: `
@@ -30,13 +34,14 @@ async function sendOtpEmailDirect(email: string, otp: string) {
         </div>
       `,
     });
+    return true;
   } catch (error) {
     console.error("Error al enviar el correo con nodemailer:", error);
-    throw new Error("No se pudo enviar el correo electrónico.");
+    return false;
   }
 }
 
-// --- 1. REGISTRO INTELIGENTE ---
+// --- 1. REGISTRO USER ---
 export async function registerUser(formData: {
   name: string;
   phone: string;
@@ -47,6 +52,7 @@ export async function registerUser(formData: {
   const { name, phone, role, email, password } = formData;
 
   try {
+    // 1. Validar si existe el usuario en la BD
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
@@ -56,6 +62,7 @@ export async function registerUser(formData: {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     if (existingUser) {
+      // Si ya está verificado
       if (existingUser.emailVerified) {
         return {
           success: false,
@@ -63,6 +70,7 @@ export async function registerUser(formData: {
         };
       }
 
+      // Si existe pero no verificado -> actualizar OTP
       await prisma.user.update({
         where: { email },
         data: {
@@ -81,10 +89,11 @@ export async function registerUser(formData: {
         success: true,
         redirectToOtp: true,
         email,
-        message: "Este correo ya estaba registrado pero no verificado. Te hemos enviado un nuevo código OTP.",
+        message: "Este correo no estaba verificado. Te hemos enviado un nuevo código OTP a tu correo.",
       };
     }
 
+    // Crear usuario nuevo
     await prisma.user.create({
       data: {
         name,
@@ -107,15 +116,15 @@ export async function registerUser(formData: {
       message: "Registro exitoso. Se ha enviado el código OTP a tu correo electrónico.",
     };
   } catch (error: any) {
-    console.error("Error en registerUser:", error);
+    console.error("Error detallado en registerUser:", error);
     return {
       success: false,
-      message: "Ocurrió un error en el servidor al procesar el registro.",
+      message: `Error en el servidor: ${error?.message || "No se pudo procesar el registro."}`,
     };
   }
 }
 
-// --- 2. VERIFICAR CÓDIGO OTP (EXPORTADO) ---
+// --- 2. VERIFICAR OTP ---
 export async function verifyOtp(email: string, otpInput: string) {
   try {
     const user = await prisma.user.findUnique({
@@ -153,7 +162,7 @@ export async function verifyOtp(email: string, otpInput: string) {
   }
 }
 
-// --- 3. REENVIAR CÓDIGO OTP (EXPORTADO) ---
+// --- 3. REENVIAR OTP ---
 export async function resendOtp(email: string) {
   try {
     const user = await prisma.user.findUnique({
@@ -165,7 +174,7 @@ export async function resendOtp(email: string) {
     }
 
     if (user.emailVerified) {
-      return { success: false, message: "Esta cuenta ya se encuentra verificada. Puedes iniciar sesión." };
+      return { success: false, message: "Esta cuenta ya se encuentra verificada." };
     }
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -180,7 +189,7 @@ export async function resendOtp(email: string) {
 
     return {
       success: true,
-      message: "Se ha enviado un nuevo código OTP a tu correo.",
+      message: "Nuevo código OTP enviado a tu correo.",
     };
   } catch (error) {
     console.error("Error en resendOtp:", error);
