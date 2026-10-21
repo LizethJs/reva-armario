@@ -25,8 +25,9 @@ export default function RegisterPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Navegación nativa hacia la ruta /login (app/login/page.tsx)
-  const goToLogin = () => {
+  // Forzar la redirección nativa al login
+  const goToLogin = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
     window.location.href = "/login";
   };
 
@@ -89,10 +90,10 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-white px-4">
-      {/* Tarjeta con línea superior dorada estilo RËVA */}
+      {/* Tarjeta con línea brillante superior */}
       <div className="relative max-w-sm w-full bg-[#181818] p-8 rounded-2xl shadow-2xl border-t-2 border-amber-500">
         
-        {/* Logo 'R' y Encabezado de la interfaz */}
+        {/* LOGO 'R' Y PORTAL RËVA */}
         <div className="flex flex-col items-center justify-center mb-6">
           <div className="w-12 h-12 bg-amber-500 text-black font-extrabold text-xl rounded-xl flex items-center justify-center mb-3 shadow-md shadow-amber-500/20">
             R
@@ -107,7 +108,7 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* Notificaciones de servidor */}
+        {/* ALERTA DEL SERVIDOR */}
         {message.text && (
           <div
             className={`p-3 mb-5 rounded-xl text-xs font-medium text-center border ${
@@ -120,7 +121,7 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* VISTA 1: FORMULARIO DE REGISTRO */}
+        {/* VISTA 1: FORMULARIO CON ICONOS */}
         {step === "form" ? (
           <form onSubmit={handleRegister} className="space-y-3.5">
             <div className="relative">
@@ -198,7 +199,7 @@ export default function RegisterPage() {
               {loading ? "Procesando..." : "Continuar con Verificación OTP"}
             </button>
 
-            {/* Redirección limpia hacia app/login/page.tsx */}
+            {/* BOTÓN INICIA SESIÓN GARANTIZADO */}
             <div className="text-center pt-3">
               <p className="text-xs text-zinc-400">
                 ¿Ya tienes cuenta?{" "}
