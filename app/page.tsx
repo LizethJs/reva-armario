@@ -71,7 +71,6 @@ export default function Home() {
   const [newDescription, setNewDescription] = useState('');
   const [newVendorName, setNewVendorName] = useState('');
   const [newVendorContact, setNewVendorContact] = useState('');
-  const [isProcessingBg, setIsProcessingBg] = useState(false);
 
   useEffect(() => {
     const sessionData = localStorage.getItem('user_session');
@@ -188,7 +187,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Botones de Navegación Adaptados a Móvil */}
+        {/* Botones de Navegación */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center w-full md:w-auto">
           <button
             onClick={() => setShowWishlistDrawer(true)}
@@ -258,7 +257,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* MODAL DE PUBLICAR PRENDA (SI ES SELLER) */}
+      {/* MODAL DE PUBLICAR PRENDA */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-neutral-950/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 p-6 rounded-3xl shadow-2xl space-y-4">
@@ -299,7 +298,7 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="block text-neutral-400 mb-1">Imagen (Subir archivo o URL)</label>
+                <label className="block text-neutral-400 mb-1">Imagen (Subir archivo)</label>
                 <input
                   type="file"
                   accept="image/*"
@@ -341,7 +340,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* WISHLIST DRAWER RESPONSIVE */}
+      {/* WISHLIST DRAWER */}
       {showWishlistDrawer && (
         <div className="fixed inset-0 z-50 bg-neutral-950/80 backdrop-blur-md flex justify-end animate-in fade-in duration-200">
           <div className="w-full sm:max-w-md bg-neutral-900 border-l border-neutral-800 h-full p-4 sm:p-6 flex flex-col justify-between shadow-2xl">
