@@ -30,6 +30,7 @@ async function sendOtpEmail(email: string, otp: string) {
   });
 }
 
+// 1. REGISTRO DE USUARIO / DETECCIÓN DE PENDIENTES DE OTP
 export async function registerUser(data: {
   name: string;
   phone: string;
@@ -71,7 +72,6 @@ export async function registerUser(data: {
     const hashedPassword = await bcrypt.hash(data.password, 10);
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Mapeo amigable de roles para el sistema
     let assignedRole = "CLIENT";
     if (data.role.includes("Diseñador") || data.role.includes("SELLER")) {
       assignedRole = "SELLER";
@@ -102,6 +102,7 @@ export async function registerUser(data: {
   }
 }
 
+// 2. VERIFICACIÓN OTP
 export async function verifyOtp(email: string, otpInput: string) {
   try {
     const user = await prisma.user.findUnique({ where: { email } });
@@ -132,6 +133,7 @@ export async function verifyOtp(email: string, otpInput: string) {
   }
 }
 
+// 3. REENVIAR OTP
 export async function resendOtp(email: string) {
   try {
     const user = await prisma.user.findUnique({ where: { email } });
@@ -156,6 +158,7 @@ export async function resendOtp(email: string) {
   }
 }
 
+// 4. INICIO DE SESIÓN
 export async function loginUser(data: { email: string; password: string }) {
   try {
     const user = await prisma.user.findUnique({

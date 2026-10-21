@@ -25,13 +25,14 @@ export default function LoginPage() {
       const res = await loginUser(formData);
 
       if (res.success && res.user) {
-        // Almacenamos la estructura completa que espera app/page.tsx
+        // Almacena la sesión completa con el rol y nombre para que app/page.tsx cargue la cámara y el armario
         localStorage.setItem("user_session", JSON.stringify(res.user));
 
         setMessage({ text: "¡Inicio de sesión exitoso! Entrando al probador...", success: true });
+        
         setTimeout(() => {
           window.location.href = res.redirectTo || "/";
-        }, 800);
+        }, 600);
       } else {
         setMessage({ text: res.message || "Credenciales inválidas.", success: false });
       }
