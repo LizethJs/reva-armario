@@ -22,17 +22,17 @@ export default function LoginPage() {
 
       if (res.success && res.user) {
         localStorage.setItem("user_session", JSON.stringify(res.user));
-        setMessage({ text: "¡Acceso concedido! Entrando al probador...", success: true });
+        setMessage({ text: "¡Acceso correcto! Abriendo armario...", success: true });
         
         setTimeout(() => {
-          window.location.href = res.redirectTo || "/";
-        }, 400);
+          window.location.replace("/");
+        }, 200);
       } else {
         setMessage({ text: res.message || "Credenciales inválidas.", success: false });
         setLoading(false);
       }
     } catch (err) {
-      setMessage({ text: "Error de conexión con el servidor.", success: false });
+      setMessage({ text: "Error inesperado al conectar.", success: false });
       setLoading(false);
     }
   };
@@ -40,66 +40,54 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-white px-4">
       <div className="relative max-w-sm w-full bg-[#181818] p-8 rounded-2xl shadow-2xl border-t-2 border-amber-500">
-        
         <div className="flex flex-col items-center justify-center mb-6">
-          <div className="w-12 h-12 bg-amber-500 text-black font-extrabold text-xl rounded-xl flex items-center justify-center mb-3 shadow-md shadow-amber-500/20">
+          <div className="w-12 h-12 bg-amber-500 text-black font-extrabold text-xl rounded-xl flex items-center justify-center mb-3">
             R
           </div>
           <h1 className="text-xl font-extrabold tracking-wider text-white">PORTAL RËVA</h1>
-          <p className="text-xs text-zinc-400 mt-1 text-center font-light">
-            Acceso al probador virtual y armario
-          </p>
+          <p className="text-xs text-zinc-400 mt-1">Acceso al armario digital y probador</p>
         </div>
 
         {message.text && (
           <div className={`p-3 mb-5 rounded-xl text-xs font-medium text-center border ${
-            message.success ? "bg-amber-500/10 border-amber-500/30 text-amber-300" : "bg-red-950/50 border-red-800/60 text-red-300"
+            message.success ? "bg-amber-500/15 border-amber-500/30 text-amber-300" : "bg-red-950/50 border-red-800 text-red-300"
           }`}>
             {message.text}
           </div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
-          <div className="relative">
-            <span className="absolute left-3.5 top-3 text-zinc-400 text-sm">✉️</span>
-            <input
-              type="email"
-              name="email"
-              required
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full pl-10 pr-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:border-amber-500 outline-none text-xs transition"
-              placeholder="Correo electrónico"
-            />
-          </div>
+          <input
+            type="email"
+            name="email"
+            required
+            value={formData.email}
+            onChange={handleChange}
+            className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-500"
+            placeholder="Correo electrónico"
+          />
 
-          <div className="relative">
-            <span className="absolute left-3.5 top-3 text-zinc-400 text-sm">🔒</span>
-            <input
-              type="password"
-              name="password"
-              required
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full pl-10 pr-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:border-amber-500 outline-none text-xs transition"
-              placeholder="Contraseña"
-            />
-          </div>
+          <input
+            type="password"
+            name="password"
+            required
+            value={formData.password}
+            onChange={handleChange}
+            className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-500"
+            placeholder="Contraseña"
+          />
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-[#b38308] hover:bg-amber-600 text-black font-extrabold rounded-xl transition duration-200 disabled:opacity-50 text-xs cursor-pointer mt-2 shadow-md"
+            className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-extrabold rounded-xl text-xs transition cursor-pointer disabled:opacity-50"
           >
             {loading ? "Entrando..." : "Iniciar Sesión"}
           </button>
 
-          <div className="text-center pt-3">
+          <div className="text-center pt-2">
             <p className="text-xs text-zinc-400">
-              ¿No tienes cuenta?{" "}
-              <a href="/register" className="text-zinc-300 hover:text-amber-400 font-semibold underline transition">
-                Regístrate aquí
-              </a>
+              ¿No tienes cuenta? <a href="/register" className="text-amber-400 underline">Regístrate</a>
             </p>
           </div>
         </form>
