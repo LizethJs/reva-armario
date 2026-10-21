@@ -33,6 +33,7 @@ export default function Home() {
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [showWishlistDrawer, setShowWishlistDrawer] = useState(false);
 
+  // Armario con prendas iniciales de la nube / repositorio
   const [wardrobe, setWardrobe] = useState<Garment[]>([
     {
       id: '1',
@@ -72,36 +73,34 @@ export default function Home() {
   const [newVendorContact, setNewVendorContact] = useState('');
 
   useEffect(() => {
-    // Lee la sesión guardada o crea una por defecto para no quedarse bloqueado
+    // REVISIÓN STRICTA DE SESIÓN:
+    // Si no hay sesión válida tras login/registro, redirige inmediatamente a /login
     const sessionData = localStorage.getItem('user_session');
 
     if (!sessionData) {
-      const defaultUser = { 
-        name: "Diseñador RËVA", 
-        email: "admin@reva.com", 
-        role: "SELLER" 
-      };
-      localStorage.setItem('user_session', JSON.stringify(defaultUser));
-      setCurrentUser(defaultUser);
-      setNewVendorName(defaultUser.name);
-      setNewVendorContact(defaultUser.email);
-    } else {
-      try {
-        const parsedUser = JSON.parse(sessionData);
-        setCurrentUser(parsedUser);
-        if (parsedUser.role === 'SELLER') {
-          setNewVendorName(parsedUser.name || '');
-          setNewVendorContact(parsedUser.contact || parsedUser.email);
-        }
-      } catch (e) {
-        const defaultUser = { name: "Diseñador RËVA", email: "admin@reva.com", role: "SELLER" };
-        setCurrentUser(defaultUser);
-      }
+      window.location.href = '/login';
+      return;
     }
-    
-    setLoadingSession(false);
+
+    try {
+      const parsedUser = JSON.parse(sessionData);
+      if (!parsedUser || !parsedUser.email) {
+        window.location.href = '/login';
+        return;
+      }
+      setCurrentUser(parsedUser);
+      if (parsedUser.role === 'SELLER') {
+        setNewVendorName(parsedUser.name || '');
+        setNewVendorContact(parsedUser.contact || parsedUser.email);
+      }
+      setLoadingSession(false);
+    } catch (e) {
+      localStorage.removeItem('user_session');
+      window.location.href = '/login';
+    }
   }, []);
 
+  // Subida de imagen con conversión/procesamiento base64 (remoción de fondo previa en componentes)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -162,11 +161,12 @@ export default function Home() {
     setWishlist(prev => prev.filter(item => !(item.id === id && (!size || item.selectedSize === size))));
   };
 
+  // Indicador de verificación de sesión antes de renderizar la cámara
   if (loadingSession) {
     return (
       <div className="min-h-screen bg-neutral-950 text-amber-400 flex flex-col items-center justify-center font-bold tracking-widest text-sm gap-3">
         <div className="w-10 h-10 border-4 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
-        CARGANDO ENTORNO RËVA...
+        VERIFICANDO AUTENTICACIÓN Y ENTORNO RËVA...
       </div>
     );
   }
@@ -180,7 +180,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-neutral-950 text-white flex flex-col items-center p-3 sm:p-6 md:p-8 gap-6 selection:bg-amber-400 selection:text-neutral-950 overflow-x-hidden">
       
-      {/* Cabecera Responsiva */}
+      {/* Cabecera Principal */}
       <header className="w-full max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4 bg-neutral-900/40 backdrop-blur-xl border border-neutral-800/80 p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-2xl">
         <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
           <div className="flex items-center gap-3">
@@ -194,12 +194,12 @@ export default function Home() {
                   {currentUser?.role}
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-neutral-400">{currentUser?.name || "Plataforma de Terceros"}</p>
+              <p className="text-[11px] sm:text-xs text-neutral-400">{currentUser?.name || "Usuario Autenticado"}</p>
             </div>
           </div>
         </div>
 
-        {/* Botones de Navegación */}
+        {/* Acciones del Encabezado */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center w-full md:w-auto">
           <button
             onClick={() => setShowWishlistDrawer(true)}
@@ -219,7 +219,7 @@ export default function Home() {
               onClick={() => setShowAddModal(true)}
               className="bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-extrabold px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xl"
             >
-              <Plus className="w-4 h-4"/> Publicar
+              <Plus className="w-4 h-4"/> Publicar Prenda
             </button>
           )}
 
@@ -242,7 +242,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* MODAL DE PERFIL */}
+      {/* MODAL DE PERFIL DE USUARIO */}
       {showProfileModal && (
         <div className="fixed inset-0 z-50 bg-neutral-950/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 p-6 rounded-3xl shadow-2xl space-y-4">
@@ -257,7 +257,7 @@ export default function Home() {
             <div className="space-y-3 text-xs text-neutral-300">
               <p><strong className="text-white">Nombre:</strong> {currentUser?.name}</p>
               <p><strong className="text-white">Correo:</strong> {currentUser?.email}</p>
-              <p><strong className="text-white">Rol:</strong> {currentUser?.role}</p>
+              <p><strong className="text-white">Rol de Acceso:</strong> {currentUser?.role}</p>
             </div>
             <button
               onClick={() => setShowProfileModal(false)}
@@ -269,13 +269,13 @@ export default function Home() {
         </div>
       )}
 
-      {/* MODAL DE PUBLICAR PRENDA */}
+      {/* MODAL DE PUBLICAR PRENDA (SUBIDA Y REMOCIÓN DE FONDO) */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-neutral-950/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 p-6 rounded-3xl shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
               <h3 className="text-sm font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                <Plus className="w-4 h-4"/> Publicar Nueva Prenda
+                <Plus className="w-4 h-4"/> Publicar Prenda
               </h3>
               <button onClick={() => setShowAddModal(false)} className="text-neutral-400 hover:text-white bg-neutral-800 p-1.5 rounded-xl cursor-pointer">
                 <X className="w-4 h-4"/>
@@ -331,7 +331,7 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="block text-neutral-400 mb-1">URL de Compra Externa</label>
+                <label className="block text-neutral-400 mb-1">URL de Tienda Externa</label>
                 <input
                   type="url"
                   value={newStoreUrl}
@@ -403,7 +403,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* COMPONENTES PRINCIPALES */}
+      {/* CÁMARA Y ARMARIO DIGITAL */}
       <div className="w-full max-w-6xl flex flex-col gap-6">
         <VirtualTryOnCam onAddToCart={handleAddToCart} wardrobe={wardrobe} />
         <WardrobeManager 
