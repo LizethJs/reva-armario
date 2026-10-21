@@ -25,7 +25,15 @@ export default function LoginPage() {
       const res = await loginUser(formData);
 
       if (res.success) {
-        setMessage({ text: "¡Inicio de sesión exitoso! Ingresando...", success: true });
+        // Guardar sesión para que app/page.tsx cargue la cámara y el armario correctamente
+        const sessionPayload = {
+          name: res.user?.name || "Usuario RËVA",
+          email: formData.email,
+          role: res.user?.role || "CLIENT",
+        };
+        localStorage.setItem("user_session", JSON.stringify(sessionPayload));
+
+        setMessage({ text: "¡Inicio de sesión exitoso! Entrando al probador...", success: true });
         setTimeout(() => {
           window.location.href = res.redirectTo || "/";
         }, 800);
@@ -33,7 +41,7 @@ export default function LoginPage() {
         setMessage({ text: res.message || "Credenciales inválidas.", success: false });
       }
     } catch (error) {
-      setMessage({ text: "Ocurrió un error inesperado.", success: false });
+      setMessage({ text: "Ocurrió un error inesperado al iniciar sesión.", success: false });
     } finally {
       setLoading(false);
     }
@@ -55,7 +63,7 @@ export default function LoginPage() {
             PORTAL RËVA
           </h1>
           <p className="text-xs text-zinc-400 mt-1 text-center font-light">
-            Acceso al probador virtual
+            Acceso seguro al probador virtual y armario
           </p>
         </div>
 

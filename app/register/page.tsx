@@ -91,7 +91,6 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-black text-white px-4">
       <div className="relative max-w-sm w-full bg-[#181818] p-8 rounded-2xl shadow-2xl border-t-2 border-amber-500">
         
-        {/* LOGO 'R' Y PORTAL RËVA */}
         <div className="flex flex-col items-center justify-center mb-6">
           <div className="w-12 h-12 bg-amber-500 text-black font-extrabold text-xl rounded-xl flex items-center justify-center mb-3 shadow-md shadow-amber-500/20">
             R
@@ -106,7 +105,6 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* NOTIFICACIÓN O MENSAJE DE ERROR/ÉXITO */}
         {message.text && (
           <div
             className={`p-3 mb-5 rounded-xl text-xs font-medium text-center border ${
@@ -119,7 +117,6 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* VISTA 1: FORMULARIO */}
         {step === "form" ? (
           <form onSubmit={handleRegister} className="space-y-3.5">
             <div className="relative">
@@ -211,7 +208,6 @@ export default function RegisterPage() {
             </div>
           </form>
         ) : (
-          /* VISTA 2: VERIFICACIÓN CÓDIGO OTP */
           <div className="space-y-4">
             {!isVerifiedSuccess ? (
               <form onSubmit={handleVerifyOtp} className="space-y-4">

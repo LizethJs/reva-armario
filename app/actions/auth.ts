@@ -44,7 +44,6 @@ export async function registerUser(data: {
     });
 
     if (existingUser) {
-      // Si el usuario ya está verificado en Supabase, indicamos que inicie sesión
       if (existingUser.isVerified) {
         return {
           success: false,
@@ -53,7 +52,6 @@ export async function registerUser(data: {
         };
       }
 
-      // Si existe pero NO está verificado: actualizamos el código y lo mandamos a verificar
       const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
       await prisma.user.update({
@@ -67,11 +65,10 @@ export async function registerUser(data: {
         success: true,
         redirectToOtp: true,
         email: data.email,
-        message: "Tu cuenta ya está creada pero pendiente de verificación. Te hemos enviado un nuevo código OTP a tu correo.",
+        message: "Tu cuenta está pendiente de verificación. Te hemos enviado un nuevo código OTP.",
       };
     }
 
-    // Nuevo usuario
     const hashedPassword = await bcrypt.hash(data.password, 10);
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -109,7 +106,7 @@ export async function verifyOtp(email: string, otpInput: string) {
     }
 
     if (user.verificationCode !== otpInput.trim()) {
-      return { success: false, message: "El código OTP es incorrecto. Por favor verifícalo e inténtalo de nuevo." };
+      return { success: false, message: "El código OTP es incorrecto. Por favor verifícalo." };
     }
 
     await prisma.user.update({
@@ -166,13 +163,10 @@ export async function loginUser(data: { email: string; password: string }) {
       return { success: false, message: "El correo electrónico no está registrado." };
     }
 
-    // Si intenta iniciar sesión pero aún no verifica su OTP
     if (!user.isVerified) {
       return {
         success: false,
-        requiresVerification: true,
-        email: data.email,
-        message: "Tu cuenta aún no ha sido verificada. Ingresa tu código OTP.",
+        message: "Tu cuenta aún no ha sido verificada. Por favor verifica tu código OTP.",
       };
     }
 
@@ -185,7 +179,11 @@ export async function loginUser(data: { email: string; password: string }) {
     return {
       success: true,
       redirectTo: "/",
-      message: "¡Inicio de sesión exitoso!",
+      user: {
+        name: user.name,
+        role: user.role || "CLIENT",
+      },
+      message: "¡Inicio de sesión correcto!",
     };
   } catch (error) {
     console.error("Error en loginUser:", error);
