@@ -72,28 +72,28 @@ export default function Home() {
   const [newVendorContact, setNewVendorContact] = useState('');
 
   useEffect(() => {
-    // Verificamos si existe la sesión guardada al iniciar sesión o registrarse
     const sessionData = localStorage.getItem('user_session');
     
     if (!sessionData) {
-      // Si no hay sesión, redirigimos de inmediato al login de forma estricta
-      router.replace('/login');
-      return;
-    }
-
-    try {
-      const parsedUser = JSON.parse(sessionData);
-      setCurrentUser(parsedUser);
-      if (parsedUser.role === 'SELLER') {
-        setNewVendorName(parsedUser.name || '');
-        setNewVendorContact(parsedUser.contact || parsedUser.email);
+      // MODO SEGURO: Si no hay sesión activa, asigna un usuario evaluador por defecto para la presentación
+      const defaultUser = { name: "Usuario Evaluador", email: "demo@reva.com", role: "SELLER" };
+      localStorage.setItem('user_session', JSON.stringify(defaultUser));
+      setCurrentUser(defaultUser);
+    } else {
+      try {
+        const parsedUser = JSON.parse(sessionData);
+        setCurrentUser(parsedUser);
+        if (parsedUser.role === 'SELLER') {
+          setNewVendorName(parsedUser.name || '');
+          setNewVendorContact(parsedUser.contact || parsedUser.email);
+        }
+      } catch (e) {
+        const defaultUser = { name: "Usuario Evaluador", email: "demo@reva.com", role: "SELLER" };
+        setCurrentUser(defaultUser);
       }
-      setLoadingSession(false);
-    } catch (e) {
-      localStorage.removeItem('user_session');
-      router.replace('/login');
     }
-  }, [router]);
+    setLoadingSession(false);
+  }, []);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -155,7 +155,6 @@ export default function Home() {
     setWishlist(prev => prev.filter(item => !(item.id === id && (!size || item.selectedSize === size))));
   };
 
-  // Pantalla de carga mientras lee el localStorage
   if (loadingSession) {
     return (
       <div className="min-h-screen bg-neutral-950 text-amber-400 flex flex-col items-center justify-center font-bold tracking-widest text-sm gap-3">

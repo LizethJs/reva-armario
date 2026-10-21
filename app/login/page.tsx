@@ -22,17 +22,17 @@ export default function LoginPage() {
 
       if (res.success && res.user) {
         localStorage.setItem("user_session", JSON.stringify(res.user));
-        setMessage({ text: "¡Acceso correcto! Abriendo armario...", success: true });
+        setMessage({ text: "¡Acceso concedido! Entrando...", success: true });
         
         setTimeout(() => {
-          window.location.replace("/");
-        }, 200);
+          window.location.href = "/";
+        }, 300);
       } else {
         setMessage({ text: res.message || "Credenciales inválidas.", success: false });
         setLoading(false);
       }
     } catch (err) {
-      setMessage({ text: "Error inesperado al conectar.", success: false });
+      setMessage({ text: "Error de conexión con el servidor.", success: false });
       setLoading(false);
     }
   };
