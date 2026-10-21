@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { registerUser, verifyOtp, resendOtp } from "../actions/auth";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -87,30 +88,27 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-white px-4 selection:bg-yellow-400 selection:text-black">
-      {/* Fondo con resplandor sutil amarillo estilo RËVA */}
+      {/* Glow de fondo corporativo RËVA */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-yellow-500/10 via-black to-black pointer-events-none" />
 
-      <div className="relative max-w-md w-full bg-zinc-950/80 backdrop-blur-xl p-8 rounded-3xl border border-yellow-500/20 shadow-[0_0_50px_-12px_rgba(234,179,8,0.15)]">
+      <div className="relative max-w-md w-full bg-zinc-950/90 backdrop-blur-xl p-8 rounded-3xl border border-yellow-500/20 shadow-[0_0_50px_-12px_rgba(234,179,8,0.15)]">
         
-        {/* Header con marca RËVA */}
-        <div className="text-center mb-8">
-          <span className="inline-block text-[10px] uppercase tracking-[0.3em] font-bold text-yellow-400 bg-yellow-400/10 px-3 py-1 rounded-full border border-yellow-500/20 mb-3">
-            Plataforma RËVA
-          </span>
-          <h2 className="text-3xl font-black text-white tracking-tight">
-            {step === "form" ? "Crear Cuenta" : "Verificación OTP"}
-          </h2>
-          <p className="text-xs text-zinc-400 mt-2 font-light">
+        {/* Marca RËVA */}
+        <div className="text-center mb-6">
+          <h1 className="text-4xl font-black tracking-widest text-yellow-400 mb-1 drop-shadow-[0_0_10px_rgba(250,204,21,0.3)]">
+            RËVA
+          </h1>
+          <p className="text-xs text-zinc-400 font-light">
             {step === "form"
-              ? "Ingresa tus datos para acceder al probador virtual"
+              ? "Ingresa tus datos para comenzar tu experiencia virtual"
               : `Hemos enviado un código de 6 dígitos a ${emailForOtp}`}
           </p>
         </div>
 
-        {/* Notificaciones de estado */}
+        {/* Mensaje de alerta / respuesta del servidor */}
         {message.text && (
           <div
-            className={`p-3.5 mb-6 rounded-2xl text-xs font-medium text-center border backdrop-blur-md transition-all ${
+            className={`p-3.5 mb-6 rounded-2xl text-xs font-semibold text-center border transition-all ${
               message.success
                 ? "bg-yellow-400/10 border-yellow-400/40 text-yellow-300"
                 : "bg-red-500/10 border-red-500/40 text-red-400"
@@ -124,7 +122,7 @@ export default function RegisterPage() {
         {step === "form" ? (
           <form onSubmit={handleRegister} className="space-y-4">
             <div>
-              <label className="block text-[11px] uppercase tracking-wider font-semibold text-zinc-400 mb-1.5">
+              <label className="block text-[11px] uppercase tracking-wider font-semibold text-zinc-300 mb-1.5">
                 Nombre Completo
               </label>
               <input
@@ -133,13 +131,13 @@ export default function RegisterPage() {
                 required
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-zinc-900/90 border border-zinc-800 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white placeholder-zinc-600 outline-none transition text-sm font-light"
-                placeholder="Ej. Valeria Gómez"
+                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white placeholder-zinc-600 outline-none transition text-sm font-light [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_#18181b_inset]"
+                placeholder="Tu nombre"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] uppercase tracking-wider font-semibold text-zinc-400 mb-1.5">
+              <label className="block text-[11px] uppercase tracking-wider font-semibold text-zinc-300 mb-1.5">
                 Teléfono
               </label>
               <input
@@ -148,20 +146,20 @@ export default function RegisterPage() {
                 required
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-zinc-900/90 border border-zinc-800 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white placeholder-zinc-600 outline-none transition text-sm font-light"
+                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white placeholder-zinc-600 outline-none transition text-sm font-light [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_#18181b_inset]"
                 placeholder="3001234567"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] uppercase tracking-wider font-semibold text-zinc-400 mb-1.5">
+              <label className="block text-[11px] uppercase tracking-wider font-semibold text-zinc-300 mb-1.5">
                 Rol
               </label>
               <select
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-zinc-900/90 border border-zinc-800 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white outline-none transition text-sm font-light"
+                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white outline-none transition text-sm font-light"
               >
                 <option value="Cliente (Usuario Estándar)">Cliente (Usuario Estándar)</option>
                 <option value="Diseñador / Marca">Diseñador / Marca</option>
@@ -169,7 +167,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-[11px] uppercase tracking-wider font-semibold text-zinc-400 mb-1.5">
+              <label className="block text-[11px] uppercase tracking-wider font-semibold text-zinc-300 mb-1.5">
                 Correo Electrónico
               </label>
               <input
@@ -178,13 +176,13 @@ export default function RegisterPage() {
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-zinc-900/90 border border-zinc-800 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white placeholder-zinc-600 outline-none transition text-sm font-light"
+                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white placeholder-zinc-600 outline-none transition text-sm font-light [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_#18181b_inset]"
                 placeholder="correo@ejemplo.com"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] uppercase tracking-wider font-semibold text-zinc-400 mb-1.5">
+              <label className="block text-[11px] uppercase tracking-wider font-semibold text-zinc-300 mb-1.5">
                 Contraseña
               </label>
               <input
@@ -193,7 +191,7 @@ export default function RegisterPage() {
                 required
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full px-4 py-3 bg-zinc-900/90 border border-zinc-800 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white placeholder-zinc-600 outline-none transition text-sm font-light"
+                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white placeholder-zinc-600 outline-none transition text-sm font-light [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_#18181b_inset]"
                 placeholder="••••••••"
               />
             </div>
@@ -201,33 +199,32 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold rounded-xl transition-all duration-300 disabled:opacity-50 mt-4 text-sm tracking-wide shadow-[0_0_20px_rgba(250,204,21,0.3)] hover:shadow-[0_0_25px_rgba(250,204,21,0.5)] active:scale-[0.99]"
+              className="w-full py-3.5 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold rounded-xl transition-all duration-300 disabled:opacity-50 mt-2 text-sm tracking-wider shadow-[0_0_20px_rgba(250,204,21,0.25)] hover:shadow-[0_0_25px_rgba(250,204,21,0.45)] cursor-pointer active:scale-[0.99]"
             >
-              {loading ? "Procesando registro..." : "REGISTRARSE"}
+              {loading ? "Procesando registro..." : "Registrarse"}
             </button>
 
-            {/* Enlace directo a Login */}
-            <div className="pt-2 text-center">
+            {/* Redirección directa y garantizada a /login */}
+            <div className="pt-3 text-center">
               <p className="text-xs text-zinc-400">
                 ¿Ya tienes una cuenta?{" "}
-                <button
-                  type="button"
-                  onClick={() => router.push("/login")}
-                  className="text-yellow-400 hover:text-yellow-300 underline font-semibold transition cursor-pointer"
+                <Link
+                  href="/login"
+                  className="text-yellow-400 hover:text-yellow-300 underline font-bold transition-colors cursor-pointer inline-block"
                 >
-                  Iniciar sesión
-                </button>
+                  Inicia sesión
+                </Link>
               </p>
             </div>
           </form>
         ) : (
-          /* VISTA 2: Código OTP y Verificación */
+          /* VISTA 2: Inserción de OTP */
           <div className="space-y-4">
             {!isVerifiedSuccess ? (
               <form onSubmit={handleVerifyOtp} className="space-y-4">
                 <div>
-                  <label className="block text-[11px] uppercase tracking-wider font-semibold text-zinc-400 mb-2 text-center">
-                    Código de 6 dígitos
+                  <label className="block text-[11px] uppercase tracking-wider font-semibold text-zinc-300 mb-2 text-center">
+                    Código OTP (6 dígitos)
                   </label>
                   <input
                     type="text"
@@ -235,7 +232,7 @@ export default function RegisterPage() {
                     required
                     value={otpInput}
                     onChange={(e) => setOtpInput(e.target.value)}
-                    className="w-full px-4 py-3.5 bg-zinc-900/90 border border-zinc-800 rounded-xl text-center tracking-[0.4em] text-2xl font-black focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-yellow-400 outline-none transition"
+                    className="w-full px-4 py-3.5 bg-zinc-900 border border-zinc-800 rounded-xl text-center tracking-[0.4em] text-2xl font-black focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-yellow-400 outline-none transition [&:-webkit-autofill]:[-webkit-text-fill-color:#facc15] [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_#18181b_inset]"
                     placeholder="123456"
                   />
                 </div>
@@ -243,9 +240,9 @@ export default function RegisterPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold rounded-xl transition-all duration-300 disabled:opacity-50 text-sm tracking-wide shadow-[0_0_20px_rgba(250,204,21,0.3)] hover:shadow-[0_0_25px_rgba(250,204,21,0.5)] active:scale-[0.99]"
+                  className="w-full py-3.5 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold rounded-xl transition-all duration-300 disabled:opacity-50 text-sm tracking-wider shadow-[0_0_20px_rgba(250,204,21,0.25)] hover:shadow-[0_0_25px_rgba(250,204,21,0.45)] cursor-pointer active:scale-[0.99]"
                 >
-                  {loading ? "Verificando..." : "VERIFICAR CUENTA"}
+                  {loading ? "Verificando..." : "Verificar Cuenta"}
                 </button>
 
                 <div className="text-center mt-3 space-y-2">
@@ -260,26 +257,24 @@ export default function RegisterPage() {
                     </button>
                   </div>
                   <div>
-                    <button
-                      type="button"
-                      onClick={() => router.push("/login")}
-                      className="text-xs text-yellow-400 hover:underline font-semibold cursor-pointer"
+                    <Link
+                      href="/login"
+                      className="text-xs text-yellow-400 hover:underline font-bold cursor-pointer inline-block"
                     >
                       Volver a Iniciar Sesión
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </form>
             ) : (
-              /* Botón de acceso inmediato a la app tras verificar */
+              /* Botón tras verificar con éxito */
               <div className="pt-2 text-center space-y-4">
-                <button
-                  type="button"
-                  onClick={() => router.push("/login")}
-                  className="w-full py-3.5 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold text-center rounded-xl transition-all duration-300 text-sm tracking-wide shadow-[0_0_25px_rgba(250,204,21,0.4)] cursor-pointer active:scale-[0.99]"
+                <Link
+                  href="/login"
+                  className="block w-full py-3.5 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold text-center rounded-xl transition-all duration-300 text-sm tracking-wider shadow-[0_0_25px_rgba(250,204,21,0.4)] cursor-pointer active:scale-[0.99]"
                 >
                   INICIAR SESIÓN AHORA
-                </button>
+                </Link>
               </div>
             )}
           </div>
