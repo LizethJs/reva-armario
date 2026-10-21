@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { registerUser, verifyOtp, resendOtp } from "../actions/auth";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -27,6 +26,12 @@ export default function RegisterPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // Función para redirigir directamente al Login sin interferencia del formulario
+  const goToLogin = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    router.push("/login");
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -105,7 +110,7 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* Mensaje de alerta / respuesta del servidor */}
+        {/* Mensaje de respuesta */}
         {message.text && (
           <div
             className={`p-3.5 mb-6 rounded-2xl text-xs font-semibold text-center border transition-all ${
@@ -204,21 +209,22 @@ export default function RegisterPage() {
               {loading ? "Procesando registro..." : "Registrarse"}
             </button>
 
-            {/* Redirección directa y garantizada a /login */}
+            {/* Redirección forzada e inmediata mediante goToLogin */}
             <div className="pt-3 text-center">
               <p className="text-xs text-zinc-400">
                 ¿Ya tienes una cuenta?{" "}
-                <Link
-                  href="/login"
+                <button
+                  type="button"
+                  onClick={goToLogin}
                   className="text-yellow-400 hover:text-yellow-300 underline font-bold transition-colors cursor-pointer inline-block"
                 >
                   Inicia sesión
-                </Link>
+                </button>
               </p>
             </div>
           </form>
         ) : (
-          /* VISTA 2: Inserción de OTP */
+          /* VISTA 2: Código OTP */
           <div className="space-y-4">
             {!isVerifiedSuccess ? (
               <form onSubmit={handleVerifyOtp} className="space-y-4">
@@ -257,24 +263,26 @@ export default function RegisterPage() {
                     </button>
                   </div>
                   <div>
-                    <Link
-                      href="/login"
+                    <button
+                      type="button"
+                      onClick={goToLogin}
                       className="text-xs text-yellow-400 hover:underline font-bold cursor-pointer inline-block"
                     >
                       Volver a Iniciar Sesión
-                    </Link>
+                    </button>
                   </div>
                 </div>
               </form>
             ) : (
-              /* Botón tras verificar con éxito */
+              /* Botón directo tras verificar */
               <div className="pt-2 text-center space-y-4">
-                <Link
-                  href="/login"
-                  className="block w-full py-3.5 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold text-center rounded-xl transition-all duration-300 text-sm tracking-wider shadow-[0_0_25px_rgba(250,204,21,0.4)] cursor-pointer active:scale-[0.99]"
+                <button
+                  type="button"
+                  onClick={goToLogin}
+                  className="w-full py-3.5 bg-yellow-400 hover:bg-yellow-300 text-black font-extrabold text-center rounded-xl transition-all duration-300 text-sm tracking-wider shadow-[0_0_25px_rgba(250,204,21,0.4)] cursor-pointer active:scale-[0.99]"
                 >
                   INICIAR SESIÓN AHORA
-                </Link>
+                </button>
               </div>
             )}
           </div>
