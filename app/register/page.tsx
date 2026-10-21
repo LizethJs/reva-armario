@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { registerUser, verifyOtp, resendOtp } from "../actions/auth";
-import Link from "next/link";
 
 export default function RegisterPage() {
   const [step, setStep] = useState<"form" | "otp">("form");
@@ -24,6 +23,11 @@ export default function RegisterPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // Redirección directa garantizada al login
+  const goToLogin = () => {
+    window.location.href = "/login";
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -193,21 +197,22 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-yellow-400 hover:bg-yellow-300 text-black font-bold rounded-xl transition duration-200 disabled:opacity-50 mt-2 text-sm"
+              className="w-full py-3 bg-yellow-400 hover:bg-yellow-300 text-black font-bold rounded-xl transition duration-200 disabled:opacity-50 mt-2 text-sm cursor-pointer"
             >
               {loading ? "Procesando registro..." : "Registrarse"}
             </button>
 
-            {/* Enlace directo a /login usando Link nativo */}
+            {/* Enlace directo forzado a /login */}
             <div className="pt-3 text-center">
               <p className="text-xs text-zinc-400">
                 ¿Ya tienes una cuenta?{" "}
-                <Link
-                  href="/login"
-                  className="text-yellow-400 hover:underline font-bold transition"
+                <button
+                  type="button"
+                  onClick={goToLogin}
+                  className="text-yellow-400 hover:underline font-bold bg-transparent border-none cursor-pointer p-0 inline"
                 >
                   Inicia sesión
-                </Link>
+                </button>
               </p>
             </div>
           </form>
@@ -234,7 +239,7 @@ export default function RegisterPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 bg-yellow-400 hover:bg-yellow-300 text-black font-bold rounded-xl transition duration-200 disabled:opacity-50 text-sm"
+                  className="w-full py-3 bg-yellow-400 hover:bg-yellow-300 text-black font-bold rounded-xl transition duration-200 disabled:opacity-50 text-sm cursor-pointer"
                 >
                   {loading ? "Verificando..." : "Verificar Cuenta"}
                 </button>
@@ -245,30 +250,32 @@ export default function RegisterPage() {
                       type="button"
                       onClick={handleResendOtp}
                       disabled={resendLoading}
-                      className="text-xs text-zinc-400 hover:text-yellow-400 transition font-medium disabled:opacity-50"
+                      className="text-xs text-zinc-400 hover:text-yellow-400 transition font-medium disabled:opacity-50 cursor-pointer bg-transparent border-none"
                     >
                       {resendLoading ? "Enviando..." : "¿No recibiste el código? Reenviar OTP"}
                     </button>
                   </div>
                   <div>
-                    <Link
-                      href="/login"
-                      className="text-xs text-yellow-400 hover:underline font-bold"
+                    <button
+                      type="button"
+                      onClick={goToLogin}
+                      className="text-xs text-yellow-400 hover:underline font-bold bg-transparent border-none cursor-pointer"
                     >
                       Volver a Iniciar Sesión
-                    </Link>
+                    </button>
                   </div>
                 </div>
               </form>
             ) : (
-              /* Botón directo tras verificar */
+              /* Botón directo tras verificar con éxito */
               <div className="pt-2 text-center space-y-4">
-                <Link
-                  href="/login"
-                  className="block w-full py-3 bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-center rounded-xl transition duration-200 text-sm"
+                <button
+                  type="button"
+                  onClick={goToLogin}
+                  className="w-full py-3 bg-yellow-400 hover:bg-yellow-300 text-black font-bold text-center rounded-xl transition duration-200 text-sm cursor-pointer"
                 >
                   Iniciar Sesión de una vez
-                </Link>
+                </button>
               </div>
             )}
           </div>
