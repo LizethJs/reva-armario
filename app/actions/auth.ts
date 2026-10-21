@@ -42,8 +42,28 @@ export async function registerUser(data: {
   password: string;
 }) {
   try {
+    // 1. Sanitización de datos
+    const sanitizedName = data.name.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const sanitizedEmail = data.email.toLowerCase().trim();
+    const sanitizedPhone = data.phone.trim();
+
+    // 2. Validaciones de Seguridad en Servidor (SSDLC)
+    const isNameValid = /^[a-zA-AáéíóúÁÉÍÓÚñÑ\s]{3,50}$/.test(sanitizedName);
+    const isPhoneValid = /^[3][0-9]{9}$/.test(sanitizedPhone);
+    const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitizedEmail);
+    const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!\%*?&]{8,}$/.test(data.password);
+
+    if (!isNameValid || !isPhoneValid || !isEmailValid || !isPasswordValid) {
+      return {
+        success: false,
+        redirectToOtp: false,
+        message: "Los datos enviados no cumplen con los estándares de seguridad requeridos.",
+      };
+    }
+
+    // 3. Verificación de usuario existente
     const existingUser = await prisma.user.findUnique({
-      where: { email: data.email.toLowerCase().trim() },
+      where: { email: sanitizedEmail },
     }).catch(() => null);
 
     if (existingUser) {
@@ -57,19 +77,20 @@ export async function registerUser(data: {
 
       const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
       await prisma.user.update({
-        where: { email: data.email },
+        where: { email: sanitizedEmail },
         data: { verificationCode: newOtp },
       });
 
-      await sendOtpEmail(data.email, newOtp);
+      await sendOtpEmail(sanitizedEmail, newOtp);
       return {
         success: true,
         redirectToOtp: true,
-        email: data.email,
+        email: sanitizedEmail,
         message: "Cuenta pendiente de verificación. Te enviamos un nuevo OTP.",
       };
     }
 
+    // 4. Creación de cuenta
     const hashedPassword = await bcrypt.hash(data.password, 10);
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -80,8 +101,8 @@ export async function registerUser(data: {
 
     await prisma.user.create({
       data: {
-        name: data.name,
-        email: data.email.toLowerCase().trim(),
+        name: sanitizedName,
+        email: sanitizedEmail,
         password: hashedPassword,
         verificationCode: otpCode,
         isVerified: false,
@@ -89,12 +110,12 @@ export async function registerUser(data: {
       },
     });
 
-    await sendOtpEmail(data.email, otpCode);
+    await sendOtpEmail(sanitizedEmail, otpCode);
 
     return {
       success: true,
       redirectToOtp: true,
-      email: data.email,
+      email: sanitizedEmail,
       message: "Registro iniciado. Revisa tu correo para el código OTP.",
     };
   } catch (error: any) {
@@ -102,14 +123,15 @@ export async function registerUser(data: {
     return { 
       success: false, 
       redirectToOtp: false, 
-      message: `Error de BD: ${error.message || "Verifica las tablas en Supabase."}` 
+      message: `Error de BD: ${error.message || "Verifica la conexión a Supabase."}` 
     };
   }
 }
 
 export async function verifyOtp(email: string, otpInput: string) {
   try {
-    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
+    const sanitizedEmail = email.toLowerCase().trim();
+    const user = await prisma.user.findUnique({ where: { email: sanitizedEmail } });
 
     if (!user) {
       return { success: false, message: "Usuario no encontrado." };
@@ -135,7 +157,8 @@ export async function verifyOtp(email: string, otpInput: string) {
 
 export async function resendOtp(email: string) {
   try {
-    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
+    const sanitizedEmail = email.toLowerCase().trim();
+    const user = await prisma.user.findUnique({ where: { email: sanitizedEmail } });
     if (!user) return { success: false, message: "Usuario no encontrado." };
 
     const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -145,7 +168,7 @@ export async function resendOtp(email: string) {
     });
 
     await sendOtpEmail(user.email, newOtp);
-    return { success: true, message: "Nuevo código OTP enviado." };
+    return { success: true, message: "Nuevo código OTP enviado a tu correo." };
   } catch (error: any) {
     return { success: false, message: error.message || "Error al reenviar OTP." };
   }
@@ -153,8 +176,9 @@ export async function resendOtp(email: string) {
 
 export async function loginUser(data: { email: string; password: string }) {
   try {
+    const sanitizedEmail = data.email.toLowerCase().trim();
     const user = await prisma.user.findUnique({
-      where: { email: data.email.toLowerCase().trim() },
+      where: { email: sanitizedEmail },
     });
 
     if (!user) {

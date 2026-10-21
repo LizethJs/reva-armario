@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { registerUser, verifyOtp, resendOtp } from "../actions/auth";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function RegisterPage() {
   const [step, setStep] = useState<"form" | "otp">("form");
@@ -11,7 +12,12 @@ export default function RegisterPage() {
     role: "SELLER (Diseñador / Vendedor)",
     email: "",
     password: "",
+    confirmPassword: "",
   });
+
+  // Estados para controlar la visibilidad de las contraseñas (Ojo)
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [otp, setOtp] = useState("");
   const [registeredEmail, setRegisteredEmail] = useState("");
@@ -20,13 +26,30 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: "", success: false });
 
-  // Expresiones Regulares para Sanitización y Validación de Entrada
+  // --- REGLAS Y DESGLOSE DE VALIDACIÓN EN TIEMPO REAL ---
   const isNameValid = /^[a-zA-AáéíóúÁÉÍÓÚñÑ\s]{3,50}$/.test(formData.name.trim());
-  const isPhoneValid = /^[3][0-9]{9}$/.test(formData.phone.trim()); // 10 dígitos numéricos comenzando en 3
-  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim());
-  const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!\%*?&]{8,}$/.test(formData.password);
 
-  const isFormValid = isNameValid && isPhoneValid && isEmailValid && isPasswordValid;
+  // Teléfono: Celular en Colombia
+  const isPhoneDigitsOnly = /^[0-9]*$/.test(formData.phone.trim());
+  const startsWithThree = formData.phone.trim().startsWith("3");
+  const isPhoneValid = /^[3][0-9]{9}$/.test(formData.phone.trim());
+
+  // Correo: Desglose específico
+  const hasAtSymbol = formData.email.includes("@");
+  const hasDomain = /@[^\s@]+\.[^\s@]+$/.test(formData.email.trim());
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim());
+
+  // Contraseña: Checklist
+  const hasMinLength = formData.password.length >= 8;
+  const hasUppercase = /[A-Z]/.test(formData.password);
+  const hasNumber = /\d/.test(formData.password);
+  const hasSpecialChar = /[@$!%*?&]/.test(formData.password);
+  const isPasswordValid = hasMinLength && hasUppercase && hasNumber && hasSpecialChar;
+
+  // Confirmación de Contraseña
+  const isConfirmPasswordValid = formData.confirmPassword.length > 0 && formData.confirmPassword === formData.password;
+
+  const isFormValid = isNameValid && isPhoneValid && isEmailValid && isPasswordValid && isConfirmPasswordValid;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -37,7 +60,7 @@ export default function RegisterPage() {
 
     if (!isFormValid) {
       setMessage({
-        text: "Por favor corrige los campos en rojo antes de enviar.",
+        text: "Por favor cumple con todos los requisitos de seguridad marcados.",
         success: false,
       });
       return;
@@ -58,7 +81,7 @@ export default function RegisterPage() {
         setMessage({ text: res.message || "Error al procesar el registro.", success: false });
       }
     } catch (err) {
-      setMessage({ text: "Fallo de comunicación con el servidor.", success: false });
+      setMessage({ text: "Error de comunicación con el servidor.", success: false });
     } finally {
       setLoading(false);
     }
@@ -84,7 +107,7 @@ export default function RegisterPage() {
           window.location.href = "/";
         }, 400);
       } else {
-        setMessage({ text: res.message || "Código OTP incorrecto o expirado.", success: false });
+        setMessage({ text: res.message || "Código OTP incorrecto.", success: false });
       }
     } catch (err) {
       setMessage({ text: "Error en la validación del código.", success: false });
@@ -109,7 +132,7 @@ export default function RegisterPage() {
           </div>
           <h1 className="text-xl font-black tracking-widest text-white">PORTAL RËVA</h1>
           <p className="text-xs text-neutral-400 mt-1 text-center">
-            {step === "form" ? "Registro seguro de usuarios" : "Verificación OTP requerida"}
+            {step === "form" ? "Registro seguro con validación en tiempo real" : "Verificación OTP por correo"}
           </p>
         </div>
 
@@ -122,9 +145,11 @@ export default function RegisterPage() {
         )}
 
         {step === "form" ? (
-          <form onSubmit={handleRegisterSubmit} className="space-y-3.5 text-xs">
+          <form onSubmit={handleRegisterSubmit} className="space-y-4 text-xs">
+            
+            {/* NOMBRE COMPLETO */}
             <div>
-              <label className="block text-neutral-400 mb-1">Nombre Completo</label>
+              <label className="block text-neutral-400 mb-1 font-medium">Nombre Completo</label>
               <input
                 type="text"
                 name="name"
@@ -132,17 +157,29 @@ export default function RegisterPage() {
                 value={formData.name}
                 onChange={handleChange}
                 className={`w-full px-3.5 py-2.5 bg-neutral-950 border rounded-xl text-white outline-none transition ${
-                  formData.name && !isNameValid ? "border-red-500" : "border-neutral-800 focus:border-amber-400"
+                  !formData.name
+                    ? "border-neutral-800 focus:border-amber-400"
+                    : isNameValid
+                    ? "border-emerald-500 focus:border-emerald-400"
+                    : "border-red-500"
                 }`}
                 placeholder="Ej: Paula Gómez"
               />
-              {formData.name && !isNameValid && (
-                <p className="text-[10px] text-red-400 mt-1">Solo letras y espacios (mínimo 3 caracteres).</p>
+              {formData.name && (
+                <p className={`text-[10px] mt-1 font-medium ${isNameValid ? "text-emerald-400" : "text-red-400"}`}>
+                  {isNameValid ? "✓ Nombre válido" : "✗ Solo letras y mínimo 3 caracteres."}
+                </p>
               )}
             </div>
 
+            {/* TELÉFONO MÓVIL */}
             <div>
-              <label className="block text-neutral-400 mb-1">Teléfono Móvil</label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-neutral-400 font-medium">Teléfono Móvil (Colombia)</label>
+                {formData.phone && (
+                  <span className="text-[10px] text-neutral-500">{formData.phone.length}/10 dígitos</span>
+                )}
+              </div>
               <input
                 type="text"
                 name="phone"
@@ -151,17 +188,29 @@ export default function RegisterPage() {
                 value={formData.phone}
                 onChange={handleChange}
                 className={`w-full px-3.5 py-2.5 bg-neutral-950 border rounded-xl text-white outline-none transition ${
-                  formData.phone && !isPhoneValid ? "border-red-500" : "border-neutral-800 focus:border-amber-400"
+                  !formData.phone
+                    ? "border-neutral-800 focus:border-amber-400"
+                    : isPhoneValid
+                    ? "border-emerald-500 focus:border-emerald-400"
+                    : "border-red-500"
                 }`}
                 placeholder="3001234567"
               />
-              {formData.phone && !isPhoneValid && (
-                <p className="text-[10px] text-red-400 mt-1">Formato inválido. Debe ser de 10 dígitos (ej: 3001234567).</p>
+              {formData.phone && (
+                <div className="text-[10px] mt-1 space-y-0.5 font-medium">
+                  {!isPhoneDigitsOnly && <p className="text-red-400">✗ Debe contener únicamente números.</p>}
+                  {!startsWithThree && <p className="text-red-400">✗ Debe iniciar con el número 3 (formato móvil Colombia).</p>}
+                  {formData.phone.length !== 10 && (
+                    <p className="text-red-400">✗ Debe tener exactamente 10 dígitos (llevas {formData.phone.length}).</p>
+                  )}
+                  {isPhoneValid && <p className="text-emerald-400 font-bold">✓ Teléfono móvil válido</p>}
+                </div>
               )}
             </div>
 
+            {/* ROL DE ACCESO */}
             <div>
-              <label className="block text-neutral-400 mb-1">Rol de Acceso</label>
+              <label className="block text-neutral-400 mb-1 font-medium">Rol de Acceso</label>
               <select
                 name="role"
                 value={formData.role}
@@ -173,8 +222,9 @@ export default function RegisterPage() {
               </select>
             </div>
 
+            {/* CORREO ELECTRÓNICO */}
             <div>
-              <label className="block text-neutral-400 mb-1">Correo Electrónico</label>
+              <label className="block text-neutral-400 mb-1 font-medium">Correo Electrónico</label>
               <input
                 type="email"
                 name="email"
@@ -182,43 +232,114 @@ export default function RegisterPage() {
                 value={formData.email}
                 onChange={handleChange}
                 className={`w-full px-3.5 py-2.5 bg-neutral-950 border rounded-xl text-white outline-none transition ${
-                  formData.email && !isEmailValid ? "border-red-500" : "border-neutral-800 focus:border-amber-400"
+                  !formData.email
+                    ? "border-neutral-800 focus:border-amber-400"
+                    : isEmailValid
+                    ? "border-emerald-500 focus:border-emerald-400"
+                    : "border-red-500"
                 }`}
                 placeholder="correo@ejemplo.com"
               />
-            </div>
-
-            <div>
-              <label className="block text-neutral-400 mb-1">Contraseña</label>
-              <input
-                type="password"
-                name="password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                className={`w-full px-3.5 py-2.5 bg-neutral-950 border rounded-xl text-white outline-none transition ${
-                  formData.password && !isPasswordValid ? "border-red-500" : "border-neutral-800 focus:border-amber-400"
-                }`}
-                placeholder="••••••••"
-              />
-              {formData.password && !isPasswordValid && (
-                <div className="text-[10px] text-red-400 mt-1 space-y-0.5">
-                  <p>La contraseña debe incluir:</p>
-                  <p>• Mínimo 8 caracteres</p>
-                  <p>• Al menos 1 mayúscula, 1 número y 1 símbolo (@$!%*?&)</p>
+              {formData.email && (
+                <div className="text-[10px] mt-1 space-y-0.5 font-medium">
+                  {!hasAtSymbol && <p className="text-red-400">✗ Falta el carácter '@' en la dirección.</p>}
+                  {hasAtSymbol && !hasDomain && <p className="text-red-400">✗ Falta el dominio después del '@' (ej: .com o .edu.co).</p>}
+                  {isEmailValid && <p className="text-emerald-400 font-bold">✓ Estructura de correo válida</p>}
                 </div>
               )}
             </div>
 
+            {/* CONTRASEÑA SEGUARA CON BOTÓN OJITO */}
+            <div>
+              <label className="block text-neutral-400 mb-1 font-medium">Contraseña Segura</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  required
+                  value={formData.password}
+                  onChange={handleChange}
+                  className={`w-full pl-3.5 pr-10 py-2.5 bg-neutral-950 border rounded-xl text-white outline-none transition ${
+                    !formData.password
+                      ? "border-neutral-800 focus:border-amber-400"
+                      : isPasswordValid
+                      ? "border-emerald-500 focus:border-emerald-400"
+                      : "border-red-500"
+                  }`}
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-amber-400 transition"
+                  title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {formData.password && (
+                <div className="mt-2 bg-neutral-950 p-2.5 rounded-xl border border-neutral-800 text-[10px] space-y-1">
+                  <p className={hasMinLength ? "text-emerald-400" : "text-neutral-500"}>
+                    {hasMinLength ? "✓" : "○"} Mínimo 8 caracteres
+                  </p>
+                  <p className={hasUppercase ? "text-emerald-400" : "text-neutral-500"}>
+                    {hasUppercase ? "✓" : "○"} Al menos una mayúscula (A-Z)
+                  </p>
+                  <p className={hasNumber ? "text-emerald-400" : "text-neutral-500"}>
+                    {hasNumber ? "✓" : "○"} Al menos un número (0-9)
+                  </p>
+                  <p className={hasSpecialChar ? "text-emerald-400" : "text-neutral-500"}>
+                    {hasSpecialChar ? "✓" : "○"} Al menos un símbolo especial (@$!%*?&)
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* CONFIRMAR CONTRASEÑA CON BOTÓN OJITO */}
+            <div>
+              <label className="block text-neutral-400 mb-1 font-medium">Confirmar Contraseña</label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  name="confirmPassword"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className={`w-full pl-3.5 pr-10 py-2.5 bg-neutral-950 border rounded-xl text-white outline-none transition ${
+                    !formData.confirmPassword
+                      ? "border-neutral-800 focus:border-amber-400"
+                      : isConfirmPasswordValid
+                      ? "border-emerald-500 focus:border-emerald-400"
+                      : "border-red-500"
+                  }`}
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-amber-400 transition"
+                  title={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {formData.confirmPassword && (
+                <p className={`text-[10px] mt-1 font-medium ${isConfirmPasswordValid ? "text-emerald-400" : "text-red-400"}`}>
+                  {isConfirmPasswordValid ? "✓ Las contraseñas coinciden" : "✗ Las contraseñas no coinciden."}
+                </p>
+              )}
+            </div>
+
+            {/* BOTÓN DE REGISTRO */}
             <button
               type="submit"
               disabled={loading || !isFormValid}
-              className="w-full py-3 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-black rounded-xl transition cursor-pointer shadow-lg mt-2 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-black rounded-xl transition cursor-pointer shadow-lg mt-2 disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              {loading ? "Procesando..." : "Registrarse y Enviar OTP"}
+              {loading ? "Validando credenciales..." : "Registrarse y Enviar OTP"}
             </button>
 
-            <div className="text-center pt-3">
+            <div className="text-center pt-2">
               <p className="text-xs text-neutral-400">
                 ¿Ya tienes cuenta?{" "}
                 <a href="/login" className="text-amber-400 hover:underline font-semibold">
@@ -230,7 +351,7 @@ export default function RegisterPage() {
         ) : (
           <form onSubmit={handleVerifyOtpSubmit} className="space-y-4 text-xs">
             <p className="text-neutral-300 text-center text-xs">
-              Ingresa el código OTP enviado a <span className="text-amber-400 font-bold">{registeredEmail}</span>.
+              Hemos enviado un código de 6 dígitos a <span className="text-amber-400 font-bold">{registeredEmail}</span>.
             </p>
 
             <div>
