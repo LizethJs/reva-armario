@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { VirtualTryOnCam } from './components/VirtualTryOnCam';
 import WardrobeManager from './components/WardrobeManager';
-import { Plus, LogOut, UserCheck, X, Mail, Crown, Store, ShoppingBag, Sparkles, User as UserIcon, Settings, Trash2, ExternalLink } from 'lucide-react';
+import { Plus, LogOut, UserCheck, X, ShoppingBag, User as UserIcon, ExternalLink } from 'lucide-react';
 
 export interface Garment {
   id: string;
@@ -29,7 +29,6 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: string; contact?: string } | null>(null);
   const [loadingSession, setLoadingSession] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showAdminPanel, setShowAdminPanel] = useState(false);
 
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [showWishlistDrawer, setShowWishlistDrawer] = useState(false);
@@ -73,11 +72,15 @@ export default function Home() {
   const [newVendorContact, setNewVendorContact] = useState('');
 
   useEffect(() => {
+    // Verificamos si existe la sesión guardada al iniciar sesión o registrarse
     const sessionData = localStorage.getItem('user_session');
+    
     if (!sessionData) {
-      window.location.href = '/login';
+      // Si no hay sesión, redirigimos de inmediato al login de forma estricta
+      router.replace('/login');
       return;
     }
+
     try {
       const parsedUser = JSON.parse(sessionData);
       setCurrentUser(parsedUser);
@@ -85,11 +88,12 @@ export default function Home() {
         setNewVendorName(parsedUser.name || '');
         setNewVendorContact(parsedUser.contact || parsedUser.email);
       }
+      setLoadingSession(false);
     } catch (e) {
-      window.location.href = '/login';
+      localStorage.removeItem('user_session');
+      router.replace('/login');
     }
-    setLoadingSession(false);
-  }, []);
+  }, [router]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -151,9 +155,11 @@ export default function Home() {
     setWishlist(prev => prev.filter(item => !(item.id === id && (!size || item.selectedSize === size))));
   };
 
+  // Pantalla de carga mientras lee el localStorage
   if (loadingSession) {
     return (
-      <div className="min-h-screen bg-neutral-950 text-amber-400 flex items-center justify-center font-bold tracking-widest text-sm animate-pulse">
+      <div className="min-h-screen bg-neutral-950 text-amber-400 flex flex-col items-center justify-center font-bold tracking-widest text-sm gap-3">
+        <div className="w-10 h-10 border-4 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
         CARGANDO ENTORNO RËVA...
       </div>
     );
@@ -221,7 +227,7 @@ export default function Home() {
           <button
             onClick={() => {
               localStorage.removeItem('user_session');
-              window.location.href = '/login';
+              router.replace('/login');
             }}
             className="bg-red-950/30 border border-red-900/40 hover:bg-red-900/50 text-red-300 font-bold p-2.5 sm:px-3 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs transition cursor-pointer"
           >
