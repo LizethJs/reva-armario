@@ -76,7 +76,7 @@ export default function Home() {
   useEffect(() => {
     const sessionData = localStorage.getItem('user_session');
     if (!sessionData) {
-      router.push('/login');
+      window.location.href = '/login';
       return;
     }
     try {
@@ -87,10 +87,10 @@ export default function Home() {
         setNewVendorContact(parsedUser.contact || parsedUser.email);
       }
     } catch (e) {
-      router.push('/login');
+      window.location.href = '/login';
     }
     setLoadingSession(false);
-  }, [router]);
+  }, []);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -183,7 +183,7 @@ export default function Home() {
                   {currentUser?.role}
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-neutral-400">Plataforma de Terceros</p>
+              <p className="text-[11px] sm:text-xs text-neutral-400">{currentUser?.name || "Plataforma de Terceros"}</p>
             </div>
           </div>
         </div>
@@ -222,7 +222,7 @@ export default function Home() {
           <button
             onClick={() => {
               localStorage.removeItem('user_session');
-              router.push('/login');
+              window.location.href = '/login';
             }}
             className="bg-red-950/30 border border-red-900/40 hover:bg-red-900/50 text-red-300 font-bold p-2.5 sm:px-3 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs transition cursor-pointer"
           >
@@ -230,6 +230,116 @@ export default function Home() {
           </button>
         </div>
       </header>
+
+      {/* MODAL DE PERFIL */}
+      {showProfileModal && (
+        <div className="fixed inset-0 z-50 bg-neutral-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 p-6 rounded-3xl shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+              <h3 className="text-sm font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                <UserIcon className="w-4 h-4"/> Perfil de Usuario
+              </h3>
+              <button onClick={() => setShowProfileModal(false)} className="text-neutral-400 hover:text-white bg-neutral-800 p-1.5 rounded-xl cursor-pointer">
+                <X className="w-4 h-4"/>
+              </button>
+            </div>
+            <div className="space-y-3 text-xs text-neutral-300">
+              <p><strong className="text-white">Nombre:</strong> {currentUser?.name}</p>
+              <p><strong className="text-white">Correo:</strong> {currentUser?.email}</p>
+              <p><strong className="text-white">Rol:</strong> {currentUser?.role}</p>
+            </div>
+            <button
+              onClick={() => setShowProfileModal(false)}
+              className="w-full bg-amber-400 hover:bg-amber-300 text-neutral-950 font-black py-2.5 rounded-xl text-xs transition cursor-pointer"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE PUBLICAR PRENDA (SI ES SELLER) */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 bg-neutral-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 p-6 rounded-3xl shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+              <h3 className="text-sm font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                <Plus className="w-4 h-4"/> Publicar Nueva Prenda
+              </h3>
+              <button onClick={() => setShowAddModal(false)} className="text-neutral-400 hover:text-white bg-neutral-800 p-1.5 rounded-xl cursor-pointer">
+                <X className="w-4 h-4"/>
+              </button>
+            </div>
+
+            <form onSubmit={handleAddGarment} className="space-y-3 text-xs">
+              <div>
+                <label className="block text-neutral-400 mb-1">Nombre de la Prenda</label>
+                <input
+                  type="text"
+                  required
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:border-emerald-400"
+                  placeholder="Ej: Abrigo Minimalista"
+                />
+              </div>
+
+              <div>
+                <label className="block text-neutral-400 mb-1">Categoría</label>
+                <select
+                  value={newCategory}
+                  onChange={(e: any) => setNewCategory(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:border-emerald-400"
+                >
+                  <option value="tops">Tops</option>
+                  <option value="bottoms">Bottoms</option>
+                  <option value="shoes">Shoes</option>
+                  <option value="outerwear">Outerwear</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-neutral-400 mb-1">Imagen (Subir archivo o URL)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-500 file:text-neutral-950 hover:file:bg-emerald-400 cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <label className="block text-neutral-400 mb-1">Precio</label>
+                <input
+                  type="text"
+                  value={newPrice}
+                  onChange={(e) => setNewPrice(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:border-emerald-400"
+                  placeholder="$79.900 COP"
+                />
+              </div>
+
+              <div>
+                <label className="block text-neutral-400 mb-1">URL de Compra Externa</label>
+                <input
+                  type="url"
+                  value={newStoreUrl}
+                  onChange={(e) => setNewStoreUrl(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:border-emerald-400"
+                  placeholder="https://tu-tienda.com"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-black rounded-xl transition cursor-pointer shadow-lg mt-2"
+              >
+                Publicar Prenda en RËVA
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* WISHLIST DRAWER RESPONSIVE */}
       {showWishlistDrawer && (
