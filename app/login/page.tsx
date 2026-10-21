@@ -4,11 +4,7 @@ import { useState } from "react";
 import { loginUser } from "../actions/auth";
 
 export default function LoginPage() {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: "", success: false });
 
@@ -25,26 +21,20 @@ export default function LoginPage() {
       const res = await loginUser(formData);
 
       if (res.success && res.user) {
-        // Almacena la sesión completa con el rol y nombre para que app/page.tsx cargue la cámara y el armario
         localStorage.setItem("user_session", JSON.stringify(res.user));
-
-        setMessage({ text: "¡Inicio de sesión exitoso! Entrando al probador...", success: true });
+        setMessage({ text: "¡Acceso concedido! Entrando al probador...", success: true });
         
         setTimeout(() => {
           window.location.href = res.redirectTo || "/";
-        }, 600);
+        }, 400);
       } else {
         setMessage({ text: res.message || "Credenciales inválidas.", success: false });
+        setLoading(false);
       }
-    } catch (error) {
-      setMessage({ text: "Ocurrió un error inesperado al iniciar sesión.", success: false });
-    } finally {
+    } catch (err) {
+      setMessage({ text: "Error de conexión con el servidor.", success: false });
       setLoading(false);
     }
-  };
-
-  const goToRegister = () => {
-    window.location.href = "/register";
   };
 
   return (
@@ -55,22 +45,16 @@ export default function LoginPage() {
           <div className="w-12 h-12 bg-amber-500 text-black font-extrabold text-xl rounded-xl flex items-center justify-center mb-3 shadow-md shadow-amber-500/20">
             R
           </div>
-          <h1 className="text-xl font-extrabold tracking-wider text-white">
-            PORTAL RËVA
-          </h1>
+          <h1 className="text-xl font-extrabold tracking-wider text-white">PORTAL RËVA</h1>
           <p className="text-xs text-zinc-400 mt-1 text-center font-light">
-            Acceso seguro al probador virtual y armario
+            Acceso al probador virtual y armario
           </p>
         </div>
 
         {message.text && (
-          <div
-            className={`p-3 mb-5 rounded-xl text-xs font-medium text-center border ${
-              message.success
-                ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
-                : "bg-red-950/50 border-red-800/60 text-red-300"
-            }`}
-          >
+          <div className={`p-3 mb-5 rounded-xl text-xs font-medium text-center border ${
+            message.success ? "bg-amber-500/10 border-amber-500/30 text-amber-300" : "bg-red-950/50 border-red-800/60 text-red-300"
+          }`}>
             {message.text}
           </div>
         )}
@@ -107,19 +91,15 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-3 bg-[#b38308] hover:bg-amber-600 text-black font-extrabold rounded-xl transition duration-200 disabled:opacity-50 text-xs cursor-pointer mt-2 shadow-md"
           >
-            {loading ? "Verificando..." : "Iniciar Sesión"}
+            {loading ? "Entrando..." : "Iniciar Sesión"}
           </button>
 
           <div className="text-center pt-3">
             <p className="text-xs text-zinc-400">
-              ¿No tienes una cuenta?{" "}
-              <button
-                type="button"
-                onClick={goToRegister}
-                className="text-zinc-300 hover:text-amber-400 font-semibold underline transition cursor-pointer bg-transparent border-none p-0 inline"
-              >
+              ¿No tienes cuenta?{" "}
+              <a href="/register" className="text-zinc-300 hover:text-amber-400 font-semibold underline transition">
                 Regístrate aquí
-              </button>
+              </a>
             </p>
           </div>
         </form>
