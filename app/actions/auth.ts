@@ -12,24 +12,21 @@ interface RateLimitRecord {
 
 const rateLimitMap = new Map<string, RateLimitRecord>();
 
-const MAX_ATTEMPTS = 3; // Límite reducido a 3 intentos permitidos
-const BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutos de bloqueo
+const MAX_ATTEMPTS = 3; // Límite de 3 intentos fallidos
+const BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutos de bloqueo por fuerza bruta
+const OTP_EXPIRATION_MINUTES = 5; // <-- Ajustado a 5 minutos de vigencia
 
 function checkRateLimit(key: string): { allowed: boolean; remainingMinutes?: number } {
   const now = Date.now();
   const record = rateLimitMap.get(key);
 
-  if (!record) {
-    return { allowed: true };
-  }
+  if (!record) return { allowed: true };
 
-  // Si está bloqueado, verificar si ya expiró el tiempo de castigo
   if (record.blockedUntil) {
     if (now < record.blockedUntil) {
       const remainingMinutes = Math.ceil((record.blockedUntil - now) / 60000);
       return { allowed: false, remainingMinutes };
     } else {
-      // El tiempo de bloqueo pasó, reiniciamos el registro
       rateLimitMap.delete(key);
       return { allowed: true };
     }
@@ -43,7 +40,6 @@ function registerFailedAttempt(key: string) {
   const record = rateLimitMap.get(key) || { attempts: 0, blockedUntil: null };
 
   record.attempts += 1;
-
   if (record.attempts >= MAX_ATTEMPTS) {
     record.blockedUntil = now + BLOCK_DURATION_MS;
   }
@@ -77,7 +73,7 @@ async function sendOtpEmail(email: string, otp: string) {
           <div style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #facc15; background-color: #1f2329; padding: 15px; border-radius: 8px; display: inline-block; margin-bottom: 20px;">
             ${otp}
           </div>
-          <p style="font-size: 12px; color: #71717a;">Ingresa este código en la plataforma para activar tu cuenta.</p>
+          <p style="font-size: 12px; color: #71717a;">Ingresa este código en la plataforma para activar tu cuenta. Válido únicamente por 5 minutos.</p>
         </div>
       `,
     });
@@ -117,6 +113,9 @@ export async function registerUser(data: {
       where: { email: sanitizedEmail },
     }).catch(() => null);
 
+    // Expiración calculada a 5 minutos a partir de este instante
+    const otpExpiresAt = new Date(Date.now() + OTP_EXPIRATION_MINUTES * 60 * 1000);
+
     if (existingUser) {
       if (existingUser.isVerified) {
         return {
@@ -129,7 +128,10 @@ export async function registerUser(data: {
       const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
       await prisma.user.update({
         where: { email: sanitizedEmail },
-        data: { verificationCode: newOtp },
+        data: { 
+          verificationCode: newOtp,
+          otpExpiresAt: otpExpiresAt
+        },
       });
 
       await sendOtpEmail(sanitizedEmail, newOtp);
@@ -155,6 +157,7 @@ export async function registerUser(data: {
         email: sanitizedEmail,
         password: hashedPassword,
         verificationCode: otpCode,
+        otpExpiresAt: otpExpiresAt,
         isVerified: false,
         role: assignedRole,
       },
@@ -197,6 +200,15 @@ export async function verifyOtp(email: string, otpInput: string) {
       return { success: false, message: "Usuario no encontrado." };
     }
 
+    // VALIDACIÓN DE EXPIRACIÓN DEL OTP (5 MINUTOS)
+    if (user.otpExpiresAt && new Date() > new Date(user.otpExpiresAt)) {
+      registerFailedAttempt(rateLimitKey);
+      return {
+        success: false,
+        message: "El código OTP ha expirado (válido por 5 minutos). Solicita uno nuevo.",
+      };
+    }
+
     if (user.verificationCode !== otpInput.trim()) {
       registerFailedAttempt(rateLimitKey);
       return { 
@@ -212,6 +224,7 @@ export async function verifyOtp(email: string, otpInput: string) {
       data: {
         isVerified: true,
         verificationCode: null,
+        otpExpiresAt: null,
       },
     });
 
@@ -240,13 +253,18 @@ export async function resendOtp(email: string) {
     registerFailedAttempt(rateLimitKey);
 
     const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const newOtpExpiresAt = new Date(Date.now() + OTP_EXPIRATION_MINUTES * 60 * 1000);
+
     await prisma.user.update({
       where: { email: user.email },
-      data: { verificationCode: newOtp },
+      data: { 
+        verificationCode: newOtp,
+        otpExpiresAt: newOtpExpiresAt
+      },
     });
 
     await sendOtpEmail(user.email, newOtp);
-    return { success: true, message: "Nuevo código OTP enviado a tu correo." };
+    return { success: true, message: "Nuevo código OTP enviado a tu correo (válido por 5 min)." };
   } catch (error: any) {
     return { success: false, message: error.message || "Error al reenviar OTP." };
   }
