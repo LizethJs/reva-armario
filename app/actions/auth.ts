@@ -12,8 +12,8 @@ interface RateLimitRecord {
 
 const rateLimitMap = new Map<string, RateLimitRecord>();
 
-const MAX_ATTEMPTS = 5; // Máximo de intentos permitidos
-const BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutos en milisegundos
+const MAX_ATTEMPTS = 3; // Límite reducido a 3 intentos permitidos
+const BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutos de bloqueo
 
 function checkRateLimit(key: string): { allowed: boolean; remainingMinutes?: number } {
   const now = Date.now();
@@ -29,7 +29,7 @@ function checkRateLimit(key: string): { allowed: boolean; remainingMinutes?: num
       const remainingMinutes = Math.ceil((record.blockedUntil - now) / 60000);
       return { allowed: false, remainingMinutes };
     } else {
-      // El tiempo de bloqueo ya pasó, reiniciamos el registro
+      // El tiempo de bloqueo pasó, reiniciamos el registro
       rateLimitMap.delete(key);
       return { allowed: true };
     }
@@ -183,7 +183,6 @@ export async function verifyOtp(email: string, otpInput: string) {
     const sanitizedEmail = email.toLowerCase().trim();
     const rateLimitKey = `otp_${sanitizedEmail}`;
 
-    // Verificación de Rate Limit
     const limitCheck = checkRateLimit(rateLimitKey);
     if (!limitCheck.allowed) {
       return {
@@ -206,7 +205,6 @@ export async function verifyOtp(email: string, otpInput: string) {
       };
     }
 
-    // Éxito: Reiniciamos el Rate Limit
     resetRateLimit(rateLimitKey);
 
     await prisma.user.update({
@@ -228,7 +226,6 @@ export async function resendOtp(email: string) {
     const sanitizedEmail = email.toLowerCase().trim();
     const rateLimitKey = `resend_${sanitizedEmail}`;
 
-    // Verificación de Rate Limit para el reenvío
     const limitCheck = checkRateLimit(rateLimitKey);
     if (!limitCheck.allowed) {
       return {
@@ -260,7 +257,6 @@ export async function loginUser(data: { email: string; password: string }) {
     const sanitizedEmail = data.email.toLowerCase().trim();
     const rateLimitKey = `login_${sanitizedEmail}`;
 
-    // Verificación de Rate Limit
     const limitCheck = checkRateLimit(rateLimitKey);
     if (!limitCheck.allowed) {
       return {
@@ -288,7 +284,6 @@ export async function loginUser(data: { email: string; password: string }) {
       return { success: false, message: "Contraseña incorrecta." };
     }
 
-    // Éxito: Reiniciamos el contador de intentos fallidos
     resetRateLimit(rateLimitKey);
 
     return {
