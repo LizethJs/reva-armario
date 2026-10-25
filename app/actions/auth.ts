@@ -4,6 +4,58 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 
+// --- SISTEMA DE RATE LIMITING EN MEMORIA ---
+interface RateLimitRecord {
+  attempts: number;
+  blockedUntil: number | null;
+}
+
+const rateLimitMap = new Map<string, RateLimitRecord>();
+
+const MAX_ATTEMPTS = 5; // Máximo de intentos permitidos
+const BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutos en milisegundos
+
+function checkRateLimit(key: string): { allowed: boolean; remainingMinutes?: number } {
+  const now = Date.now();
+  const record = rateLimitMap.get(key);
+
+  if (!record) {
+    return { allowed: true };
+  }
+
+  // Si está bloqueado, verificar si ya expiró el tiempo de castigo
+  if (record.blockedUntil) {
+    if (now < record.blockedUntil) {
+      const remainingMinutes = Math.ceil((record.blockedUntil - now) / 60000);
+      return { allowed: false, remainingMinutes };
+    } else {
+      // El tiempo de bloqueo ya pasó, reiniciamos el registro
+      rateLimitMap.delete(key);
+      return { allowed: true };
+    }
+  }
+
+  return { allowed: true };
+}
+
+function registerFailedAttempt(key: string) {
+  const now = Date.now();
+  const record = rateLimitMap.get(key) || { attempts: 0, blockedUntil: null };
+
+  record.attempts += 1;
+
+  if (record.attempts >= MAX_ATTEMPTS) {
+    record.blockedUntil = now + BLOCK_DURATION_MS;
+  }
+
+  rateLimitMap.set(key, record);
+}
+
+function resetRateLimit(key: string) {
+  rateLimitMap.delete(key);
+}
+
+// --- CONFIGURACIÓN DE NODEMAILER ---
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -34,6 +86,8 @@ async function sendOtpEmail(email: string, otp: string) {
   }
 }
 
+// --- ACTIONS ---
+
 export async function registerUser(data: {
   name: string;
   phone: string;
@@ -42,16 +96,14 @@ export async function registerUser(data: {
   password: string;
 }) {
   try {
-    // 1. Sanitización de datos
     const sanitizedName = data.name.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const sanitizedEmail = data.email.toLowerCase().trim();
     const sanitizedPhone = data.phone.trim();
 
-    // 2. Validaciones de Seguridad en Servidor (SSDLC)
     const isNameValid = /^[a-zA-AáéíóúÁÉÍÓÚñÑ\s]{3,50}$/.test(sanitizedName);
     const isPhoneValid = /^[3][0-9]{9}$/.test(sanitizedPhone);
     const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitizedEmail);
-    const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!\%*?&]{8,}$/.test(data.password);
+    const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(data.password);
 
     if (!isNameValid || !isPhoneValid || !isEmailValid || !isPasswordValid) {
       return {
@@ -61,7 +113,6 @@ export async function registerUser(data: {
       };
     }
 
-    // 3. Verificación de usuario existente
     const existingUser = await prisma.user.findUnique({
       where: { email: sanitizedEmail },
     }).catch(() => null);
@@ -90,7 +141,6 @@ export async function registerUser(data: {
       };
     }
 
-    // 4. Creación de cuenta
     const hashedPassword = await bcrypt.hash(data.password, 10);
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -131,6 +181,17 @@ export async function registerUser(data: {
 export async function verifyOtp(email: string, otpInput: string) {
   try {
     const sanitizedEmail = email.toLowerCase().trim();
+    const rateLimitKey = `otp_${sanitizedEmail}`;
+
+    // Verificación de Rate Limit
+    const limitCheck = checkRateLimit(rateLimitKey);
+    if (!limitCheck.allowed) {
+      return {
+        success: false,
+        message: `Demasiados intentos fallidos. Por seguridad, reintenta en ${limitCheck.remainingMinutes} minutos.`,
+      };
+    }
+
     const user = await prisma.user.findUnique({ where: { email: sanitizedEmail } });
 
     if (!user) {
@@ -138,8 +199,15 @@ export async function verifyOtp(email: string, otpInput: string) {
     }
 
     if (user.verificationCode !== otpInput.trim()) {
-      return { success: false, message: "El código OTP es incorrecto." };
+      registerFailedAttempt(rateLimitKey);
+      return { 
+        success: false, 
+        message: "El código OTP es incorrecto. Verifica el código enviado a tu correo." 
+      };
     }
+
+    // Éxito: Reiniciamos el Rate Limit
+    resetRateLimit(rateLimitKey);
 
     await prisma.user.update({
       where: { email: user.email },
@@ -158,8 +226,21 @@ export async function verifyOtp(email: string, otpInput: string) {
 export async function resendOtp(email: string) {
   try {
     const sanitizedEmail = email.toLowerCase().trim();
+    const rateLimitKey = `resend_${sanitizedEmail}`;
+
+    // Verificación de Rate Limit para el reenvío
+    const limitCheck = checkRateLimit(rateLimitKey);
+    if (!limitCheck.allowed) {
+      return {
+        success: false,
+        message: `Has solicitado demasiados códigos OTP. Reintenta en ${limitCheck.remainingMinutes} minutos.`,
+      };
+    }
+
     const user = await prisma.user.findUnique({ where: { email: sanitizedEmail } });
     if (!user) return { success: false, message: "Usuario no encontrado." };
+
+    registerFailedAttempt(rateLimitKey);
 
     const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
     await prisma.user.update({
@@ -177,11 +258,23 @@ export async function resendOtp(email: string) {
 export async function loginUser(data: { email: string; password: string }) {
   try {
     const sanitizedEmail = data.email.toLowerCase().trim();
+    const rateLimitKey = `login_${sanitizedEmail}`;
+
+    // Verificación de Rate Limit
+    const limitCheck = checkRateLimit(rateLimitKey);
+    if (!limitCheck.allowed) {
+      return {
+        success: false,
+        message: `Cuenta bloqueada temporalmente por exceso de intentos fallidos. Intenta en ${limitCheck.remainingMinutes} minutos.`,
+      };
+    }
+
     const user = await prisma.user.findUnique({
       where: { email: sanitizedEmail },
     });
 
     if (!user) {
+      registerFailedAttempt(rateLimitKey);
       return { success: false, message: "El correo no está registrado en la base de datos." };
     }
 
@@ -191,8 +284,12 @@ export async function loginUser(data: { email: string; password: string }) {
 
     const passwordMatch = await bcrypt.compare(data.password, user.password);
     if (!passwordMatch) {
+      registerFailedAttempt(rateLimitKey);
       return { success: false, message: "Contraseña incorrecta." };
     }
+
+    // Éxito: Reiniciamos el contador de intentos fallidos
+    resetRateLimit(rateLimitKey);
 
     return {
       success: true,
