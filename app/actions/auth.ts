@@ -13,8 +13,8 @@ interface RateLimitRecord {
 const rateLimitMap = new Map<string, RateLimitRecord>();
 
 const MAX_ATTEMPTS = 3; // Límite de 3 intentos fallidos
-const BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutos de bloqueo por fuerza bruta
-const OTP_EXPIRATION_MINUTES = 5; // <-- Ajustado a 5 minutos de vigencia
+const BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutos de bloqueo
+const OTP_EXPIRATION_MINUTES = 5; // 5 minutos de vigencia
 
 function checkRateLimit(key: string): { allowed: boolean; remainingMinutes?: number } {
   const now = Date.now();
@@ -51,21 +51,31 @@ function resetRateLimit(key: string) {
   rateLimitMap.delete(key);
 }
 
-// --- CONFIGURACIÓN DE NODEMAILER ---
+// --- CONFIGURACIÓN DE NODEMAILER OPTIMIZADA PARA DOMINIOS EXTERNOS ---
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true, // SSL para máxima compatibilidad con Hotmail/Outlook/Yahoo
   auth: {
     user: process.env.EMAIL_SERVER_USER,
     pass: process.env.EMAIL_SERVER_PASSWORD,
+  },
+  authMethod: "PLAIN",
+  tls: {
+    rejectUnauthorized: true,
   },
 });
 
 async function sendOtpEmail(email: string, otp: string) {
   try {
-    await transporter.sendMail({
-      from: `"RËVA Virtual Room" <${process.env.EMAIL_SERVER_USER}>`,
+    const senderEmail = process.env.EMAIL_SERVER_USER;
+
+    const info = await transporter.sendMail({
+      from: `"RËVA Virtual Room" <${senderEmail}>`,
       to: email,
-      subject: "Código de Verificación RËVA",
+      replyTo: senderEmail,
+      subject: `${otp} - Tu código de verificación RËVA`,
+      text: `Tu código de verificación OTP es: ${otp}. Válido por 5 minutos.`,
       html: `
         <div style="font-family: Arial, sans-serif; background-color: #0d0f12; color: #ffffff; padding: 30px; border-radius: 12px; text-align: center; max-width: 480px; margin: auto;">
           <h1 style="color: #facc15; font-size: 28px; margin-bottom: 10px;">RËVA</h1>
@@ -77,8 +87,12 @@ async function sendOtpEmail(email: string, otp: string) {
         </div>
       `,
     });
+
+    console.log("Correo OTP enviado correctamente a:", email, "Message ID:", info.messageId);
+    return true;
   } catch (err) {
-    console.error("Error enviando email:", err);
+    console.error("⚠️ Error crítico enviando correo OTP con Nodemailer:", err);
+    throw err; // Lanzar el error para que la acción notifique la falla
   }
 }
 
@@ -113,7 +127,6 @@ export async function registerUser(data: {
       where: { email: sanitizedEmail },
     }).catch(() => null);
 
-    // Expiración calculada a 5 minutos a partir de este instante
     const otpExpiresAt = new Date(Date.now() + OTP_EXPIRATION_MINUTES * 60 * 1000);
 
     if (existingUser) {
@@ -176,7 +189,7 @@ export async function registerUser(data: {
     return { 
       success: false, 
       redirectToOtp: false, 
-      message: `Error de BD: ${error.message || "Verifica la conexión a Supabase."}` 
+      message: `Error al procesar registro o enviar correo: ${error.message || "Verifica las credenciales SMTP."}` 
     };
   }
 }
