@@ -14,6 +14,7 @@ model User {
   password         String
   role             String    @default("USER") // USER, SELLER, ADMIN
   verificationCode String?   
+  otpExpiresAt     DateTime? // <-- ¡Campo agregado y listo para los 5 minutos!
   isVerified       Boolean   @default(false)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
