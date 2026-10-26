@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { registerUser, verifyOtp, resendOtp } from "../actions/auth";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [step, setStep] = useState<"form" | "otp">("form");
   const [formData, setFormData] = useState({
     name: "",
@@ -21,8 +23,6 @@ export default function RegisterPage() {
 
   const [otp, setOtp] = useState("");
   const [registeredEmail, setRegisteredEmail] = useState("");
-  const [userName, setUserName] = useState("");
-  const [userRole, setUserRole] = useState("SELLER");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: "", success: false });
 
@@ -47,9 +47,11 @@ export default function RegisterPage() {
   const isPasswordValid = hasMinLength && hasUppercase && hasNumber && hasSpecialChar;
 
   // Confirmación de Contraseña
-  const isConfirmPasswordValid = formData.confirmPassword.length > 0 && formData.confirmPassword === formData.password;
+  const isConfirmPasswordValid =
+    formData.confirmPassword.length > 0 && formData.confirmPassword === formData.password;
 
-  const isFormValid = isNameValid && isPhoneValid && isEmailValid && isPasswordValid && isConfirmPasswordValid;
+  const isFormValid =
+    isNameValid && isPhoneValid && isEmailValid && isPasswordValid && isConfirmPasswordValid;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -73,8 +75,6 @@ export default function RegisterPage() {
       const res = await registerUser(formData);
       if (res.success && res.redirectToOtp) {
         setRegisteredEmail(res.email || formData.email);
-        setUserName(formData.name);
-        setUserRole(formData.role.includes("Diseñador") || formData.role.includes("SELLER") ? "SELLER" : "CLIENT");
         setStep("otp");
         setMessage({ text: res.message, success: true });
       } else {
@@ -95,17 +95,15 @@ export default function RegisterPage() {
     try {
       const res = await verifyOtp(registeredEmail, otp);
       if (res.success) {
-        const userSession = {
-          name: userName || "Usuario RËVA",
-          email: registeredEmail,
-          role: userRole,
-        };
-        localStorage.setItem("user_session", JSON.stringify(userSession));
-        setMessage({ text: "¡Cuenta verificada exitosamente! Entrando...", success: true });
+        setMessage({
+          text: "¡Cuenta verificada exitosamente! Redirigiendo al inicio de sesión...",
+          success: true,
+        });
 
+        // 🔒 FLUJO SEGURO: Redirige a /login para exigir inicio de sesión manual
         setTimeout(() => {
-          window.location.href = "/";
-        }, 400);
+          router.push("/login?verified=true");
+        }, 1200);
       } else {
         setMessage({ text: res.message || "Código OTP incorrecto.", success: false });
       }
@@ -118,9 +116,15 @@ export default function RegisterPage() {
 
   const handleResend = async () => {
     setLoading(true);
-    const res = await resendOtp(registeredEmail);
-    setMessage({ text: res.message, success: res.success });
-    setLoading(false);
+    setMessage({ text: "", success: false });
+    try {
+      const res = await resendOtp(registeredEmail);
+      setMessage({ text: res.message, success: res.success });
+    } catch (err) {
+      setMessage({ text: "Error al reenviar el código.", success: false });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -132,21 +136,26 @@ export default function RegisterPage() {
           </div>
           <h1 className="text-xl font-black tracking-widest text-white">PORTAL RËVA</h1>
           <p className="text-xs text-neutral-400 mt-1 text-center">
-            {step === "form" ? "Registro seguro con validación en tiempo real" : "Verificación OTP por correo"}
+            {step === "form"
+              ? "Registro seguro con validación en tiempo real"
+              : "Verificación OTP por correo"}
           </p>
         </div>
 
         {message.text && (
-          <div className={`p-3 mb-5 rounded-xl text-xs font-medium text-center border ${
-            message.success ? "bg-amber-400/10 border-amber-400/30 text-amber-300" : "bg-red-950/50 border-red-900/40 text-red-300"
-          }`}>
+          <div
+            className={`p-3 mb-5 rounded-xl text-xs font-medium text-center border ${
+              message.success
+                ? "bg-amber-400/10 border-amber-400/30 text-amber-300"
+                : "bg-red-950/50 border-red-900/40 text-red-300"
+            }`}
+          >
             {message.text}
           </div>
         )}
 
         {step === "form" ? (
           <form onSubmit={handleRegisterSubmit} className="space-y-4 text-xs">
-            
             {/* NOMBRE COMPLETO */}
             <div>
               <label className="block text-neutral-400 mb-1 font-medium">Nombre Completo</label>
@@ -166,7 +175,11 @@ export default function RegisterPage() {
                 placeholder="Ej: Paula Gómez"
               />
               {formData.name && (
-                <p className={`text-[10px] mt-1 font-medium ${isNameValid ? "text-emerald-400" : "text-red-400"}`}>
+                <p
+                  className={`text-[10px] mt-1 font-medium ${
+                    isNameValid ? "text-emerald-400" : "text-red-400"
+                  }`}
+                >
                   {isNameValid ? "✓ Nombre válido" : "✗ Solo letras y mínimo 3 caracteres."}
                 </p>
               )}
@@ -177,7 +190,9 @@ export default function RegisterPage() {
               <div className="flex justify-between items-center mb-1">
                 <label className="text-neutral-400 font-medium">Teléfono Móvil (Colombia)</label>
                 {formData.phone && (
-                  <span className="text-[10px] text-neutral-500">{formData.phone.length}/10 dígitos</span>
+                  <span className="text-[10px] text-neutral-500">
+                    {formData.phone.length}/10 dígitos
+                  </span>
                 )}
               </div>
               <input
@@ -198,12 +213,22 @@ export default function RegisterPage() {
               />
               {formData.phone && (
                 <div className="text-[10px] mt-1 space-y-0.5 font-medium">
-                  {!isPhoneDigitsOnly && <p className="text-red-400">✗ Debe contener únicamente números.</p>}
-                  {!startsWithThree && <p className="text-red-400">✗ Debe iniciar con el número 3 (formato móvil Colombia).</p>}
-                  {formData.phone.length !== 10 && (
-                    <p className="text-red-400">✗ Debe tener exactamente 10 dígitos (llevas {formData.phone.length}).</p>
+                  {!isPhoneDigitsOnly && (
+                    <p className="text-red-400">✗ Debe contener únicamente números.</p>
                   )}
-                  {isPhoneValid && <p className="text-emerald-400 font-bold">✓ Teléfono móvil válido</p>}
+                  {!startsWithThree && (
+                    <p className="text-red-400">
+                      ✗ Debe iniciar con el número 3 (formato móvil Colombia).
+                    </p>
+                  )}
+                  {formData.phone.length !== 10 && (
+                    <p className="text-red-400">
+                      ✗ Debe tener exactamente 10 dígitos (llevas {formData.phone.length}).
+                    </p>
+                  )}
+                  {isPhoneValid && (
+                    <p className="text-emerald-400 font-bold">✓ Teléfono móvil válido</p>
+                  )}
                 </div>
               )}
             </div>
@@ -242,14 +267,22 @@ export default function RegisterPage() {
               />
               {formData.email && (
                 <div className="text-[10px] mt-1 space-y-0.5 font-medium">
-                  {!hasAtSymbol && <p className="text-red-400">✗ Falta el carácter '@' en la dirección.</p>}
-                  {hasAtSymbol && !hasDomain && <p className="text-red-400">✗ Falta el dominio después del '@' (ej: .com o .edu.co).</p>}
-                  {isEmailValid && <p className="text-emerald-400 font-bold">✓ Estructura de correo válida</p>}
+                  {!hasAtSymbol && (
+                    <p className="text-red-400">✗ Falta el carácter '@' en la dirección.</p>
+                  )}
+                  {hasAtSymbol && !hasDomain && (
+                    <p className="text-red-400">
+                      ✗ Falta el dominio después del '@' (ej: .com o .edu.co).
+                    </p>
+                  )}
+                  {isEmailValid && (
+                    <p className="text-emerald-400 font-bold">✓ Estructura de correo válida</p>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* CONTRASEÑA SEGUARA CON BOTÓN OJITO */}
+            {/* CONTRASEÑA SEGURA CON BOTÓN OJITO */}
             <div>
               <label className="block text-neutral-400 mb-1 font-medium">Contraseña Segura</label>
               <div className="relative">
@@ -297,7 +330,9 @@ export default function RegisterPage() {
 
             {/* CONFIRMAR CONTRASEÑA CON BOTÓN OJITO */}
             <div>
-              <label className="block text-neutral-400 mb-1 font-medium">Confirmar Contraseña</label>
+              <label className="block text-neutral-400 mb-1 font-medium">
+                Confirmar Contraseña
+              </label>
               <div className="relative">
                 <input
                   type={showConfirmPassword ? "text" : "password"}
@@ -320,12 +355,22 @@ export default function RegisterPage() {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-amber-400 transition"
                   title={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                 >
-                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showConfirmPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
                 </button>
               </div>
               {formData.confirmPassword && (
-                <p className={`text-[10px] mt-1 font-medium ${isConfirmPasswordValid ? "text-emerald-400" : "text-red-400"}`}>
-                  {isConfirmPasswordValid ? "✓ Las contraseñas coinciden" : "✗ Las contraseñas no coinciden."}
+                <p
+                  className={`text-[10px] mt-1 font-medium ${
+                    isConfirmPasswordValid ? "text-emerald-400" : "text-red-400"
+                  }`}
+                >
+                  {isConfirmPasswordValid
+                    ? "✓ Las contraseñas coinciden"
+                    : "✗ Las contraseñas no coinciden."}
                 </p>
               )}
             </div>
@@ -351,7 +396,8 @@ export default function RegisterPage() {
         ) : (
           <form onSubmit={handleVerifyOtpSubmit} className="space-y-4 text-xs">
             <p className="text-neutral-300 text-center text-xs">
-              Hemos enviado un código de 6 dígitos a <span className="text-amber-400 font-bold">{registeredEmail}</span>.
+              Hemos enviado un código de 6 dígitos a{" "}
+              <span className="text-amber-400 font-bold">{registeredEmail}</span>.
             </p>
 
             <div>
@@ -371,14 +417,15 @@ export default function RegisterPage() {
               disabled={loading || otp.trim().length !== 6}
               className="w-full py-3 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-black rounded-xl transition cursor-pointer shadow-lg disabled:opacity-40"
             >
-              {loading ? "Verificando..." : "Confirmar Código y Entrar"}
+              {loading ? "Verificando..." : "Confirmar Código e Iniciar Sesión"}
             </button>
 
             <div className="flex items-center justify-between pt-2">
               <button
                 type="button"
                 onClick={handleResend}
-                className="text-neutral-400 hover:text-amber-400 underline transition text-xs"
+                disabled={loading}
+                className="text-neutral-400 hover:text-amber-400 underline transition text-xs disabled:opacity-50"
               >
                 Reenviar código
               </button>
