@@ -1,10 +1,8 @@
 'use server';
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
-const prisma = new PrismaClient();
-
-// Obtener todas las prendas guardadas en la base de datos
+// 1. Obtener todas las prendas guardadas en la base de datos
 export async function getGarments() {
   try {
     const garments = await prisma.garment.findMany({
@@ -22,10 +20,29 @@ export async function getGarments() {
   }
 }
 
-// Guardar una nueva prenda de forma permanente en la base de datos
+// 2. Obtener prendas filtradas por un usuario específico (Armario Personal)
+export async function getGarmentsByUser(userId: string) {
+  try {
+    const garments = await prisma.garment.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: { name: true, email: true, role: true }
+        }
+      }
+    });
+    return { success: true, garments };
+  } catch (error: any) {
+    console.error('Error al obtener prendas del usuario:', error);
+    return { success: false, error: 'No se pudieron cargar tus prendas' };
+  }
+}
+
+// 3. Guardar una nueva prenda de forma permanente con validación de enlaces de terceros
 export async function createGarment(data: {
   name: string;
-  category: 'tops' | 'bottoms' | 'shoes' | 'outerwear';
+  category: 'tops' | 'bottoms' | 'shoes' | 'outerwear' | string;
   vibe?: string;
   url: string;
   price?: string;
@@ -36,6 +53,15 @@ export async function createGarment(data: {
   userId?: string;
 }) {
   try {
+    // 🔒 Validación SSDLC de seguridad: Sanitizar y verificar URL de enlaces de terceros
+    let cleanStoreUrl = data.storeUrl?.trim() || '';
+    if (cleanStoreUrl && !cleanStoreUrl.startsWith('http://') && !cleanStoreUrl.startsWith('https://')) {
+      return { 
+        success: false, 
+        error: 'El enlace de terceros (sitio web/tienda) debe ser una URL válida que comience con http:// o https://' 
+      };
+    }
+
     const newGarment = await prisma.garment.create({
       data: {
         name: data.name,
@@ -43,13 +69,14 @@ export async function createGarment(data: {
         vibe: data.vibe || 'Casual',
         url: data.url,
         price: data.price || '$50.000 COP',
-        storeUrl: data.storeUrl || '',
+        storeUrl: cleanStoreUrl,
         description: data.description || '',
         vendorName: data.vendorName || 'Administrador',
         vendorContact: data.vendorContact || '',
         userId: data.userId || null,
       },
     });
+
     return { success: true, garment: newGarment };
   } catch (error: any) {
     console.error('Error al crear prenda:', error);
@@ -57,7 +84,7 @@ export async function createGarment(data: {
   }
 }
 
-// Eliminar de forma permanente una prenda por su ID
+// 4. Eliminar de forma permanente una prenda por su ID
 export async function deleteGarment(id: string) {
   try {
     await prisma.garment.delete({

@@ -7,19 +7,26 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum Role {
+  CLIENT
+  SELLER
+  ADMIN
+}
+
 model User {
-  id               String    @id @default(cuid())
-  name             String?   
-  email            String    @unique
+  id               String     @id @default(cuid())
+  name             String?
+  email            String     @unique
   password         String
-  role             String    @default("USER") // USER, SELLER, ADMIN
-  verificationCode String?   
-  otpExpiresAt     DateTime? // <-- ¡Campo agregado y listo para los 5 minutos!
-  isVerified       Boolean   @default(false)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  
-  garments         Garment[] 
+  role             Role       @default(CLIENT)
+  verificationCode String?
+  otpExpiresAt     DateTime?
+  isVerified       Boolean    @default(false)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  garments         Garment[]
+  auditLogs        AuditLog[] @relation("AdminActions")
 }
 
 model Garment {
@@ -27,16 +34,26 @@ model Garment {
   name          String
   category      String   // 'tops', 'bottoms', 'shoes', 'outerwear'
   vibe          String?
-  url           String   @db.Text   // Vital para que quepan las imágenes en Base64 sin romperse
+  url           String   @db.Text // Vital para base64 o URLs de imágenes
   price         String?
   storeUrl      String?
   description   String?
   vendorName    String?
   vendorContact String?
-  
+
   userId        String?
   user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  adminId   String
+  admin     User     @relation("AdminActions", fields: [adminId], references: [id], onDelete: Cascade)
+  action    String   // Ej: "UPDATE_USER_ROLE", "DELETE_GARMENT"
+  target    String   // ID o correo afectado
+  details   String?  // Descripción o metadatos de la acción
+  createdAt DateTime @default(now())
 }
