@@ -12,8 +12,8 @@ interface RateLimitRecord {
 
 const rateLimitMap = new Map<string, RateLimitRecord>();
 
-const MAX_ATTEMPTS = 3; // Límite de 3 intentos fallidos
-const BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutos de bloqueo
+const MAX_ATTEMPTS = 5; // Límite de 3 intentos fallidos
+const BLOCK_DURATION_MS = 15 * 60 * 1000;; // 15 minutos de bloqueo
 const OTP_EXPIRATION_MINUTES = 5; // 5 minutos de vigencia
 
 function checkRateLimit(key: string): { allowed: boolean; remainingMinutes?: number } {
