@@ -55,7 +55,7 @@ function resetRateLimit(key: string) {
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 465,
-  secure: true, // SSL para máxima compatibilidad con Hotmail/Outlook/Yahoo
+  secure: true, // SSL para máxima compatibilidad
   auth: {
     user: process.env.EMAIL_SERVER_USER,
     pass: process.env.EMAIL_SERVER_PASSWORD,
@@ -96,7 +96,7 @@ async function sendOtpEmail(email: string, otp: string) {
   }
 }
 
-// --- ACTIONS ---
+// --- ACTIONS DE REGISTRO Y LOGIN ---
 
 export async function registerUser(data: {
   name: string;
@@ -113,7 +113,7 @@ export async function registerUser(data: {
     const isNameValid = /^[a-zA-AáéíóúÁÉÍÓÚñÑ\s]{3,50}$/.test(sanitizedName);
     const isPhoneValid = /^[3][0-9]{9}$/.test(sanitizedPhone);
     const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitizedEmail);
-    const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(data.password);
+    const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!\%*?&]{8,}$/.test(data.password);
 
     if (!isNameValid || !isPhoneValid || !isEmailValid || !isPasswordValid) {
       return {
@@ -335,6 +335,8 @@ export async function loginUser(data: { email: string; password: string }) {
   }
 }
 
+// --- ACTIONS PARA RECUPERACIÓN DE CONTRASEÑA CON CORREO REAL ---
+
 export async function forgotPassword(email: string) {
   try {
     const sanitizedEmail = email.toLowerCase().trim();
@@ -381,7 +383,7 @@ export async function resetPasswordWithOtp(data: { email: string; otp: string; n
       return { success: false, message: "El código OTP es incorrecto." };
     }
 
-    const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(data.newPassword);
+    const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!\%*?&]{8,}$/.test(data.newPassword);
     if (!isPasswordValid) {
       return { success: false, message: "La nueva contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un símbolo." };
     }

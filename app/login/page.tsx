@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { loginUser } from "../actions/auth";
+import { loginUser, forgotPassword, resetPasswordWithOtp } from "../actions/auth";
 
 export default function LoginPage() {
   const [view, setView] = useState<"login" | "forgot_email" | "forgot_otp">("login");
@@ -36,34 +36,70 @@ export default function LoginPage() {
     }
   };
 
-  const handleSendOtp = (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!forgotEmail) {
+      setErrorMessage("Por favor ingresa tu correo electrónico.");
+      return;
+    }
+
     setLoading(true);
     setErrorMessage("");
     setSuccessMessage("");
 
-    setTimeout(() => {
+    try {
+      const res = await forgotPassword(forgotEmail);
+
+      if (res && res.success) {
+        setLoading(false);
+        setView("forgot_otp");
+        setSuccessMessage("✓ ¡Código OTP enviado literalmente a tu correo! Revisa tu bandeja.");
+      } else {
+        setErrorMessage(res?.message || "No se pudo enviar el correo de recuperación.");
+        setLoading(false);
+      }
+    } catch (err: any) {
+      setErrorMessage("Error al conectar con el servidor de correo.");
       setLoading(false);
-      setView("forgot_otp");
-      setSuccessMessage("✓ Código OTP de verificación de 6 dígitos enviado al correo.");
-    }, 1000);
+    }
   };
 
-  const handleVerifyAndReset = (e: React.FormEvent) => {
+  const handleVerifyAndReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setErrorMessage("");
     setSuccessMessage("");
 
-    setTimeout(() => {
+    const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(newPassword);
+    if (!isPasswordValid) {
+      setErrorMessage("La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un símbolo especial (@$!%*?&).");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await resetPasswordWithOtp({
+        email: forgotEmail,
+        otp: otpCode,
+        newPassword: newPassword,
+      });
+
+      if (res && res.success) {
+        setLoading(false);
+        setSuccessMessage("✓ ¡Contraseña actualizada exitosamente! Redirigiendo al login...");
+        setTimeout(() => {
+          setView("login");
+          setFormData({ email: forgotEmail, password: "" });
+          setSuccessMessage("");
+        }, 2500);
+      } else {
+        setErrorMessage(res?.message || "Código OTP incorrecto o expirado.");
+        setLoading(false);
+      }
+    } catch (err: any) {
+      setErrorMessage("Error al actualizar la contraseña en la base de datos.");
       setLoading(false);
-      setSuccessMessage("✓ Contraseña restablecida con éxito. Inicia sesión.");
-      setTimeout(() => {
-        setView("login");
-        setFormData({ email: forgotEmail, password: "" });
-        setSuccessMessage("");
-      }, 2000);
-    }, 1200);
+    }
   };
 
   return (
@@ -77,7 +113,7 @@ export default function LoginPage() {
           <p className="text-xs text-zinc-400 mt-1">
             {view === "login" && "Acceso al armario digital y probador"}
             {view === "forgot_email" && "Recuperación de Contraseña (Paso 1)"}
-            {view === "forgot_otp" && "Verificación de Doble Factor (Paso 2)"}
+            {view === "forgot_otp" && "Verificación OTP y Seguridad (Paso 2)"}
           </p>
         </div>
 
@@ -93,7 +129,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* VISTA 1: INICIO DE SESIÓN ORIGINAL */}
+        {/* VISTA 1: INICIO DE SESIÓN */}
         {view === "login" && (
           <form onSubmit={handleLogin} className="space-y-4">
             <input
@@ -141,7 +177,7 @@ export default function LoginPage() {
           </form>
         )}
 
-        {/* VISTA 2: SOLICITAR CORREO */}
+        {/* VISTA 2: SOLICITAR CORREO PARA ENVÍO REAL */}
         {view === "forgot_email" && (
           <form onSubmit={handleSendOtp} className="space-y-4">
             <input
@@ -150,7 +186,7 @@ export default function LoginPage() {
               value={forgotEmail}
               onChange={(e) => setForgotEmail(e.target.value)}
               className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-500"
-              placeholder="Correo registrado"
+              placeholder="Ingresa tu correo registrado"
             />
 
             <button
@@ -158,7 +194,7 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-extrabold rounded-xl text-xs transition cursor-pointer disabled:opacity-50"
             >
-              {loading ? "Enviando código..." : "Enviar Código OTP"}
+              {loading ? "Enviando correo real..." : "Enviar Código al Correo"}
             </button>
 
             <div className="text-center pt-2">
@@ -173,34 +209,44 @@ export default function LoginPage() {
           </form>
         )}
 
-        {/* VISTA 3: INGRESAR OTP Y NUEVA CONTRASEÑA */}
+        {/* VISTA 3: INGRESAR OTP Y NUEVA CONTRASEÑA CON VALIDACIÓN */}
         {view === "forgot_otp" && (
           <form onSubmit={handleVerifyAndReset} className="space-y-4">
-            <input
-              type="text"
-              required
-              maxLength={6}
-              value={otpCode}
-              onChange={(e) => setOtpCode(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white text-xs outline-none tracking-widest text-center font-mono focus:border-amber-500"
-              placeholder="Código OTP (123456)"
-            />
+            <div>
+              <label className="block text-[11px] text-zinc-400 mb-1.5 font-medium">
+                Código OTP (6 Dígitos)
+              </label>
+              <input
+                type="text"
+                required
+                maxLength={6}
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white text-xs outline-none tracking-widest text-center font-mono focus:border-amber-500"
+                placeholder="123456"
+              />
+            </div>
 
-            <input
-              type="password"
-              required
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-500"
-              placeholder="Nueva contraseña"
-            />
+            <div>
+              <label className="block text-[11px] text-zinc-400 mb-1.5 font-medium">
+                Nueva Contraseña (Mín. 8 caracteres, Mayúscula, Número y Símbolo)
+              </label>
+              <input
+                type="password"
+                required
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-500"
+                placeholder="Ej: Reva2026*"
+              />
+            </div>
 
             <button
               type="submit"
               disabled={loading}
               className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-extrabold rounded-xl text-xs transition cursor-pointer disabled:opacity-50"
             >
-              {loading ? "Actualizando..." : "Cambiar Contraseña"}
+              {loading ? "Actualizando..." : "Confirmar Cambio"}
             </button>
 
             <div className="text-center pt-2">
