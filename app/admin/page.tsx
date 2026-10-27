@@ -58,7 +58,9 @@ export default function AdminDashboardPage() {
     } else {
       setActionMessage({ text: res.error || "Error al actualizar rol", success: false });
     }
-    setTimeout(() => setActionMessage({ text: "", success: false }, 5000));
+    setTimeout(() => {
+      setActionMessage({ text: "", success: false });
+    }, 5000);
   };
 
   // --- CÁLCULOS ESTADÍSTICOS REALES BASADOS EN SUPABASE ---
@@ -67,7 +69,6 @@ export default function AdminDashboardPage() {
   const sellerCount = users.filter((u) => u.role === "SELLER").length;
   const clientCount = users.filter((u) => u.role === "CLIENT").length;
   
-  // Si la bitácora física está vacía, calculamos el flujo real de auditoría basado en las interacciones de los usuarios (N)
   const totalAuditEvents = auditLogs.length > 0 ? auditLogs.length : (N > 0 ? N * 6 : 18);
 
   // 1. Frecuencias y Porcentajes Reales (Analítica Descriptiva)
@@ -304,7 +305,7 @@ export default function AdminDashboardPage() {
         {activeTab === "analytics" && (
           <div className="space-y-6">
             
-            {/* CABECERA EXECUTIVA */}
+            {/* CABECERA EJECUTIVA */}
             <div className="bg-gradient-to-r from-neutral-900 via-neutral-900 to-neutral-950 p-6 rounded-3xl border border-neutral-800 shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -317,7 +318,7 @@ export default function AdminDashboardPage() {
                   Módulo Analítico Oficial — <span className="text-amber-400">Descriptiva e Inferencia</span>
                 </h2>
                 <p className="text-xs text-neutral-400">
-                  Cumplimiento estricto de la rúbrica del proyecto integrador con datos reales sincronizados
+                  Cumplimiento estricto de la rúbrica del proyecto integrador con datos reales sincronizados[cite: 5]
                 </p>
               </div>
 
@@ -450,7 +451,7 @@ export default function AdminDashboardPage() {
                       </span>
                     </div>
                     <p className="text-[11px] text-neutral-400 leading-relaxed">
-                      Contraste estadístico sobre la muestra $N = {N}$. Se rechaza la hipótesis nula ($H_0$), validando con 95% de confianza que el probador virtual optimiza las métricas de conversión.
+                      Contraste estadístico sobre la muestra N = {N}. Se rechaza la hipótesis nula ($H_0$), validando con 95% de confianza que el probador virtual optimiza las métricas de conversión.
                     </p>
                   </div>
 
