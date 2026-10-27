@@ -14,19 +14,23 @@ enum Role {
 }
 
 model User {
-  id               String     @id @default(cuid())
+  id               String           @id @default(cuid())
   name             String?
-  email            String     @unique
+  email            String           @unique
   password         String
-  role             Role       @default(CLIENT)
+  role             Role             @default(CLIENT)
   verificationCode String?
   otpExpiresAt     DateTime?
-  isVerified       Boolean    @default(false)
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  isVerified       Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   garments         Garment[]
-  auditLogs        AuditLog[] @relation("AdminActions")
+  auditLogs        AuditLog[]       @relation("AdminActions")
+  
+  // --- NUEVAS RELACIONES PARA EL REQUISITO 5 (RBAC) ---
+  userRoles        UserRole[]
+  userPermissions  UserPermission[]
 }
 
 model Garment {
@@ -56,4 +60,42 @@ model AuditLog {
   target    String   // ID o correo afectado
   details   String?  // Descripción o metadatos de la acción
   createdAt DateTime @default(now())
+}
+
+// --- MODELOS ADICIONALES PARA EL REQUISITO 5: ROLES Y PERMISOS INDEPENDIENTES ---
+
+model RoleModel {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  userRoles   UserRole[]
+  createdAt   DateTime   @default(now())
+}
+
+model Permission {
+  id              String           @id @default(cuid())
+  name            String           @unique
+  description     String?
+  userPermissions UserPermission[]
+  createdAt       DateTime         @default(now())
+}
+
+model UserRole {
+  id     String    @id @default(cuid())
+  userId String
+  roleId String
+  user   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   RoleModel @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+}
+
+model UserPermission {
+  id           String     @id @default(cuid())
+  userId       String
+  permissionId String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
 }
