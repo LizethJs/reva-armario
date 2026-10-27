@@ -20,7 +20,6 @@ export async function getAdminStats() {
     const verifiedUsers = await prisma.user.count({ where: { isVerified: true } });
     const totalGarments = await prisma.garment.count();
     
-    // Contar usuarios por rol principal
     const clientCount = await prisma.user.count({ where: { role: "CLIENT" } });
     const sellerCount = await prisma.user.count({ where: { role: "SELLER" } });
     const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
@@ -40,7 +39,7 @@ export async function getAdminStats() {
   }
 }
 
-// 2. OBTENER USUARIOS PARA EL PANEL
+// 2. OBTENER LISTA DE USUARIOS
 export async function getUsers(adminEmail: string) {
   try {
     const admin = await prisma.user.findUnique({ where: { email: adminEmail } });
@@ -73,7 +72,7 @@ export async function getUsersList(adminEmail: string) {
   return res.users;
 }
 
-// 3. ACTUALIZAR ROL PRINCIPAL DE USUARIO CON LOG DE AUDITORÍA
+// 3. ACTUALIZAR ROL PRINCIPAL DE USUARIO Y AUDITORÍA
 export async function updateUserRole(
   adminEmail: string,
   targetUserId: string,
@@ -125,7 +124,7 @@ export async function getAuditLogs(adminEmail: string) {
   }
 }
 
-// --- REQUISITO 5: FUNCIONES RBAC (ROLES Y PERMISOS INDEPENDIENTES) ---
+// --- REQUISITO 5: GESTIÓN DE ROLES Y PERMISOS RBAC ---
 
 export async function createRole(roleName: string, description: string) {
   try {
