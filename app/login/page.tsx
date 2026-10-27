@@ -27,11 +27,11 @@ export default function LoginPage() {
         localStorage.setItem("user_session", JSON.stringify(res.user));
         window.location.href = "/";
       } else {
-        setErrorMessage(res?.message || "Correo o contraseña incorrectos.");
+        setErrorMessage(res?.message || "Credenciales incorrectas. Verifique sus datos.");
         setLoading(false);
       }
     } catch (err: any) {
-      setErrorMessage("Error al conectar con la base de datos.");
+      setErrorMessage("Error de conexión con el servidor de base de datos.");
       setLoading(false);
     }
   };
@@ -39,7 +39,7 @@ export default function LoginPage() {
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!forgotEmail) {
-      setErrorMessage("Por favor ingresa tu correo electrónico.");
+      setErrorMessage("Por favor, ingrese su correo electrónico institucional o registrado.");
       return;
     }
 
@@ -53,13 +53,13 @@ export default function LoginPage() {
       if (res && res.success) {
         setLoading(false);
         setView("forgot_otp");
-        setSuccessMessage("✓ ¡Código OTP enviado literalmente a tu correo! Revisa tu bandeja.");
+        setSuccessMessage("✓ Código OTP de verificación enviado de forma segura a su bandeja de correo.");
       } else {
-        setErrorMessage(res?.message || "No se pudo enviar el correo de recuperación.");
+        setErrorMessage(res?.message || "No se pudo procesar la solicitud de recuperación.");
         setLoading(false);
       }
     } catch (err: any) {
-      setErrorMessage("Error al conectar con el servidor de correo.");
+      setErrorMessage("Error crítico al despachar el correo de verificación.");
       setLoading(false);
     }
   };
@@ -71,7 +71,7 @@ export default function LoginPage() {
 
     const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(newPassword);
     if (!isPasswordValid) {
-      setErrorMessage("La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un símbolo especial (@$!%*?&).");
+      setErrorMessage("La nueva contraseña no cumple con los protocolos de seguridad requeridos.");
       return;
     }
 
@@ -86,7 +86,7 @@ export default function LoginPage() {
 
       if (res && res.success) {
         setLoading(false);
-        setSuccessMessage("✓ ¡Contraseña actualizada exitosamente! Redirigiendo al login...");
+        setSuccessMessage("✓ Contraseña actualizada exitosamente. Redirigiendo al portal...");
         setTimeout(() => {
           setView("login");
           setFormData({ email: forgotEmail, password: "" });
@@ -97,32 +97,36 @@ export default function LoginPage() {
         setLoading(false);
       }
     } catch (err: any) {
-      setErrorMessage("Error al actualizar la contraseña en la base de datos.");
+      setErrorMessage("Error al actualizar las credenciales en el sistema.");
       setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-white px-4">
-      <div className="relative max-w-sm w-full bg-[#181818] p-8 rounded-2xl shadow-2xl border-t-2 border-amber-500">
+      <div className="relative max-w-md w-full bg-[#181818] p-8 rounded-2xl shadow-2xl border-t-2 border-amber-500">
+        
+        {/* ENCABEZADO */}
         <div className="flex flex-col items-center justify-center mb-6">
-          <div className="w-12 h-12 bg-amber-500 text-black font-extrabold text-xl rounded-xl flex items-center justify-center mb-3">
+          <div className="w-12 h-12 bg-amber-500 text-black font-extrabold text-xl rounded-xl flex items-center justify-center mb-3 shadow-lg shadow-amber-500/20">
             R
           </div>
           <h1 className="text-xl font-extrabold tracking-wider text-white">PORTAL RËVA</h1>
           <p className="text-xs text-zinc-400 mt-1">
-            {view === "login" && "Acceso al armario digital y probador"}
-            {view === "forgot_email" && "Recuperación de Contraseña (Paso 1)"}
-            {view === "forgot_otp" && "Verificación OTP y Seguridad (Paso 2)"}
+            {view === "login" && "Gestión de identidad y acceso digital"}
+            {view === "forgot_email" && "Recuperación de Credenciales (Paso 1)"}
+            {view === "forgot_otp" && "Doble Factor de Autenticación (Paso 2)"}
           </p>
         </div>
 
+        {/* MENSAJE DE ERROR */}
         {errorMessage && (
           <div className="p-3 mb-4 rounded-xl text-xs font-medium text-center bg-red-950/50 border border-red-800 text-red-300">
             {errorMessage}
           </div>
         )}
 
+        {/* MENSAJE DE ÉXITO */}
         {successMessage && (
           <div className="p-3 mb-4 rounded-xl text-xs font-medium text-center bg-emerald-950/60 border border-emerald-800 text-emerald-300">
             {successMessage}
@@ -132,37 +136,43 @@ export default function LoginPage() {
         {/* VISTA 1: INICIO DE SESIÓN */}
         {view === "login" && (
           <form onSubmit={handleLogin} className="space-y-4">
-            <input
-              type="email"
-              name="email"
-              required
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-500"
-              placeholder="Correo electrónico"
-            />
+            <div>
+              <label className="block text-[11px] text-zinc-400 mb-1.5 font-medium">Correo Electrónico</label>
+              <input
+                type="email"
+                name="email"
+                required
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-500"
+                placeholder="usuario@reva.com"
+              />
+            </div>
 
-            <input
-              type="password"
-              name="password"
-              required
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-500"
-              placeholder="Contraseña"
-            />
+            <div>
+              <label className="block text-[11px] text-zinc-400 mb-1.5 font-medium">Contraseña</label>
+              <input
+                type="password"
+                name="password"
+                required
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-500"
+                placeholder="••••••••"
+              />
+            </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-extrabold rounded-xl text-xs transition cursor-pointer disabled:opacity-50"
+              className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-extrabold rounded-xl text-xs transition cursor-pointer disabled:opacity-50 mt-2"
             >
-              {loading ? "Validando cuenta..." : "Iniciar Sesión"}
+              {loading ? "Validando credenciales..." : "Iniciar Sesión"}
             </button>
 
-            <div className="text-center pt-2 space-y-2">
+            <div className="text-center pt-3 space-y-2">
               <p className="text-xs text-zinc-400">
-                ¿No tienes cuenta? <a href="/register" className="text-amber-400 underline">Regístrate</a>
+                ¿No cuenta con un registro? <a href="/register" className="text-amber-400 underline hover:text-amber-300">Crear cuenta</a>
               </p>
               <p className="text-xs">
                 <button
@@ -170,96 +180,104 @@ export default function LoginPage() {
                   onClick={() => { setView("forgot_email"); setErrorMessage(""); setSuccessMessage(""); }}
                   className="text-zinc-400 hover:text-amber-400 underline cursor-pointer"
                 >
-                  ¿Olvidaste tu contraseña?
+                  ¿Olvidó su contraseña?
                 </button>
               </p>
             </div>
           </form>
         )}
 
-        {/* VISTA 2: SOLICITAR CORREO PARA ENVÍO REAL */}
+        {/* VISTA 2: SOLICITAR CORREO DE RECUPERACIÓN */}
         {view === "forgot_email" && (
           <form onSubmit={handleSendOtp} className="space-y-4">
-            <input
-              type="email"
-              required
-              value={forgotEmail}
-              onChange={(e) => setForgotEmail(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-500"
-              placeholder="Ingresa tu correo registrado"
-            />
+            <div>
+              <label className="block text-[11px] text-zinc-400 mb-1.5 font-medium">Correo Electrónico Registrado</label>
+              <input
+                type="email"
+                required
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-500"
+                placeholder="usuario@reva.com"
+              />
+            </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-extrabold rounded-xl text-xs transition cursor-pointer disabled:opacity-50"
+              className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-extrabold rounded-xl text-xs transition cursor-pointer disabled:opacity-50 mt-2"
             >
-              {loading ? "Enviando correo real..." : "Enviar Código al Correo"}
+              {loading ? "Despachando código..." : "Enviar Código de Verificación"}
             </button>
 
-            <div className="text-center pt-2">
+            <div className="text-center pt-3">
               <button
                 type="button"
                 onClick={() => { setView("login"); setErrorMessage(""); setSuccessMessage(""); }}
-                className="text-xs text-amber-400 underline cursor-pointer"
+                className="text-xs text-amber-400 underline hover:text-amber-300 cursor-pointer"
               >
-                ← Volver al Inicio de Sesión
+                ← Regresar al Inicio de Sesión
               </button>
             </div>
           </form>
         )}
 
-        {/* VISTA 3: INGRESAR OTP Y NUEVA CONTRASEÑA CON VALIDACIÓN */}
+        {/* VISTA 3: INGRESAR OTP Y NUEVA CONTRASEÑA */}
         {view === "forgot_otp" && (
           <form onSubmit={handleVerifyAndReset} className="space-y-4">
             <div>
-              <label className="block text-[11px] text-zinc-400 mb-1.5 font-medium">
-                Código OTP (6 Dígitos)
-              </label>
+              <label className="block text-[11px] text-zinc-400 mb-1.5 font-medium">Código OTP (6 Dígitos)</label>
               <input
                 type="text"
                 required
                 maxLength={6}
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white text-xs outline-none tracking-widest text-center font-mono focus:border-amber-500"
+                className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white text-xs tracking-widest text-center font-mono outline-none focus:border-amber-500"
                 placeholder="123456"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] text-zinc-400 mb-1.5 font-medium">
-                Nueva Contraseña (Mín. 8 caracteres, Mayúscula, Número y Símbolo)
-              </label>
+              <label className="block text-[11px] text-zinc-400 mb-1.5 font-medium">Nueva Contraseña</label>
               <input
                 type="password"
                 required
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-500"
-                placeholder="Ej: Reva2026*"
+                placeholder="••••••••"
               />
+              
+              {/* REQUISITOS PROFESIONALES EN TONOS VERDES */}
+              <div className="mt-2.5 p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-900/60 text-[10px] text-emerald-400/90 space-y-1">
+                <p className="font-semibold text-emerald-300 mb-0.5">Parámetros de seguridad obligatorios:</p>
+                <p>✓ Mínimo 8 caracteres de longitud.</p>
+                <p>✓ Al menos una letra mayúscula.</p>
+                <p>✓ Al menos un número y un símbolo especial (@$!%*?&).</p>
+              </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-extrabold rounded-xl text-xs transition cursor-pointer disabled:opacity-50"
+              className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-extrabold rounded-xl text-xs transition cursor-pointer disabled:opacity-50 mt-2"
             >
-              {loading ? "Actualizando..." : "Confirmar Cambio"}
+              {loading ? "Actualizando credenciales..." : "Confirmar y Restablecer"}
             </button>
 
-            <div className="text-center pt-2">
+            <div className="text-center pt-3">
               <button
                 type="button"
                 onClick={() => { setView("forgot_email"); setErrorMessage(""); setSuccessMessage(""); }}
-                className="text-xs text-zinc-400 underline cursor-pointer"
+                className="text-xs text-zinc-400 underline hover:text-amber-400 cursor-pointer"
               >
                 ← Reintentar con otro correo
               </button>
             </div>
           </form>
         )}
+
       </div>
     </div>
   );
