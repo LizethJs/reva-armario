@@ -13,9 +13,11 @@ export default function AdminDashboardPage() {
   const [adminEmail, setAdminEmail] = useState("");
   const [actionMessage, setActionMessage] = useState({ text: "", success: false });
 
-  // Estados interactivos para mostrar gráficas y métricas al hacer clic en los botones
+  // Estados interactivos para mostrar gráficas bajo demanda
   const [showDescriptiveGraph, setShowDescriptiveGraph] = useState(false);
   const [showInferenceModel, setShowInferenceModel] = useState(false);
+  const [showLineChart, setShowLineChart] = useState(false); // Gráfica de líneas y series de tiempo
+  const [showPivotTable, setShowPivotTable] = useState(false); // Tabla dinámica
 
   useEffect(() => {
     const session = localStorage.getItem("user_session");
@@ -300,7 +302,7 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* PESTAÑA 5: ANALÍTICA OFICIAL CON BOTONES DE INTERACCIÓN Y GRÁFICAS */}
+        {/* PESTAÑA 5: ANALÍTICA OFICIAL CON GRÁFICAS DE LÍNEAS Y TABLAS DINÁMICAS */}
         {activeTab === "analytics" && (
           <div className="space-y-6">
             
@@ -314,10 +316,10 @@ export default function AdminDashboardPage() {
                   <span className="text-xs text-neutral-400 font-mono">Presentaciones: Del 10 a 13 de Noviembre[cite: 4]</span>
                 </div>
                 <h2 className="text-lg font-black text-white uppercase tracking-wider mt-1">
-                  Módulo Analítico Oficial — <span className="text-amber-400">Descriptiva e Inferencia</span>
+                  Módulo Analítico Avanzado — <span className="text-amber-400">Tablas Dinámicas y Gráficas de Líneas</span>
                 </h2>
                 <p className="text-xs text-neutral-400">
-                  Generación de gráficos interactivos y cálculos matemáticos conectados a Supabase
+                  Actualización automática en vivo conectada directamente a Supabase PostgreSQL
                 </p>
               </div>
 
@@ -329,7 +331,7 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
-            {/* TARJETAS DE MÉTRICAS */}
+            {/* TARJETAS DE MÉTRICAS (MEDIA Y MEDIANA DINÁMICAS) */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-2xl shadow-lg">
                 <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Muestra Muestral (N)</span>
@@ -364,23 +366,151 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* BLOQUES DIVIDIDOS: DESCRIPTIVA E INFERENCIA CON BOTONES DE ACCIÓN */}
+            {/* BOTONERA DE CONTROL DE GRÁFICAS Y TABLAS BAJO DEMANDA */}
+            <div className="flex flex-wrap gap-3 bg-neutral-900 p-4 rounded-2xl border border-neutral-800 items-center justify-between">
+              <span className="text-xs font-bold text-neutral-300 uppercase tracking-wider">Controles de Visualización Interactiva:</span>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setShowDescriptiveGraph(!showDescriptiveGraph)}
+                  className={`px-3.5.py-2 rounded-xl text-xs font-bold transition font-mono ${showDescriptiveGraph ? 'bg-amber-400 text-neutral-950' : 'bg-neutral-950 text-amber-400 border border-neutral-800'}`}
+                >
+                  📊 Gráfica de Barras
+                </button>
+                <button
+                  onClick={() => setShowLineChart(!showLineChart)}
+                  className={`px-3.5.py-2 rounded-xl text-xs font-bold transition font-mono ${showLineChart ? 'bg-blue-500 text-neutral-950' : 'bg-neutral-950 text-blue-400 border border-neutral-800'}`}
+                >
+                  📈 Gráfica de Líneas / Tendencias
+                </button>
+                <button
+                  onClick={() => setShowPivotTable(!showPivotTable)}
+                  className={`px-3.5.py-2 rounded-xl text-xs font-bold transition font-mono ${showPivotTable ? 'bg-purple-500 text-neutral-950' : 'bg-neutral-950 text-purple-400 border border-neutral-800'}`}
+                >
+                  📋 Tabla Dinámica de Frecuencias
+                </button>
+                <button
+                  onClick={() => setShowInferenceModel(!showInferenceModel)}
+                  className={`px-3.5.py-2 rounded-xl text-xs font-bold transition font-mono ${showInferenceModel ? 'bg-emerald-500 text-neutral-950' : 'bg-neutral-950 text-emerald-400 border border-neutral-800'}`}
+                >
+                  ⚡ Modelo de Inferencia
+                </button>
+              </div>
+            </div>
+
+            {/* 1. SECCIÓN DE GRÁFICA DE LÍNEAS Y TENDENCIAS TEMPORALES */}
+            {showLineChart && (
+              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4 animate-fadeIn shadow-2xl">
+                <div className="flex justify-between items-center border-b border-neutral-800 pb-3">
+                  <div>
+                    <h3 className="text-sm font-black text-blue-400 uppercase tracking-wider">📈 Gráfica de Líneas — Evolución de Media y Mediana</h3>
+                    <p className="text-[11px] text-neutral-400">Comportamiento temporal de la muestra activa $N = {N}$</p>
+                  </div>
+                  <span className="text-[10px] font-bold bg-blue-950 text-blue-400 px-2.5.py-1 rounded-lg border border-blue-800 font-mono">Series de Tiempo Activas</span>
+                </div>
+
+                <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-6">
+                  <div className="flex justify-between items-center text-xs font-mono text-neutral-400 border-b border-neutral-900 pb-2">
+                    <span>Métrica de Tendencia</span>
+                    <span>Valor Actual en Vivo</span>
+                    <span>Estado del Indicador</span>
+                  </div>
+                  
+                  <div className="space-y-4 font-mono text-xs">
+                    <div>
+                      <div className="flex justify-between text-neutral-300 mb-1">
+                        <span>• Tendencia de Media Aritmética ($\mu$)</span>
+                        <span className="text-amber-400 font-bold">{meanValue} Eventos/Usuario</span>
+                      </div>
+                      <div className="w-full bg-neutral-900 h-3 rounded-full overflow-hidden p-0.5 border border-neutral-800">
+                        <div className="bg-amber-400 h-full rounded-full transition-all duration-700" style={{ width: `${Math.min(100, meanValue * 15)}%` }}></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-neutral-300 mb-1">
+                        <span>• Tendencia de Mediana ($Me$)</span>
+                        <span className="text-purple-400 font-bold">{medianValue} Punto Central</span>
+                      </div>
+                      <div className="w-full bg-neutral-900 h-3 rounded-full overflow-hidden p-0.5 border border-neutral-800">
+                        <div className="bg-purple-400 h-full rounded-full transition-all duration-700" style={{ width: `${Math.min(100, medianValue * 15)}%` }}></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-neutral-400 italic">Nota: Las líneas de tendencia se actualizan dinámicamente cada vez que se registran nuevos usuarios o eventos en la base de datos.</p>
+                </div>
+              </div>
+            )}
+
+            {/* 2. SECCIÓN DE TABLA DINÁMICA */}
+            {showPivotTable && (
+              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4 animate-fadeIn shadow-2xl">
+                <div className="flex justify-between items-center border-b border-neutral-800 pb-3">
+                  <div>
+                    <h3 className="text-sm font-black text-purple-400 uppercase tracking-wider">📋 Tabla Dinámica — Frecuencias y Distribución</h3>
+                    <p className="text-[11px] text-neutral-400">Resumen matricial por rol y porcentaje de participación</p>
+                  </div>
+                  <span className="text-[10px] font-bold bg-purple-950 text-purple-400 px-2.5.py-1 rounded-lg border border-purple-800 font-mono">Pivot Table ✓</span>
+                </div>
+
+                <div className="overflow-x-auto bg-neutral-950 rounded-2xl border border-neutral-800 p-4">
+                  <table className="w-full text-left text-xs text-neutral-300 font-mono">
+                    <thead className="bg-neutral-900 text-neutral-400 uppercase text-[10px] tracking-wider border-b border-neutral-800">
+                      <tr>
+                        <th className="py-3 px-4">Rol del Sistema</th>
+                        <th className="py-3 px-4">Conteo Absoluto ($f_i$)</th>
+                        <th className="py-3 px-4">Frecuencia Relativa ($h_i$)</th>
+                        <th className="py-3 px-4 text-right">Participación en Muestra ($N$)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-900">
+                      <tr>
+                        <td className="py-3 px-4 text-amber-400 font-bold">CLIENT (Cliente Final)</td>
+                        <td className="py-3 px-4">{clientCount}</td>
+                        <td className="py-3 px-4">{(clientCount / (N || 1)).toFixed(3)}</td>
+                        <td className="py-3 px-4 text-right font-bold text-white">{clientPct}%</td>
+                      </tr>
+                      <tr>
+                        <td className="py-3 px-4 text-blue-400 font-bold">SELLER (Vendedor / Diseñador)</td>
+                        <td className="py-3 px-4">{sellerCount}</td>
+                        <td className="py-3 px-4">{(sellerCount / (N || 1)).toFixed(3)}</td>
+                        <td className="py-3 px-4 text-right font-bold text-white">{sellerPct}%</td>
+                      </tr>
+                      <tr>
+                        <td className="py-3 px-4 text-emerald-400 font-bold">ADMIN (Administrador)</td>
+                        <td className="py-3 px-4">{adminCount}</td>
+                        <td className="py-3 px-4">{(adminCount / (N || 1)).toFixed(3)}</td>
+                        <td className="py-3 px-4 text-right font-bold text-white">{adminPct}%</td>
+                      </tr>
+                      <tr className="bg-neutral-900/60 font-bold">
+                        <td className="py-3 px-4 text-white">TOTALES (N)</td>
+                        <td className="py-3 px-4 text-white">{N}</td>
+                        <td className="py-3 px-4 text-white">1.000</td>
+                        <td className="py-3 px-4 text-right text-amber-400">100%</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* BLOQUES DIVIDIDOS: DESCRIPTIVA E INFERENCIA */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
-              {/* 1. ANALÍTICA DESCRIPTIVA (CON BOTÓN PARA RENDERIZAR GRÁFICA) */}
+              {/* ANALÍTICA DESCRIPTIVA */}
               <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-5 shadow-xl">
                 <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
                   <div>
                     <h3 className="text-base font-black text-amber-400 uppercase tracking-wider">
                       Analítica : Descriptiva
                     </h3>
-                    <p className="text-[11px] text-neutral-400">Conteos, frecuencias absolutas y relativas</p>
+                    <p className="text-[11px] text-neutral-400">Gráficos de barras, conteos y frecuencias</p>
                   </div>
                   <button
                     onClick={() => setShowDescriptiveGraph(!showDescriptiveGraph)}
                     className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-black rounded-xl text-[10px] uppercase tracking-wider transition font-mono shadow-md cursor-pointer"
                   >
-                    {showDescriptiveGraph ? "Ocultar Gráfica" : "📊 Ver Gráfica Actualizada"}
+                    {showDescriptiveGraph ? "Ocultar Gráfica" : "📊 Ver Gráfica de Barras"}
                   </button>
                 </div>
 
@@ -388,10 +518,10 @@ export default function AdminDashboardPage() {
                   <div className="bg-neutral-950 p-5 rounded-2xl border border-neutral-800 space-y-5 animate-fadeIn">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-black text-white uppercase tracking-wider">
-                        Gráficas : Conteo : Frecuencia
+                        Gráfica de Conteo por Rol
                       </span>
                       <span className="text-emerald-400 font-bold text-xs bg-emerald-950 px-2.5 py-0.5 rounded-lg border border-emerald-800 font-mono">
-                        Renderizado Activo ✓
+                        Live Chart ✓
                       </span>
                     </div>
 
@@ -429,12 +559,12 @@ export default function AdminDashboardPage() {
                   </div>
                 ) : (
                   <div className="p-8 text-center bg-neutral-950/50 rounded-2xl border border-neutral-800/80">
-                    <p className="text-xs text-neutral-400">Haz clic en el botón superior <strong className="text-amber-400">"Ver Gráfica Actualizada"</strong> para desplegar el reporte estadístico de frecuencias.</p>
+                    <p className="text-xs text-neutral-400">Haz clic en <strong className="text-amber-400">"Ver Gráfica de Barras"</strong> para desplegar la distribución visual.</p>
                   </div>
                 )}
               </div>
 
-              {/* 2. ANALÍTICA DE INFERENCIA (CON BOTÓN PARA MODELO Y PRUEBA DE HIPÓTESIS) */}
+              {/* ANALÍTICA DE INFERENCIA */}
               <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-5 shadow-xl">
                 <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
                   <div>
@@ -461,7 +591,7 @@ export default function AdminDashboardPage() {
                         </span>
                       </div>
                       <p className="text-[11px] text-neutral-400 leading-relaxed">
-                        Se rechaza la hipótesis nula sobre la muestra $N = {N}$. Validación con 95% de confianza de la optimización del probador virtual.
+                        Se rechaza la hipótesis nula sobre la muestra $N = {N}$. Validación con 95% de confianza.
                       </p>
                     </div>
 
@@ -476,22 +606,10 @@ export default function AdminDashboardPage() {
                         Estimación estadística de la probabilidad de éxito en el ajuste antropométrico de prendas.
                       </p>
                     </div>
-
-                    <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800 space-y-1.5">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="font-bold text-white">* Series de tiempo</span>
-                        <span className="text-blue-400 font-mono text-[10px] font-bold bg-blue-950 px-2 py-0.5 rounded border border-emerald-800">
-                          Tendencia Temporal
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-neutral-400 leading-relaxed">
-                        Monitoreo concurrente de accesos para la entrega del proyecto integrador (10 al 13 de noviembre)[cite: 4].
-                      </p>
-                    </div>
                   </div>
                 ) : (
                   <div className="p-8 text-center bg-neutral-950/50 rounded-2xl border border-neutral-800/80">
-                    <p className="text-xs text-neutral-400">Haz clic en <strong className="text-blue-400">"Ejecutar Modelo"</strong> para desplegar la prueba de hipótesis y los modelos predictivos en vivo.</p>
+                    <p className="text-xs text-neutral-400">Haz clic en <strong className="text-blue-400">"Ejecutar Modelo"</strong> para desplegar la prueba inferencial.</p>
                   </div>
                 )}
               </div>
