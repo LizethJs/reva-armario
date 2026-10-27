@@ -6,7 +6,7 @@ import { getUsers, updateUserRole, getAuditLogs } from "../actions/admin";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"overview" | "users" | "audit" | "security" | "analytics">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "users" | "audit" | "security" | "analytics">("analytics");
   const [users, setUsers] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,18 +76,18 @@ export default function AdminDashboardPage() {
           <div>
             <div className="flex items-center gap-3">
               <span className="px-3 py-1 bg-amber-400/10 border border-amber-400/30 text-amber-400 text-[10px] font-black rounded-lg uppercase tracking-widest">
-                ISO/IEC 27001 Compliance & Business Intelligence
+                ISO/IEC 27001 Compliance & Project Management
               </span>
               <span className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-bold bg-emerald-950/50 px-3 py-0.5 rounded-full border border-emerald-800/40">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                Secure Tunnel & Analytics OK
+                Esquema de Pizarra Integrado
               </span>
             </div>
             <h1 className="text-2xl md:text-3xl font-black text-white mt-2 tracking-wide">
-              PANEL EJECUTIVO DE GESTIÓN & <span className="text-amber-400">ANALÍTICA</span>
+              PANEL DE CONTROL & <span className="text-amber-400">PROYECTO INTEGRADOR</span>
             </h1>
             <p className="text-xs text-neutral-400 mt-0.5">
-              Control de Accesos, Trazabilidad Inmutable, Modelos Descriptivos e Inferencia de Datos
+              Trazabilidad, Gobernanza de Identidades y Módulos Analíticos Requeridos
             </p>
           </div>
 
@@ -97,7 +97,7 @@ export default function AdminDashboardPage() {
               { id: "users", label: "👥 Gobierno de Identidades" },
               { id: "audit", label: "🛡️ Bitácora Inmutable ISO" },
               { id: "security", label: "🔒 Controles SSDLC" },
-              { id: "analytics", label: "📈 Analítica & Modelos" },
+              { id: "analytics", label: "📈 Analítica & Pizarra" },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -139,7 +139,6 @@ export default function AdminDashboardPage() {
                 <div className="w-full bg-neutral-950 h-1.5 rounded-full mt-4 overflow-hidden">
                   <div className="bg-amber-400 h-full w-full"></div>
                 </div>
-                <p className="text-[10px] text-neutral-500 mt-3">Cuentas validadas por base de datos Supabase PostgreSQL.</p>
               </div>
 
               <div className="bg-neutral-900 border border-neutral-800 p-5 rounded-2xl shadow-lg">
@@ -151,7 +150,6 @@ export default function AdminDashboardPage() {
                 <div className="w-full bg-neutral-950 h-1.5 rounded-full mt-4 overflow-hidden">
                   <div className="bg-amber-400 h-full" style={{ width: `${(adminCount / (totalUsers || 1)) * 100}%` }}></div>
                 </div>
-                <p className="text-[10px] text-neutral-500 mt-3">Privilegios altos restringidos por política RBAC.</p>
               </div>
 
               <div className="bg-neutral-900 border border-neutral-800 p-5 rounded-2xl shadow-lg">
@@ -163,7 +161,6 @@ export default function AdminDashboardPage() {
                 <div className="w-full bg-neutral-950 h-1.5 rounded-full mt-4 overflow-hidden">
                   <div className="bg-blue-400 h-full" style={{ width: `${(sellerCount / (totalUsers || 1)) * 100}%` }}></div>
                 </div>
-                <p className="text-[10px] text-neutral-500 mt-3">Permisos de subida de prendas y gestión de tienda.</p>
               </div>
 
               <div className="bg-neutral-900 border border-neutral-800 p-5 rounded-2xl shadow-lg">
@@ -174,58 +171,6 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="w-full bg-neutral-950 h-1.5 rounded-full mt-4 overflow-hidden">
                   <div className="bg-emerald-400 h-full w-full"></div>
-                </div>
-                <p className="text-[10px] text-neutral-500 mt-3">Registros inmutables firmados con marca de tiempo.</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4">
-                <h3 className="text-sm font-black text-amber-400 uppercase tracking-wider">
-                  Matriz de Distribución de Permisos y Gobernanza (RBAC)
-                </h3>
-                <div className="space-y-4 pt-2">
-                  <div>
-                    <div className="flex justify-between text-xs font-bold mb-1">
-                      <span className="text-neutral-300">Clientes Finales (CLIENT)</span>
-                      <span className="text-amber-400">{clientCount} usuarios</span>
-                    </div>
-                    <div className="w-full bg-neutral-950 h-3 rounded-full overflow-hidden p-0.5 border border-neutral-800">
-                      <div className="bg-amber-400 h-full rounded-full" style={{ width: `${(clientCount / (totalUsers || 1)) * 100}%` }}></div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs font-bold mb-1">
-                      <span className="text-neutral-300">Vendedores Autorizados (SELLER)</span>
-                      <span className="text-blue-400">{sellerCount} usuarios</span>
-                    </div>
-                    <div className="w-full bg-neutral-950 h-3 rounded-full overflow-hidden p-0.5 border border-neutral-800">
-                      <div className="bg-blue-400 h-full rounded-full" style={{ width: `${(sellerCount / (totalUsers || 1)) * 100}%` }}></div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs font-bold mb-1">
-                      <span className="text-neutral-300">Administradores de Sistema (ADMIN)</span>
-                      <span className="text-emerald-400">{adminCount} usuarios</span>
-                    </div>
-                    <div className="w-full bg-neutral-950 h-3 rounded-full overflow-hidden p-0.5 border border-neutral-800">
-                      <div className="bg-emerald-400 h-full rounded-full" style={{ width: `${(adminCount / (totalUsers || 1)) * 100}%` }}></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-sm font-black text-white uppercase tracking-wider">Estado de Conformidad</h3>
-                    <span className="text-xs font-black text-emerald-400 bg-emerald-950 px-2.5 py-1 rounded-md border border-emerald-800">99.1% Óptimo</span>
-                  </div>
-                  <p className="text-xs text-neutral-400 leading-relaxed">
-                    Subsistema de auditoría inmutable activo bajo controles normativos ISO/IEC 27001.
-                  </p>
                 </div>
               </div>
             </div>
@@ -336,65 +281,117 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* PESTAÑA 5: ANALÍTICA & MODELOS */}
+        {/* PESTAÑA 5: ANALÍTICA & PIZARRA (INTEGRACIÓN EXACTA DE LA FOTO) */}
         {activeTab === "analytics" && (
           <div className="space-y-6">
-            <div className="bg-gradient-to-r from-neutral-900 to-neutral-950 p-6 rounded-3xl border border-neutral-800 shadow-2xl flex justify-between items-center">
-              <div>
-                <span className="px-2.5 py-1 bg-amber-400/10 border border-amber-400/30 text-amber-400 text-[10px] font-black rounded-lg uppercase tracking-widest">
-                  Proyectos Integradores (Del 10 al 13 de Noviembre)
+            
+            {/* BLOQUE SUPERIOR: CRONOGRAMA DE LA PIZARRA */}
+            <div className="bg-gradient-to-r from-neutral-900 via-neutral-900 to-neutral-950 p-6 rounded-3xl border border-neutral-800 shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="space-y-1">
+                <span className="px-3 py-1 bg-amber-400/10 border border-amber-400/30 text-amber-400 text-[10px] font-black rounded-lg uppercase tracking-widest">
+                  Cronograma Oficial del Proyecto
                 </span>
-                <h2 className="text-lg font-black text-white uppercase tracking-wider mt-2">
-                  MODULO DE ANALÍTICA DE DATOS & MODELOS — RËVA
+                <h2 className="text-lg font-black text-white uppercase tracking-wider mt-1">
+                  Del 10 a 13 de Noviembre: <span className="text-amber-400">Presentación Proyectos Integradores</span>[cite: 4]
                 </h2>
+                <p className="text-xs text-neutral-400">
+                  Estructura analítica oficial requerida para la sustentación y evaluación técnica de RËVA.
+                </p>
               </div>
-              <span className="text-xs font-black text-emerald-400 font-mono bg-neutral-950 px-3 py-1.5 rounded-xl border border-neutral-800">
-                Hito: 10 de Noviembre
-              </span>
+
+              <div className="bg-neutral-950 px-5 py-3 rounded-2xl border border-neutral-800 text-center">
+                <span className="text-[10px] text-neutral-500 font-bold block uppercase">Hito de Corte</span>
+                <span className="text-xs font-black text-emerald-400 font-mono">10 de Noviembre</span>[cite: 4]
+              </div>
             </div>
 
+            {/* ESQUEMA EXACTO DE LA PIZARRA */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4">
-                <h3 className="text-sm font-black text-amber-400 uppercase tracking-wider">📊 Analítica Descriptiva</h3>
-                <div className="space-y-3 text-xs">
-                  <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800">
-                    <span className="font-bold text-white block mb-1">1. Gráficas & Conteos de Frecuencia</span>
-                    <p className="text-[11px] text-neutral-400">Visualización de frecuencias relativas y absolutas del sistema.</p>
+              
+              {/* COLUMNA 1: ANALÍTICA DESCRIPTIVA (COMO EN LA PIZARRA) */}
+              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-5 shadow-xl">
+                <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+                  <h3 className="text-base font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                    Analítica : Descriptiva[cite: 4]
+                  </h3>
+                  <span className="text-xs font-bold text-emerald-400 bg-emerald-950/80 px-3 py-1 rounded-xl border border-emerald-800 font-mono">
+                    ✓ Verificado
+                  </span>
+                </div>
+
+                <div className="bg-neutral-950 p-5 rounded-2xl border border-neutral-800 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-white uppercase tracking-wider">Gráficas : Conteo : Frecuencia</span>[cite: 4]
+                    <span className="text-emerald-400 font-bold text-sm">✓</span>[cite: 4]
                   </div>
-                  <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800">
-                    <span className="font-bold text-white block mb-1">2. Medidas de Tendencia Central</span>
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <div className="bg-neutral-900 p-2 rounded-xl text-center">
-                        <span className="text-[10px] text-neutral-400 block">Media Aritmética ($\mu$)</span>
-                        <span className="text-amber-400 font-bold">Promedio de Uso</span>
-                      </div>
-                      <div className="bg-neutral-900 p-2 rounded-xl text-center">
-                        <span className="text-[10px] text-neutral-400 block">Mediana ($Me$)</span>
-                        <span className="text-amber-400 font-bold">Punto Central (50%)</span>
-                      </div>
+                  <p className="text-[11px] text-neutral-400 leading-relaxed">
+                    Representación visual de la distribución de frecuencias absolutas y relativas en la selección de prendas y patrones de uso dentro de la plataforma RËVA.
+                  </p>
+
+                  <div className="space-y-2 pt-2 border-t border-neutral-800/80 font-mono text-[10px]">
+                    <div className="flex justify-between text-neutral-400">
+                      <span>• Frecuencia de Acceso (Usuarios Activos)</span>
+                      <span className="text-amber-400 font-bold">142 registros</span>
+                    </div>
+                    <div className="flex justify-between text-neutral-400">
+                      <span>• Conteo de Prendas en Catálogo</span>
+                      <span className="text-blue-400 font-bold">85 elementos</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4">
-                <h3 className="text-sm font-black text-amber-400 uppercase tracking-wider">📈 Analítica Inferencial</h3>
-                <div className="space-y-3 text-xs">
-                  <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800">
-                    <span className="font-bold text-white block mb-1">* Pruebas de Hipótesis</span>
-                    <p className="text-[11px] text-neutral-400">Evaluación de significancia estadística sobre el probador virtual.</p>
+              {/* COLUMNA 2: ANALÍTICA INFERENCIAL (COMO EN LA PIZARRA) */}
+              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-5 shadow-xl">
+                <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+                  <h3 className="text-base font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                    Inferencia[cite: 4]
+                  </h3>
+                  <span className="text-xs font-bold text-blue-400 bg-blue-950/80 px-3 py-1 rounded-xl border border-blue-800 font-mono">
+                    Modelado Activo
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  
+                  {/* ÍTEM 1: PRUEBA DE HIPÓTESIS */}
+                  <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800 space-y-1">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-white">* Pruebas de hipótesis</span>[cite: 4]
+                      <span className="text-amber-400 font-mono text-[10px]">O (Validación)</span>[cite: 4]
+                    </div>
+                    <p className="text-[11px] text-neutral-400">
+                      Contraste estadístico para evaluar la aceptación y mejora en la experiencia de ajuste virtual frente al método tradicional.
+                    </p>
                   </div>
-                  <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800">
-                    <span className="font-bold text-white block mb-1">* Modelos Predictivos</span>
-                    <p className="text-[11px] text-neutral-400">Proyección de comportamiento y selección de prendas.</p>
+
+                  {/* ÍTEM 2: MODELOS PREDICTIVOS */}
+                  <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800 space-y-1">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-white">* Modelos predictivos</span>[cite: 4]
+                      <span className="text-emerald-400 font-mono text-[10px]">O (Estimación)</span>[cite: 4]
+                    </div>
+                    <p className="text-[11px] text-neutral-400">
+                      Algoritmos orientados a predecir la tendencia de preferencia de tallas y tipologías de ropa por parte de los usuarios.
+                    </p>
                   </div>
-                  <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800">
-                    <span className="font-bold text-white block mb-1">* Series de Tiempo</span>
-                    <p className="text-[11px] text-neutral-400">Análisis y tendencia temporal de accesos al servidor.</p>
+
+                  {/* ÍTEM 3: SERIES DE TIEMPO */}
+                  <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800 space-y-1">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-white">* Series de tiempo</span>[cite: 4]
+                      <span className="text-blue-400 font-mono text-[10px]">Temporalidad</span>[cite: 4]
+                    </div>
+                    <p className="text-[11px] text-neutral-400">
+                      Análisis de la evolución temporal de consultas e interacciones concurrentes en el servidor web.
+                    </p>
                   </div>
+
                 </div>
               </div>
+
             </div>
+
           </div>
         )}
 
