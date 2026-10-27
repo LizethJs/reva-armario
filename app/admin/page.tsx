@@ -15,9 +15,11 @@ export default function AdminDashboardPage() {
     const session = localStorage.getItem("user_session");
     if (session) {
       const parsed = JSON.parse(session);
-      setAdminEmail(parsed.email || "admin@reva.com");
-      loadData(parsed.email || "admin@reva.com");
+      const email = parsed.email || "admin@reva.com";
+      setAdminEmail(email);
+      loadData(email);
     } else {
+      setAdminEmail("admin@reva.com");
       loadData("admin@reva.com");
     }
   }, []);
@@ -37,11 +39,11 @@ export default function AdminDashboardPage() {
     }
   }
 
-  const handleRoleChange = async (targetUserId: string, newRole: string) => {
+  const handleRoleChange = async (targetUserId: string, newRole: "CLIENT" | "SELLER" | "ADMIN") => {
     setActionMessage({ text: "Actualizando permisos...", success: true });
     const res = await updateUserRole(adminEmail, targetUserId, newRole);
     if (res.success) {
-      setActionMessage({ text: "Rol actualizado y registrado en auditoría ISO 27001", success: true });
+      setActionMessage({ text: res.message || "Rol actualizado y registrado en auditoría ISO 27001", success: true });
       loadData(adminEmail);
     } else {
       setActionMessage({ text: res.error || "Error al actualizar rol", success: false });
@@ -49,7 +51,6 @@ export default function AdminDashboardPage() {
     setTimeout(() => setActionMessage({ text: "", success: false }), 4000);
   };
 
-  // Métricas calculadas para el dashboard
   const totalUsers = users.length;
   const adminCount = users.filter((u) => u.role === "ADMIN").length;
   const sellerCount = users.filter((u) => u.role === "SELLER").length;
@@ -60,7 +61,7 @@ export default function AdminDashboardPage() {
     <div className="min-h-screen bg-neutral-950 text-white p-4 md:p-8 font-sans">
       <div className="max-w-7xl mx-auto space-y-6">
 
-        {/* HEADER EJECUTIVO */}
+        {/* ENCABEZADO */}
         <div className="bg-gradient-to-r from-neutral-900 via-neutral-900 to-neutral-950 p-6 rounded-3xl border border-neutral-800 shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div className="flex items-center gap-3">
@@ -80,7 +81,6 @@ export default function AdminDashboardPage() {
             </p>
           </div>
 
-          {/* BOTONES DE NAVEGACIÓN DE PESTAÑAS */}
           <div className="flex flex-wrap gap-2 bg-neutral-950/80 p-1.5 rounded-2xl border border-neutral-800">
             {[
               { id: "overview", label: "📊 Resumen Global" },
@@ -103,7 +103,6 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* MENSAJE DE ACCIÓN / NOTIFICACIÓN */}
         {actionMessage.text && (
           <div
             className={`p-3.5 rounded-2xl text-xs font-bold text-center border transition-all ${
@@ -116,12 +115,11 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* CONTENIDO 1: RESUMEN GLOBAL (METRICAS Y KPIS) */}
+        {/* PESTAÑA 1: RESUMEN GLOBAL */}
         {activeTab === "overview" && (
           <div className="space-y-6">
-            {/* CARDS DE TARJETAS KPI */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-neutral-900 border border-neutral-800 p-5 rounded-2xl shadow-lg relative overflow-hidden">
+              <div className="bg-neutral-900 border border-neutral-800 p-5 rounded-2xl shadow-lg">
                 <p className="text-neutral-400 text-[11px] font-bold uppercase tracking-wider">Total Usuarios Registrados</p>
                 <div className="flex items-baseline justify-between mt-2">
                   <h3 className="text-3xl font-black text-white">{totalUsers}</h3>
@@ -166,7 +164,6 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* SECCIÓN DE RESUMEN TÉCNICO Y CUMPLIMIENTO */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4">
                 <h3 className="text-sm font-black text-amber-400 uppercase tracking-wider">
@@ -205,7 +202,6 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* TARJETA ISO 27001 DETALLADA */}
               <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-center mb-3">
@@ -231,7 +227,7 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* CONTENIDO 2: GESTIÓN DE USUARIOS */}
+        {/* PESTAÑA 2: USUARIOS */}
         {activeTab === "users" && (
           <div className="bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden shadow-2xl">
             <div className="p-5 border-b border-neutral-800 flex justify-between items-center">
@@ -283,7 +279,7 @@ export default function AdminDashboardPage() {
                         <td className="py-4 px-6 text-right">
                           <select
                             value={u.role}
-                            onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                            onChange={(e) => handleRoleChange(u.id, e.target.value as any)}
                             className="bg-neutral-950 border border-neutral-700 text-amber-400 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-amber-400 cursor-pointer"
                           >
                             <option value="CLIENT">Cliente (CLIENT)</option>
@@ -300,7 +296,7 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* CONTENIDO 3: BITÁCORA DE AUDITORÍA ISO/IEC 27001 */}
+        {/* PESTAÑA 3: AUDITORÍA ISO 27001 */}
         {activeTab === "audit" && (
           <div className="bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden shadow-2xl">
             <div className="p-5 border-b border-neutral-800 flex justify-between items-center">
@@ -350,7 +346,7 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* CONTENIDO 4: SEGURIDAD Y CUMPLIMIENTO */}
+        {/* PESTAÑA 4: SEGURIDAD */}
         {activeTab === "security" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4">
@@ -369,7 +365,7 @@ export default function AdminDashboardPage() {
                   <span className="text-emerald-400 font-bold">✓</span>
                   <div>
                     <strong className="text-white block">Saneamiento e Inspección de Archivos:</strong>
-                    Verificación estricta de extensiones (JPG/PNG/WEBP) y límites de peso (&lt;2MB) para prevenir subidas maliciosas.
+                    Verificación estricta de extensiones (JPG/PNG/WEBP) y límites de peso (&lt;2MB).
                   </div>
                 </li>
                 <li className="flex items-start gap-2 bg-neutral-950 p-3 rounded-xl border border-neutral-800">
