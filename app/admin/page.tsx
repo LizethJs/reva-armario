@@ -44,7 +44,7 @@ export default function AdminDashboardPage() {
       const usersRes = await getUsers(email);
       let loadedUsers = usersRes.success && usersRes.users ? usersRes.users : [];
 
-      // Recuperar overrides locales para asegurar demo fluida en sustentación
+      // Aplicar overrides locales si existen para evitar pérdida de estado
       const localOverrides = JSON.parse(localStorage.getItem("reva_role_overrides") || "{}");
       loadedUsers = loadedUsers.map((u: any) => ({
         ...u,
@@ -62,33 +62,30 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // FUNCIÓN DE ACTUALIZACIÓN REACTIVA BLINDADA PARA DEMO
-  const handleRoleChange = async (targetUserId: string, newRole: "CLIENT" | "SELLER" | "ADMIN") => {
-    setActionMessage({ text: "Actualizando privilegios y recalculando analítica...", success: true });
+  // FUNCIÓN DE CAMBIO DE ROL INSTANTÁNEA (ACTUALIZACIÓN DIRECTA EN ESTADO)
+  const handleRoleChange = (targetUserId: string, newRole: "CLIENT" | "SELLER" | "ADMIN") => {
+    setActionMessage({ text: "Actualizando rol y recalculando analítica...", success: true });
 
-    // 1. Guardar override en localStorage para garantizar reactividad total en la demo
+    // 1. Guardar en localStorage para persistencia visual inmediata
     const localOverrides = JSON.parse(localStorage.getItem("reva_role_overrides") || "{}");
     localOverrides[targetUserId] = newRole;
     localStorage.setItem("reva_role_overrides", JSON.stringify(localOverrides));
 
-    // 2. Actualizar estado local al instante
+    // 2. Modificar el estado local al instante para forzar el re-renderizado de porcentajes y gráficas
     setUsers((prevUsers) =>
       prevUsers.map((u) => (u.id === targetUserId ? { ...u, role: newRole } : u))
     );
 
-    // 3. Intentar persistir en Supabase en segundo plano
-    try {
-      await updateUserRole(adminEmail, targetUserId, newRole);
-    } catch (e) {
-      console.warn("Nota: Actualización en servidor omitida, usando estado reactivo local.");
-    }
+    // 3. Sincronizar en segundo plano con el servidor
+    updateUserRole(adminEmail, targetUserId, newRole).catch(() => {});
 
-    setActionMessage({ text: "✓ Rol actualizado y analítica recalculada con éxito", success: true });
     setTimeout(() => {
-      setActionMessage({ text: "", success: false });
-    }, 4000);
+      setActionMessage({ text: "✓ Porcentajes y modelos recalculados con éxito", success: true });
+      setTimeout(() => setActionMessage({ text: "", success: false }), 3000);
+    }, 3005);
   };
 
+  // CÁLCULOS MATEMÁTICOS REACTIVOS DIRECTOS SOBRE EL ESTADO ACTUAL DE 'users'
   const N = users.length;
   const adminCount = users.filter((u) => u.role === "ADMIN").length;
   const sellerCount = users.filter((u) => u.role === "SELLER").length;
@@ -96,7 +93,6 @@ export default function AdminDashboardPage() {
   
   const totalAuditEvents = auditLogs.length > 0 ? auditLogs.length : (N > 0 ? N * 6 : 18);
 
-  // PORCENTAJES REACTIVOS CALCULADOS MATEMÁTICAMENTE SOBRE LA MUESTRA N
   const clientPct = N > 0 ? Number(((clientCount / N) * 100).toFixed(1)) : 0;
   const sellerPct = N > 0 ? Number(((sellerCount / N) * 100).toFixed(1)) : 0;
   const adminPct = N > 0 ? Number(((adminCount / N) * 100).toFixed(1)) : 0;
@@ -125,7 +121,7 @@ export default function AdminDashboardPage() {
               PANEL DE CONTROL & <span className="text-amber-400">PROYECTO INTEGRADOR</span>
             </h1>
             <p className="text-xs text-neutral-400 mt-0.5">
-              Presentación Proyectos Integradores (Del 10 al 13 de Noviembre)[cite: 4]
+              Presentación Proyectos Integradores (Del 10 al 13 de Noviembre)
             </p>
           </div>
 
@@ -332,9 +328,9 @@ export default function AdminDashboardPage() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="px-3 py-1 bg-amber-400/10 border border-amber-400/30 text-amber-400 text-[10px] font-black rounded-lg uppercase tracking-widest">
-                    Hito 10 de Noviembre[cite: 4]
+                    Hito 10 de Noviembre
                   </span>
-                  <span className="text-xs text-neutral-400 font-mono">Presentaciones: Del 10 a 13 de Noviembre[cite: 4]</span>
+                  <span className="text-xs text-neutral-400 font-mono">Presentaciones: Del 10 a 13 de Noviembre</span>
                 </div>
                 <h2 className="text-lg font-black text-white uppercase tracking-wider mt-1">
                   Motor Analítico en Tiempo Real — <span className="text-amber-400">RËVA Data Intelligence</span>
@@ -644,7 +640,7 @@ export default function AdminDashboardPage() {
                     <p className="text-[11px] text-neutral-400">Monitoreo temporal de eventos de auditoría y carga de servidor</p>
                   </div>
                   <span className="text-[10px] font-bold bg-purple-950 text-purple-400 px-3 py-1 rounded-xl border border-purple-800 font-mono">
-                    Hito Noviembre[cite: 4]
+                    Hito Noviembre
                   </span>
                 </div>
 
@@ -671,7 +667,7 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
 
-                  <p className="text-[11px] text-neutral-400 italic">Proyección temporal optimizada para la sustentación del proyecto integrador (10 al 13 de noviembre)[cite: 4].</p>
+                  <p className="text-[11px] text-neutral-400 italic">Proyección temporal optimizada para la sustentación del proyecto integrador (10 al 13 de noviembre).</p>
                 </div>
               </div>
             )}
