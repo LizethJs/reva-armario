@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import React, { useState, useEffect } from "react";
 import { 
   getAdminStats, 
@@ -10,7 +12,7 @@ import {
   assignRoleToUser, 
   assignPermissionToUser, 
   getUsersWithRolesAndPermissions 
-} from "@/actions/admin";
+} from "../actions/admin";
 
 export default function AdminPage() {
   const [adminEmailInput, setAdminEmailInput] = useState("");
@@ -38,13 +40,13 @@ export default function AdminPage() {
   const handleAuthorize = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const res = await getUsers(adminEmailInput);
-    if (res.success) {
+    const res: any = await getUsers(adminEmailInput);
+    if (res && res.success) {
       setAuthorized(true);
       loadAllAdminData();
       setMessage("✓ Acceso de Administrador autorizado.");
     } else {
-      setMessage(`⚠️ ${res.error}`);
+      setMessage(`⚠️ ${res?.error || "Error de autenticación"}`);
     }
     setLoading(false);
   };
@@ -53,44 +55,48 @@ export default function AdminPage() {
     if (!adminEmailInput) return;
     
     // Cargar estadísticas
-    const statsRes = await getAdminStats();
-    if (statsRes.success) setStats(statsRes.stats);
+    const statsRes: any = await getAdminStats();
+    if (statsRes && statsRes.success) setStats(statsRes.stats);
 
     // Cargar usuarios
-    const usersRes = await getUsers(adminEmailInput);
-    if (usersRes.success) setUsersList(usersRes.users);
+    const usersRes: any = await getUsers(adminEmailInput);
+    if (usersRes && usersRes.success && usersRes.users) {
+      setUsersList(usersRes.users);
+    }
 
     // Cargar logs de auditoría ISO 27001
-    const logsRes = await getAuditLogs(adminEmailInput);
-    if (logsRes.success) setAuditLogs(logsRes.logs);
+    const logsRes: any = await getAuditLogs(adminEmailInput);
+    if (logsRes && logsRes.success && logsRes.logs) {
+      setAuditLogs(logsRes.logs);
+    }
 
     // Cargar usuarios con roles y permisos para RBAC
-    const rbacUsersRes = await getUsersWithRolesAndPermissions();
-    if (rbacUsersRes.success && rbacUsersRes.users.length >= 2) {
+    const rbacUsersRes: any = await getUsersWithRolesAndPermissions();
+    if (rbacUsersRes && rbacUsersRes.success && rbacUsersRes.users && rbacUsersRes.users.length >= 2) {
       setSelectedUser1(rbacUsersRes.users[0].id);
       setSelectedUser2(rbacUsersRes.users[1].id);
     }
   };
 
   const handleUpdateRole = async (targetUserId: string, newRole: "CLIENT" | "SELLER" | "ADMIN") => {
-    const res = await updateUserRole(adminEmailInput, targetUserId, newRole);
-    if (res.success) {
+    const res: any = await updateUserRole(adminEmailInput, targetUserId, newRole);
+    if (res && res.success) {
       setMessage(`✓ ${res.message}`);
       loadAllAdminData();
     } else {
-      setMessage(`⚠️ ${res.error}`);
+      setMessage(`⚠️ ${res?.error || "Error al actualizar rol"}`);
     }
   };
 
   const handleCreateRole = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const res = await createRole(roleName, roleDesc);
-    if (res.success) {
+    const res: any = await createRole(roleName, roleDesc);
+    if (res && res.success) {
       setCreatedRole(res.role);
       setMessage(`✓ ${res.message}`);
     } else {
-      setMessage(`⚠️ ${res.message}`);
+      setMessage(`⚠️ ${res?.message || "Error al crear rol"}`);
     }
     setLoading(false);
   };
