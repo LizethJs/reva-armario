@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { loginUser, forgotPassword, resetPasswordWithOtp } from "../actions/auth";
+import { loginUser, forgotPassword, resetPasswordWithOtp, resendOtp } from "../actions/auth";
 
 export default function LoginPage() {
   const [view, setView] = useState<"login" | "forgot_email" | "forgot_otp">("login");
@@ -13,6 +13,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+
+  // Validaciones en tiempo real para la contraseña
+  const hasMinLength = newPassword.length >= 8;
+  const hasUpperCase = /[A-Z]/.test(newPassword);
+  const hasNumberOrSymbol = /(?=.*\d)(?=.*[@$!%*?&])/.test(newPassword);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,14 +69,33 @@ export default function LoginPage() {
     }
   };
 
+  // Función para reenviar el OTP si expiró o no llegó
+  const handleResendOtpCode = async () => {
+    setLoading(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const res = await resendOtp(forgotEmail);
+      if (res && res.success) {
+        setSuccessMessage("✓ Nuevo código OTP reenviado a su correo exitosamente.");
+      } else {
+        setErrorMessage(res?.message || "No se pudo reenviar el código.");
+      }
+    } catch (err) {
+      setErrorMessage("Error al conectar con el servidor para el reenvío.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleVerifyAndReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
     setSuccessMessage("");
 
-    const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(newPassword);
-    if (!isPasswordValid) {
-      setErrorMessage("La nueva contraseña no cumple con los protocolos de seguridad requeridos.");
+    if (!hasMinLength || !hasUpperCase || !hasNumberOrSymbol) {
+      setErrorMessage("La nueva contraseña no cumple con todos los protocolos de seguridad requeridos.");
       return;
     }
 
@@ -103,7 +127,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white px-4">
+    <div className="min-h-screen flex items-center justify-center bg-black text-white px-4 py-8">
       <div className="relative max-w-md w-full bg-[#181818] p-8 rounded-2xl shadow-2xl border-t-2 border-amber-500">
         
         {/* ENCABEZADO */}
@@ -236,6 +260,17 @@ export default function LoginPage() {
                 className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white text-xs tracking-widest text-center font-mono outline-none focus:border-amber-500"
                 placeholder="123456"
               />
+              <div className="flex justify-between items-center mt-1.5 px-1">
+                <span className="text-[10px] text-zinc-400">Vigencia del código: 5 minutos</span>
+                <button
+                  type="button"
+                  onClick={handleResendOtpCode}
+                  disabled={loading}
+                  className="text-[10px] text-amber-400 underline hover:text-amber-300 cursor-pointer"
+                >
+                  ¿No llegó? Reenviar código
+                </button>
+              </div>
             </div>
 
             <div>
@@ -249,12 +284,18 @@ export default function LoginPage() {
                 placeholder="••••••••"
               />
               
-              {/* REQUISITOS PROFESIONALES EN TONOS VERDES */}
-              <div className="mt-2.5 p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-900/60 text-[10px] text-emerald-400/90 space-y-1">
-                <p className="font-semibold text-emerald-300 mb-0.5">Parámetros de seguridad obligatorios:</p>
-                <p>✓ Mínimo 8 caracteres de longitud.</p>
-                <p>✓ Al menos una letra mayúscula.</p>
-                <p>✓ Al menos un número y un símbolo especial (@$!%*?&).</p>
+              {/* REQUISITOS DINÁMICOS EN TIEMPO REAL */}
+              <div className="mt-2.5 p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-[10px] space-y-1.5">
+                <p className="font-semibold text-zinc-300 mb-1">Verificación de seguridad en tiempo real:</p>
+                <p className={hasMinLength ? "text-emerald-400 font-medium" : "text-zinc-400"}>
+                  {hasMinLength ? "✓" : "○"} Mínimo 8 caracteres de longitud
+                </p>
+                <p className={hasUpperCase ? "text-emerald-400 font-medium" : "text-zinc-400"}>
+                  {hasUpperCase ? "✓" : "○"} Al menos una letra mayúscula
+                </p>
+                <p className={hasNumberOrSymbol ? "text-emerald-400 font-medium" : "text-zinc-400"}>
+                  {hasNumberOrSymbol ? "✓" : "○"} Al menos un número y un símbolo especial (@$!%*?&)
+                </p>
               </div>
             </div>
 
