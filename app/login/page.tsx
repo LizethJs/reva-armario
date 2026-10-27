@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Estado específico para el error de caracteres especiales en el correo (Requisito 2)
+  // Estado del error en tiempo real para el correo
   const [emailInputError, setEmailInputError] = useState("");
 
   // Validaciones en tiempo real para la contraseña
@@ -22,29 +22,27 @@ export default function LoginPage() {
   const hasUpperCase = /[A-Z]/.test(newPassword);
   const hasNumberOrSymbol = /(?=.*\d)(?=.*[@$!%*?&])/.test(newPassword);
 
-  // Función para validar caracteres especiales prohibidos en el correo en tiempo real
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setFormData({ ...formData, email: value });
-
-    // Expresión regular que detecta caracteres especiales no permitidos en un correo (ej: 15 caracteres especiales como !#$%^&*()+=[]{}|;:',<>/?`~)
-    const specialCharsRegex = /[!#$%^&*()+=\[\]{};':"\\|,<>/?`~]/;
-
-    if (specialCharsRegex.test(value)) {
-      setEmailInputError("⚠️ Error: El campo de correo electrónico contiene caracteres especiales no válidos.");
+  // Función de validación estricta de caracteres especiales prohibidos
+  const validateEmailInput = (value: string) => {
+    // Detecta los 15 caracteres especiales prohibidos: ! # $ % ^ & * ( ) + = [ ] { } | ; : ' " \ , < > / ? ` ~
+    const forbiddenCharsRegex = /[!#$%^&*()+=\[\]{};':"\\|,<>/?`~]/;
+    
+    if (forbiddenCharsRegex.test(value)) {
+      setEmailInputError("⚠️ Error: El campo contiene caracteres especiales no permitidos.");
     } else {
       setEmailInputError("");
     }
   };
 
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({ ...formData, email: value });
+    validateEmailInput(value); // Validar ANTES de oprimir el botón
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Si hay un error de caracteres especiales detectado antes del botón, bloqueamos el proceso
-    if (emailInputError) {
-      setErrorMessage("Por favor, corrija los errores en el campo de correo antes de continuar.");
-      return;
-    }
+    if (emailInputError) return;
 
     setLoading(true);
     setErrorMessage("");
@@ -94,7 +92,6 @@ export default function LoginPage() {
     }
   };
 
-  // Función para reenviar el OTP si expiró o no llegó
   const handleResendOtpCode = async () => {
     setLoading(true);
     setErrorMessage("");
@@ -168,14 +165,13 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* MENSAJE DE ERROR GENERAL */}
+        {/* MENSAJES GENERALES */}
         {errorMessage && (
           <div className="p-3 mb-4 rounded-xl text-xs font-medium text-center bg-red-950/50 border border-red-800 text-red-300">
             {errorMessage}
           </div>
         )}
 
-        {/* MENSAJE DE ÉXITO */}
         {successMessage && (
           <div className="p-3 mb-4 rounded-xl text-xs font-medium text-center bg-emerald-950/60 border border-emerald-800 text-emerald-300">
             {successMessage}
@@ -186,17 +182,19 @@ export default function LoginPage() {
         {view === "login" && (
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-[11px] text-zinc-400 mb-1.5 font-medium">Correo Electrónico</label>
+              <label className="block text-[11px] text-zinc-400 mb-1.5 font-medium">Correo Electrónico o Usuario</label>
               <input
                 type="text"
                 name="email"
                 required
                 value={formData.email}
-                onChange={handleEmailChange} // <-- Validación en tiempo real de caracteres especiales
-                className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-500"
+                onChange={handleEmailChange}
+                className={`w-full px-3.5 py-2.5 bg-[#101010] border rounded-xl text-white text-xs outline-none transition ${
+                  emailInputError ? "border-red-500 focus:border-red-500" : "border-zinc-800 focus:border-amber-500"
+                }`}
                 placeholder="usuario@reva.com"
               />
-              {/* Alerta instantánea en tiempo real ANTES de oprimir el botón */}
+              {/* Alerta dinámica instantánea */}
               {emailInputError && (
                 <p className="text-[11px] text-red-400 mt-1.5 font-medium animate-pulse">
                   {emailInputError}
@@ -219,8 +217,8 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading || Boolean(emailInputError)} // Se deshabilita si hay caracteres especiales inválidos
-              className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-extrabold rounded-xl text-xs transition cursor-pointer disabled:opacity-50 mt-2"
+              disabled={loading || Boolean(emailInputError)}
+              className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-extrabold rounded-xl text-xs transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed mt-2"
             >
               {loading ? "Validando credenciales..." : "Iniciar Sesión"}
             </button>
@@ -315,7 +313,6 @@ export default function LoginPage() {
                 placeholder="••••••••"
               />
               
-              {/* REQUISITOS DINÁMICOS EN TIEMPO REAL */}
               <div className="mt-2.5 p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-[10px] space-y-1.5">
                 <p className="font-semibold text-zinc-300 mb-1">Verificación de seguridad en tiempo real:</p>
                 <p className={hasMinLength ? "text-emerald-400 font-medium" : "text-zinc-400"}>

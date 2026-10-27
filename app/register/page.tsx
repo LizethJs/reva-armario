@@ -35,10 +35,11 @@ export default function RegisterPage() {
   const startsWithThree = formData.phone.trim().startsWith("3");
   const isPhoneValid = /^[3][0-9]{9}$/.test(formData.phone.trim());
 
-  // Correo: Desglose específico de formato y dominio
+  // Correo: Desglose específico de formato, dominio y filtro de caracteres especiales no permitidos (Requisito 2)
   const hasAtSymbol = formData.email.includes("@");
   const hasDomain = /@[^\s@]+\.[^\s@]+$/.test(formData.email.trim());
-  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim());
+  const hasForbiddenSpecialChars = /[!#$%^&*()+=\[\]{};':"\\|,<>/?`~]/.test(formData.email.trim());
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim()) && !hasForbiddenSpecialChars;
 
   // Contraseña Estricta: Checklist completo (Mayúscula, Minúscula, Número, Símbolo)
   const hasMinLength = formData.password.length >= 8;
@@ -256,7 +257,7 @@ export default function RegisterPage() {
             <div>
               <label className="block text-neutral-400 mb-1 font-medium">Correo Electrónico</label>
               <input
-                type="email"
+                type="text"
                 name="email"
                 required
                 value={formData.email}
@@ -272,6 +273,11 @@ export default function RegisterPage() {
               />
               {formData.email && (
                 <div className="text-[10px] mt-1 space-y-0.5 font-medium">
+                  {hasForbiddenSpecialChars && (
+                    <p className="text-red-400 animate-pulse">
+                      ✗ Error: Contiene caracteres especiales no permitidos (!#$%^&*()+=\[\]{};':"\\|,&lt;&gt;/?`~).
+                    </p>
+                  )}
                   {!hasAtSymbol && (
                     <p className="text-red-400">✗ Falta el carácter '@' en el correo.</p>
                   )}
