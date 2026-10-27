@@ -13,7 +13,7 @@ export default function AdminDashboardPage() {
   const [adminEmail, setAdminEmail] = useState("");
   const [actionMessage, setActionMessage] = useState({ text: "", success: false });
 
-  // Estados interactivos profesionales para visualización bajo demanda
+  // Estado para la vista analítica avanzada
   const [activeView, setActiveView] = useState<"descriptive" | "inference" | "timeline" | "pivot">("descriptive");
 
   useEffect(() => {
@@ -39,16 +39,21 @@ export default function AdminDashboardPage() {
 
   async function loadData(email: string) {
     setLoading(true);
+    setActionMessage({ text: "Sincronizando registros con Supabase PostgreSQL...", success: true });
     try {
       const usersRes = await getUsers(email);
       if (usersRes.success) setUsers(usersRes.users || []);
 
       const auditRes = await getAuditLogs(email);
       if (auditRes.success) setAuditLogs(auditRes.logs || []);
+      
+      setActionMessage({ text: "✓ Datos sincronizados y actualizados correctamente", success: true });
     } catch (err) {
       console.error("Error sincronizando con Supabase:", err);
+      setActionMessage({ text: "Error al sincronizar con la base de datos", success: false });
     } finally {
       setLoading(false);
+      setTimeout(() => setActionMessage({ text: "", success: false }), 4000);
     }
   }
 
@@ -299,11 +304,11 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* PESTAÑA 5: ANALÍTICA AVANZADA CON BOTONES EJECUTIVOS Y GRÁFICAS */}
+        {/* PESTAÑA 5: ANALÍTICA AVANZADA */}
         {activeTab === "analytics" && (
           <div className="space-y-6">
             
-            {/* CABECERA EJECUTIVA */}
+            {/* CABECERA EJECUTIVA CON BOTÓN DE SINCRONIZACIÓN FUNCIONAL */}
             <div className="bg-gradient-to-r from-neutral-900 via-neutral-900 to-neutral-950 p-6 rounded-3xl border border-neutral-800 shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -322,9 +327,10 @@ export default function AdminDashboardPage() {
 
               <button
                 onClick={() => loadData(adminEmail)}
-                className="px-4 py-2.5 bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-amber-400 font-bold rounded-xl text-xs transition flex items-center gap-2 cursor-pointer font-mono shadow-md"
+                disabled={loading}
+                className="px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-black rounded-xl text-xs transition flex items-center gap-2 cursor-pointer font-mono shadow-lg disabled:opacity-50"
               >
-                <span>🔄</span> Sincronizar Base de Datos
+                <span>{loading ? "⏳" : "🔄"}</span> {loading ? "Sincronizando..." : "Sincronizar Base de Datos"}
               </button>
             </div>
 
@@ -363,60 +369,29 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* BOTONERA EJECUTIVA PROFESIONAL (BAJO DEMANDA) */}
-            <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-3xl flex flex-wrap items-center justify-between gap-4 shadow-xl">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-                <span className="text-xs font-black uppercase tracking-wider text-white">Módulos de Visualización:</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
+            {/* BOTONERA EJECUTIVA PROFESIONAL (ESTILO TABS MODERNOS) */}
+            <div className="bg-neutral-900 border border-neutral-800 p-3 rounded-2xl flex flex-wrap items-center justify-center gap-3 shadow-xl">
+              {[
+                { id: "descriptive", label: "📊 Analítica Descriptiva (Barras)", color: "bg-amber-400 text-neutral-950" },
+                { id: "inference", label: "📈 Modelo de Inferencia (Dispersión)", color: "bg-blue-500 text-neutral-950" },
+                { id: "timeline", label: "⏳ Series de Tiempo (Tendencia)", color: "bg-purple-500 text-neutral-950" },
+                { id: "pivot", label: "📋 Tabla Dinámica (Matriz)", color: "bg-emerald-500 text-neutral-950" },
+              ].map((btn) => (
                 <button
-                  onClick={() => setActiveView("descriptive")}
-                  className={`px-4.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer font-mono ${
-                    activeView === "descriptive"
-                      ? "bg-amber-400 text-neutral-950 shadow-lg scale-105"
-                      : "bg-neutral-950 text-neutral-300 border border-neutral-800 hover:bg-neutral-800"
+                  key={btn.id}
+                  onClick={() => setActiveView(btn.id as any)}
+                  className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer font-mono ${
+                    activeView === btn.id
+                      ? `${btn.color} shadow-lg scale-105`
+                      : "bg-neutral-950 text-neutral-400 border border-neutral-800 hover:text-white hover:bg-neutral-900"
                   }`}
                 >
-                  📊 Analítica Descriptiva (Barras)
+                  {btn.label}
                 </button>
-
-                <button
-                  onClick={() => setActiveView("inference")}
-                  className={`px-4.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer font-mono ${
-                    activeView === "inference"
-                      ? "bg-blue-500 text-neutral-950 shadow-lg scale-105"
-                      : "bg-neutral-950 text-neutral-300 border border-neutral-800 hover:bg-neutral-800"
-                  }`}
-                >
-                  📈 Modelo de Inferencia (Dispersión)
-                </button>
-
-                <button
-                  onClick={() => setActiveView("timeline")}
-                  className={`px-4.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer font-mono ${
-                    activeView === "timeline"
-                      ? "bg-purple-500 text-neutral-950 shadow-lg scale-105"
-                      : "bg-neutral-950 text-neutral-300 border border-neutral-800 hover:bg-neutral-800"
-                  }`}
-                >
-                  ⏳ Series de Tiempo (Tendencia)
-                </button>
-
-                <button
-                  onClick={() => setActiveView("pivot")}
-                  className={`px-4.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer font-mono ${
-                    activeView === "pivot"
-                      ? "bg-emerald-500 text-neutral-950 shadow-lg scale-105"
-                      : "bg-neutral-950 text-neutral-300 border border-neutral-800 hover:bg-neutral-800"
-                  }`}
-                >
-                  📋 Tabla Dinámica (Matriz)
-                </button>
-              </div>
+              ))}
             </div>
 
-            {/* SECCIÓN 1: ANALÍTICA DESCRIPTIVA (BARRAS DE FRECUENCIA) */}
+            {/* SECCIÓN 1: ANALÍTICA DESCRIPTIVA (BARRAS DE FRECUENCIA PROFESIONALES) */}
             {activeView === "descriptive" && (
               <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-5 shadow-2xl animate-fadeIn">
                 <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
@@ -438,7 +413,7 @@ export default function AdminDashboardPage() {
                       <span className="text-amber-400">{clientCount} registros ({clientPct}%)</span>
                     </div>
                     <div className="w-full bg-neutral-900 h-4 rounded-full overflow-hidden p-0.5 border border-neutral-800 shadow-inner">
-                      <div className="bg-amber-400 h-full rounded-full transition-all duration-500 shadow-lg" style={{ width: `${clientPct}%` }}></div>
+                      <div className="bg-amber-400 h-full rounded-full transition-all duration-700 shadow-lg" style={{ width: `${clientPct}%` }}></div>
                     </div>
                   </div>
 
@@ -448,7 +423,7 @@ export default function AdminDashboardPage() {
                       <span className="text-blue-400">{sellerCount} registros ({sellerPct}%)</span>
                     </div>
                     <div className="w-full bg-neutral-900 h-4 rounded-full overflow-hidden p-0.5 border border-neutral-800 shadow-inner">
-                      <div className="bg-blue-400 h-full rounded-full transition-all duration-500 shadow-lg" style={{ width: `${sellerPct}%` }}></div>
+                      <div className="bg-blue-400 h-full rounded-full transition-all duration-700 shadow-lg" style={{ width: `${sellerPct}%` }}></div>
                     </div>
                   </div>
 
@@ -458,14 +433,14 @@ export default function AdminDashboardPage() {
                       <span className="text-emerald-400">{adminCount} registros ({adminPct}%)</span>
                     </div>
                     <div className="w-full bg-neutral-900 h-4 rounded-full overflow-hidden p-0.5 border border-neutral-800 shadow-inner">
-                      <div className="bg-emerald-400 h-full rounded-full transition-all duration-500 shadow-lg" style={{ width: `${adminPct}%` }}></div>
+                      <div className="bg-emerald-400 h-full rounded-full transition-all duration-700 shadow-lg" style={{ width: `${adminPct}%` }}></div>
                     </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* SECCIÓN 2: MODELO DE INFERENCIA (GRÁFICA DE DISPERSIÓN ESTILO COLAB / EXCEL) */}
+            {/* SECCIÓN 2: MODELO DE INFERENCIA (GRÁFICA DE DISPERSIÓN LIMPIA Y PROFESIONAL) */}
             {activeView === "inference" && (
               <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-5 shadow-2xl animate-fadeIn">
                 <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
@@ -486,18 +461,33 @@ export default function AdminDashboardPage() {
                     <span className="text-emerald-400 font-bold">Regresión Lineal Aceptada</span>
                   </div>
 
-                  {/* VISUALIZACIÓN GRÁFICA TIPO DISPERSIÓN CON LÍNEA DE TENDENCIA */}
-                  <div className="relative h-48 bg-neutral-900/60 rounded-xl border border-neutral-800 p-4 flex items-end justify-between gap-2 overflow-hidden">
-                    {/* Línea diagonal simulada de tendencia (regresión) */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="w-[90%] h-0.5 bg-blue-500 rotate-[-15deg] shadow-[0_0_15px_rgba(59,130,246,0.8)]"></div>
-                    </div>
+                  {/* DISEÑO PROFESIONAL DE GRÁFICA DE DISPERSIÓN CON CUADRÍCULA ESTILO COLAB / EXCEL */}
+                  <div className="relative h-56 bg-neutral-900/80 rounded-2xl border border-neutral-800 p-6 flex flex-col justify-between overflow-hidden shadow-inner">
+                    {/* Líneas de cuadrícula de fondo */}
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#262626_1px,transparent_1px),linear-gradient(to_bottom,#262626_1px,transparent_1px)] bg-[size:2rem_2rem] opacity-40"></div>
 
-                    {/* Puntos de dispersión dinámicos basados en la muestra N */}
-                    <div className="w-12 bg-blue-500/20 border border-blue-400/40 rounded-t-lg h-[30%] flex items-center justify-center text-[10px] font-mono text-blue-300">N1</div>
-                    <div className="w-12 bg-blue-500/30 border border-blue-400/50 rounded-t-lg h-[50%] flex items-center justify-center text-[10px] font-mono text-blue-300">N2</div>
-                    <div className="w-12 bg-blue-500/50 border border-blue-400/70 rounded-t-lg h-[65%] flex items-center justify-center text-[10px] font-mono text-blue-300">N3</div>
-                    <div className="w-12 bg-blue-500/70 border border-blue-400 rounded-t-lg h-[85%] flex items-center justify-center text-[10px] font-mono text-white font-bold">N={N}</div>
+                    {/* Línea de tendencia de regresión */}
+                    <div className="absolute inset-x-6 top-1/2 h-0.5 bg-gradient-to-r from-blue-600 via-blue-400 to-emerald-400 shadow-[0_0_12px_rgba(59,130,246,0.8)] z-10"></div>
+
+                    {/* Elementos de datos dinámicos */}
+                    <div className="relative z-20 flex justify-between items-end h-full font-mono text-xs">
+                      <div className="flex flex-col items-center gap-2">
+                        <span className="w-3.5 h-3.5 bg-amber-400 rounded-full shadow-[0_0_10px_#f59e0b] animate-pulse"></span>
+                        <span className="text-[10px] text-neutral-400">N=1</span>
+                      </div>
+                      <div className="flex flex-col items-center gap-2 -translate-y-4">
+                        <span className="w-3.5 h-3.5 bg-blue-400 rounded-full shadow-[0_0_10px_#3b82f6] animate-pulse"></span>
+                        <span className="text-[10px] text-neutral-400">N=2</span>
+                      </div>
+                      <div className="flex flex-col items-center gap-2 -translate-y-8">
+                        <span className="w-3.5 h-3.5 bg-purple-400 rounded-full shadow-[0_0_10px_#a855f7] animate-pulse"></span>
+                        <span className="text-[10px] text-neutral-400">N=3</span>
+                      </div>
+                      <div className="flex flex-col items-center gap-2 -translate-y-12">
+                        <span className="w-4 h-4 bg-emerald-400 rounded-full shadow-[0_0_15px_#34d399] animate-bounce"></span>
+                        <span className="text-[10px] text-emerald-400 font-bold">N={N} (Actual)</span>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 font-mono text-xs">
@@ -514,7 +504,7 @@ export default function AdminDashboardPage() {
               </div>
             )}
 
-            {/* SECCIÓN 3: SERIES DE TIEMPO (TENDENCIA TEMPORAL) */}
+            {/* SECCIÓN 3: SERIES DE TIEMPO (TENDENCIA TEMPORAL PROFESIONAL) */}
             {activeView === "timeline" && (
               <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-5 shadow-2xl animate-fadeIn">
                 <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
