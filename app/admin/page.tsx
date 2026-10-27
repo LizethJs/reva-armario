@@ -14,7 +14,7 @@ export default function AdminDashboardPage() {
   const [actionMessage, setActionMessage] = useState({ text: "", success: false });
 
   // Navegación analítica y submodelos predictivos avanzados
-  const [activeView, setActiveView] = useState<"descriptive" | "inference" | "timeline" | "pivot">("inference");
+  const [activeView, setActiveView] = useState<"descriptive" | "inference" | "timeline" | "pivot">("descriptive");
   const [inferenceSubModel, setInferenceSubModel] = useState<"regression" | "logistic" | "classification" | "anova">("regression");
 
   useEffect(() => {
@@ -53,15 +53,23 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // Al cambiar el rol, recargamos inmediatamente los datos para que la analítica sea reactiva
+  // FUNCIÓN REACTIVA: Actualiza en Supabase y actualiza el estado local al instante para que cambien los porcentajes
   const handleRoleChange = async (targetUserId: string, newRole: "CLIENT" | "SELLER" | "ADMIN") => {
-    setActionMessage({ text: "Actualizando privilegios en Supabase...", success: true });
+    setActionMessage({ text: "Actualizando privilegios y recalculando analítica...", success: true });
+    
+    // 1. Actualización optimista local inmediata para que la gráfica reaccione al instante
+    setUsers((prevUsers) =>
+      prevUsers.map((u) => (u.id === targetUserId ? { ...u, role: newRole } : u))
+    );
+
+    // 2. Persistencia en Supabase
     const res = await updateUserRole(adminEmail, targetUserId, newRole);
     if (res.success) {
-      setActionMessage({ text: res.message || "Modificación registrada con éxito", success: true });
-      await loadData(adminEmail); // Recarga síncrona inmediata
+      setActionMessage({ text: "✓ Rol actualizado y analítica recalculada con éxito", success: true });
+      await loadData(adminEmail); // Sincronización oficial con la base de datos
     } else {
       setActionMessage({ text: res.error || "Error al actualizar rol", success: false });
+      loadData(adminEmail); // Revertir si hay error
     }
     setTimeout(() => {
       setActionMessage({ text: "", success: false });
@@ -75,9 +83,10 @@ export default function AdminDashboardPage() {
   
   const totalAuditEvents = auditLogs.length > 0 ? auditLogs.length : (N > 0 ? N * 6 : 18);
 
-  const clientPct = N > 0 ? Number(((clientCount / N) * 100).toFixed(1)) : 75;
-  const sellerPct = N > 0 ? Number(((sellerCount / N) * 100).toFixed(1)) : 15;
-  const adminPct = N > 0 ? Number(((adminCount / N) * 100).toFixed(1)) : 10;
+  // PORCENTAJES REACTIVOS CALCULADOS MATEMÁTICAMENTE SOBRE LA MUESTRA N
+  const clientPct = N > 0 ? Number(((clientCount / N) * 100).toFixed(1)) : 0;
+  const sellerPct = N > 0 ? Number(((sellerCount / N) * 100).toFixed(1)) : 0;
+  const adminPct = N > 0 ? Number(((adminCount / N) * 100).toFixed(1)) : 0;
 
   const meanValue = N > 0 ? Number((totalAuditEvents / N).toFixed(2)) : 4.5;
   const medianValue = N > 0 ? Number((meanValue * 0.92).toFixed(2)) : 4.1;
@@ -305,7 +314,7 @@ export default function AdminDashboardPage() {
         {activeTab === "analytics" && (
           <div className="space-y-6">
             
-            {/* CABECERA EJECUTIVA CON BOTÓN DE SINCRONIZACIÓN FUNCIONAL */}
+            {/* CABECERA EJECUTIVA */}
             <div className="bg-gradient-to-r from-neutral-900 via-neutral-900 to-neutral-950 p-6 rounded-3xl border border-neutral-800 shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -388,7 +397,7 @@ export default function AdminDashboardPage() {
               ))}
             </div>
 
-            {/* SECCIÓN 1: ANALÍTICA DESCRIPTIVA */}
+            {/* SECCIÓN 1: ANALÍTICA DESCRIPTIVA REACTIVA */}
             {activeView === "descriptive" && (
               <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-5 shadow-2xl animate-fadeIn">
                 <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
