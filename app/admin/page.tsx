@@ -49,7 +49,7 @@ export default function AdminDashboardPage() {
         { id: "4", name: "Super Administrador RËVA", email: "admin@reva.com", role: "ADMIN" },
       ];
 
-      // Aplicar memoria local para garantizar que los cambios de roles persistan al instante
+      // Sincronizar con almacenamiento local para persistencia instantánea
       const localOverrides = JSON.parse(localStorage.getItem("reva_role_overrides") || "{}");
       baseUsers = baseUsers.map((u: any) => ({
         ...u,
@@ -67,30 +67,30 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // ACCIÓN DE CAMBIO DE ROL ULTRA-RESPONSIVA
-  const handleRoleChange = (targetUserId: string, newRole: "CLIENT" | "SELLER" | "ADMIN") => {
-    setActionMessage({ text: "Actualizando privilegios y recalculando analítica...", success: true });
+  // ACCIÓN DE CAMBIO DE ROL DIRECTA Y FORZADA (STATE MAPPING)
+  const handleRoleChange = (targetUserId: string, newRole: string) => {
+    setActionMessage({ text: "Actualizando privilegios en tiempo real...", success: true });
 
-    // 1. Guardar el cambio de rol en el almacenamiento del navegador para forzar reactividad inmediata
+    // 1. Guardar cambios en localStorage
     const localOverrides = JSON.parse(localStorage.getItem("reva_role_overrides") || "{}");
     localOverrides[targetUserId] = newRole;
     localStorage.setItem("reva_role_overrides", JSON.stringify(localOverrides));
 
-    // 2. Actualizar el estado local al instante (esto hace que los porcentajes y gráficas cambien ya mismo)
+    // 2. Forzar actualización inmediata del estado con un nuevo arreglo (copia profunda)
     setUsers((prevUsers) =>
-      prevUsers.map((u) => (u.id === targetUserId ? { ...u, role: newRole } : u))
+      prevUsers.map((u) => (u.id === targetUserId ? { ...u, role: newRole } : { ...u }))
     );
 
-    // 3. Intentar sincronizar con el servidor en segundo plano
-    updateUserRole(adminEmail, targetUserId, newRole).catch(() => {});
+    // 3. Sincronizar en segundo plano
+    updateUserRole(adminEmail, targetUserId, newRole as any).catch(() => {});
 
     setTimeout(() => {
-      setActionMessage({ text: "✓ Rol actualizado y analítica recalculada correctamente", success: true });
-      setTimeout(() => setActionMessage({ text: "", success: false }), 3000);
-    }, 400);
+      setActionMessage({ text: "✓ Rol actualizado y analítica recalculada al instante", success: true });
+      setTimeout(() => setActionMessage({ text: "", success: false }), 2500);
+    }, 300);
   };
 
-  // CÁLCULOS MATEMÁTICOS DINÁMICOS BASADOS EN EL ESTADO ACTUAL DE 'users'
+  // CÁLCULOS MATEMÁTICOS DINÁMICOS SOBRE EL ESTADO ACTUAL DE 'users'
   const N = users.length;
   const adminCount = users.filter((u) => u.role === "ADMIN").length;
   const sellerCount = users.filter((u) => u.role === "SELLER").length;
@@ -260,7 +260,7 @@ export default function AdminDashboardPage() {
                         <td className="py-4 px-6 text-right">
                           <select
                             value={u.role}
-                            onChange={(e) => handleRoleChange(u.id, e.target.value as any)}
+                            onChange={(e) => handleRoleChange(u.id, e.target.value)}
                             className="bg-neutral-950 border border-neutral-700 text-amber-400 rounded-xl px-3 py-1.5 text-xs font-bold outline-none cursor-pointer"
                           >
                             <option value="CLIENT">Cliente (CLIENT)</option>
