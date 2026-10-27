@@ -38,18 +38,37 @@ export default function AdminDashboardPage() {
     fetchData(email);
   }, [router]);
 
+  // FUNCIÓN DE ACTUALIZACIÓN FORZADA (Limpia overrides locales y recarga de la BD)
+  async function handleForceRefresh(email: string) {
+    setLoading(true);
+    setActionMessage({ text: "Actualizando base de datos en tiempo real...", success: true });
+    try {
+      // Limpiar el almacenamiento local para forzar lectura real
+      localStorage.removeItem("reva_role_overrides");
+
+      const usersRes = await getUsers(email);
+      let baseUsers = usersRes.success && usersRes.users ? usersRes.users : [];
+      setUsers(baseUsers);
+
+      const auditRes = await getAuditLogs(email);
+      if (auditRes.success) setAuditLogs(auditRes.logs || []);
+
+      setActionMessage({ text: "✓ Datos actualizados correctamente desde el servidor", success: true });
+    } catch (err) {
+      console.error("Error al actualizar:", err);
+      setActionMessage({ text: "Error al actualizar los datos", success: false });
+    } finally {
+      setLoading(false);
+      setTimeout(() => setActionMessage({ text: "", success: false }, 3000));
+    }
+  }
+
   async function fetchData(email: string) {
     setLoading(true);
     try {
       const usersRes = await getUsers(email);
-      let baseUsers = usersRes.success && usersRes.users ? usersRes.users : [
-        { id: "1", name: "valeria", email: "jessicapenamor02@gmail.com", role: "SELLER" },
-        { id: "2", name: "sofia", email: "valeriaospinachiquillo@gmail.com", role: "SELLER" },
-        { id: "3", name: "valeria", email: "ciberpruebas893@gmail.com", role: "CLIENT" },
-        { id: "4", name: "Super Administrador RËVA", email: "admin@reva.com", role: "ADMIN" },
-      ];
+      let baseUsers = usersRes.success && usersRes.users ? usersRes.users : [];
 
-      // Sincronizar con almacenamiento local para persistencia instantánea
       const localOverrides = JSON.parse(localStorage.getItem("reva_role_overrides") || "{}");
       baseUsers = baseUsers.map((u: any) => ({
         ...u,
@@ -67,21 +86,18 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // ACCIÓN DE CAMBIO DE ROL DIRECTA Y FORZADA (STATE MAPPING)
+  // ACCIÓN DE CAMBIO DE ROL INMEDIATA
   const handleRoleChange = (targetUserId: string, newRole: string) => {
-    setActionMessage({ text: "Actualizando privilegios en tiempo real...", success: true });
+    setActionMessage({ text: "Actualizando rol y recalculando porcentajes...", success: true });
 
-    // 1. Guardar cambios en localStorage
     const localOverrides = JSON.parse(localStorage.getItem("reva_role_overrides") || "{}");
     localOverrides[targetUserId] = newRole;
     localStorage.setItem("reva_role_overrides", JSON.stringify(localOverrides));
 
-    // 2. Forzar actualización inmediata del estado con un nuevo arreglo (copia profunda)
     setUsers((prevUsers) =>
       prevUsers.map((u) => (u.id === targetUserId ? { ...u, role: newRole } : { ...u }))
     );
 
-    // 3. Sincronizar en segundo plano
     updateUserRole(adminEmail, targetUserId, newRole as any).catch(() => {});
 
     setTimeout(() => {
@@ -90,7 +106,6 @@ export default function AdminDashboardPage() {
     }, 300);
   };
 
-  // CÁLCULOS MATEMÁTICOS DINÁMICOS SOBRE EL ESTADO ACTUAL DE 'users'
   const N = users.length;
   const adminCount = users.filter((u) => u.role === "ADMIN").length;
   const sellerCount = users.filter((u) => u.role === "SELLER").length;
@@ -230,7 +245,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {loading ? (
-              <div className="p-12 text-center text-xs text-neutral-500">Sincronizando con Supabase...</div>
+              <div className="p-12 text-center text-xs text-neutral-500">Cargando datos...</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-neutral-300">
@@ -328,7 +343,7 @@ export default function AdminDashboardPage() {
         {activeTab === "analytics" && (
           <div className="space-y-6">
             
-            {/* CABECERA EJECUTIVA */}
+            {/* CABECERA EJECUTIVA CON EL BOTÓN ACTUALIZAR */}
             <div className="bg-gradient-to-r from-neutral-900 via-neutral-900 to-neutral-950 p-6 rounded-3xl border border-neutral-800 shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -346,11 +361,11 @@ export default function AdminDashboardPage() {
               </div>
 
               <button
-                onClick={() => fetchData(adminEmail)}
+                onClick={() => handleForceRefresh(adminEmail)}
                 disabled={loading}
                 className="px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-black rounded-xl text-xs transition flex items-center gap-2 cursor-pointer font-mono shadow-lg disabled:opacity-50"
               >
-                <span>{loading ? "⏳" : "🔄"}</span> {loading ? "Sincronizando..." : "Sincronizar Base de Datos"}
+                <span>{loading ? "⏳" : "🔄"}</span> {loading ? "Actualizando..." : "Actualizar Base de Datos"}
               </button>
             </div>
 
