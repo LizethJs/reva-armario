@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getUsers, updateUserRole, getAuditLogs } from "@/app/actions/admin";
+import { getUsers, updateUserRole, getAuditLogs } from "../actions/admin";
 
 export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<"overview" | "users" | "audit" | "security">("overview");
