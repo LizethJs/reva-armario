@@ -174,4 +174,44 @@ export default function AdminDashboardPage() {
                   <span className="text-xs text-emerald-400 font-semibold">Trazabilidad OK</span>
                 </div>
                 <div className="w-full bg-neutral-950 h-1.5 rounded-full mt-4 overflow-hidden">
-                  <div className="bg-emerald-400 h-full
+                  <div className="bg-emerald-400 h-full w-full"></div>
+                </div>
+                <p className="text-[10px] text-neutral-500 mt-3">Registros inmutables firmados con marca de tiempo.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4">
+                <h3 className="text-sm font-black text-amber-400 uppercase tracking-wider">
+                  Matriz de Distribución de Permisos y Gobernanza (RBAC)
+                </h3>
+                <div className="space-y-4 pt-2">
+                  <div>
+                    <div className="flex justify-between text-xs font-bold mb-1">
+                      <span className="text-neutral-300">Clientes Finales (CLIENT)</span>
+                      <span className="text-amber-400">{clientCount} usuarios ({Math.round((clientCount / (totalUsers || 1)) * 100)}%)</span>
+                    </div>
+                    <div className="w-full bg-neutral-950 h-3 rounded-full overflow-hidden p-0.5 border border-neutral-800">
+                      <div className="bg-amber-400 h-full rounded-full" style={{ width: `${(clientCount / (totalUsers || 1)) * 100}%` }}></div>
+                    </div>
+                    <p className="text-[11px] text-neutral-400 mt-1">Acceso limitado al probador virtual, carrito de compras y perfil personal.</p>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs font-bold mb-1">
+                      <span className="text-neutral-300">Vendedores Autorizados (SELLER)</span>
+                      <span className="text-blue-400">{sellerCount} usuarios ({Math.round((sellerCount / (totalUsers || 1)) * 100)}%)</span>
+                    </div>
+                    <div className="w-full bg-neutral-950 h-3 rounded-full overflow-hidden p-0.5 border border-neutral-800">
+                      <div className="bg-blue-400 h-full rounded-full" style={{ width: `${(sellerCount / (totalUsers || 1)) * 100}%` }}></div>
+                    </div>
+                    <p className="text-[11px] text-neutral-400 mt-1">Capacidad operativa para integrar prendas al catálogo con saneamiento de archivos adjuntos.</p>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-xs font-bold mb-1">
+                      <span className="text-neutral-300">Administradores de Sistema (ADMIN)</span>
+                      <span className="text-emerald-400">{adminCount} usuarios ({Math.round((adminCount / (totalUsers || 1)) * 100)}%)</span>
+                    </div>
+                    <div className="w-full bg-neutral-950 h-3 rounded-full overflow-hidden p-0.5 border border-neutral-800">
+                      <div className="bg-emerald-
