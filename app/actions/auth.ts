@@ -83,7 +83,7 @@ async function sendOtpEmail(email: string, otp: string) {
           <div style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #facc15; background-color: #1f2329; padding: 15px; border-radius: 8px; display: inline-block; margin-bottom: 20px;">
             ${otp}
           </div>
-          <p style="font-size: 12px; color: #71717a;">Ingresa este código en la plataforma para activar tu cuenta. Válido únicamente por 5 minutos.</p>
+          <p style="font-size: 12px; color: #71717a;">Ingresa este código en la plataforma. Válido únicamente por 5 minutos.</p>
         </div>
       `,
     });
@@ -92,7 +92,7 @@ async function sendOtpEmail(email: string, otp: string) {
     return true;
   } catch (err) {
     console.error("⚠️ Error crítico enviando correo OTP con Nodemailer:", err);
-    throw err; // Lanzar el error para que la acción notifique la falla
+    throw err;
   }
 }
 
@@ -144,7 +144,7 @@ export async function registerUser(data: {
         data: { 
           verificationCode: newOtp,
           otpExpiresAt: otpExpiresAt
-        },
+        } as any,
       });
 
       await sendOtpEmail(sanitizedEmail, newOtp);
@@ -173,7 +173,7 @@ export async function registerUser(data: {
         otpExpiresAt: otpExpiresAt,
         isVerified: false,
         role: assignedRole,
-      },
+      } as any,
     });
 
     await sendOtpEmail(sanitizedEmail, otpCode);
@@ -213,7 +213,6 @@ export async function verifyOtp(email: string, otpInput: string) {
       return { success: false, message: "Usuario no encontrado." };
     }
 
-    // VALIDACIÓN DE EXPIRACIÓN DEL OTP (5 MINUTOS)
     if (user.otpExpiresAt && new Date() > new Date(user.otpExpiresAt)) {
       registerFailedAttempt(rateLimitKey);
       return {
@@ -238,7 +237,7 @@ export async function verifyOtp(email: string, otpInput: string) {
         isVerified: true,
         verificationCode: null,
         otpExpiresAt: null,
-      },
+      } as any,
     });
 
     return { success: true, message: "¡Cuenta verificada exitosamente!" };
@@ -273,7 +272,7 @@ export async function resendOtp(email: string) {
       data: { 
         verificationCode: newOtp,
         otpExpiresAt: newOtpExpiresAt
-      },
+      } as any,
     });
 
     await sendOtpEmail(user.email, newOtp);
@@ -333,5 +332,74 @@ export async function loginUser(data: { email: string; password: string }) {
       success: false, 
       message: `Error de servidor/Prisma: ${error.message || "Verifica la conexión a Supabase."}` 
     };
+  }
+}
+
+export async function forgotPassword(email: string) {
+  try {
+    const sanitizedEmail = email.toLowerCase().trim();
+    const user = await prisma.user.findUnique({ where: { email: sanitizedEmail } });
+
+    if (!user) {
+      return { success: false, message: "El correo ingresado no está registrado." };
+    }
+
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiresAt = new Date(Date.now() + OTP_EXPIRATION_MINUTES * 60 * 1000);
+
+    await prisma.user.update({
+      where: { email: sanitizedEmail },
+      data: {
+        verificationCode: otpCode,
+        otpExpiresAt: otpExpiresAt,
+      } as any,
+    });
+
+    await sendOtpEmail(sanitizedEmail, otpCode);
+
+    return { success: true, message: "Código de restablecimiento enviado literalmente a tu correo." };
+  } catch (error: any) {
+    console.error("Error en forgotPassword:", error);
+    return { success: false, message: "Error al enviar el correo de recuperación." };
+  }
+}
+
+export async function resetPasswordWithOtp(data: { email: string; otp: string; newPassword: string }) {
+  try {
+    const sanitizedEmail = data.email.toLowerCase().trim();
+    const user = await prisma.user.findUnique({ where: { email: sanitizedEmail } });
+
+    if (!user) {
+      return { success: false, message: "Usuario no encontrado." };
+    }
+
+    if (user.otpExpiresAt && new Date() > new Date(user.otpExpiresAt)) {
+      return { success: false, message: "El código OTP ha expirado. Solicita uno nuevo." };
+    }
+
+    if (user.verificationCode !== data.otp.trim()) {
+      return { success: false, message: "El código OTP es incorrecto." };
+    }
+
+    const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(data.newPassword);
+    if (!isPasswordValid) {
+      return { success: false, message: "La nueva contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un símbolo." };
+    }
+
+    const hashedPassword = await bcrypt.hash(data.newPassword, 10);
+
+    await prisma.user.update({
+      where: { email: sanitizedEmail },
+      data: {
+        password: hashedPassword,
+        verificationCode: null,
+        otpExpiresAt: null,
+      } as any,
+    });
+
+    return { success: true, message: "Contraseña actualizada exitosamente." };
+  } catch (error: any) {
+    console.error("Error en resetPasswordWithOtp:", error);
+    return { success: false, message: "Error al actualizar la contraseña." };
   }
 }
