@@ -6,7 +6,7 @@ import { getUsers, updateUserRole, getAuditLogs } from "../actions/admin";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"overview" | "users" | "audit" | "security">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "users" | "audit" | "security" | "analytics">("overview");
   const [users, setUsers] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +23,7 @@ export default function AdminDashboardPage() {
 
     const parsed = JSON.parse(session);
 
-    // CONTROL DE ACCESO ESTRICTO (ISO 27001 - RBAC / Cláusula de Seguridad)
+    // CONTROL DE ACCESO ESTRICTO (ISO 27001 - RBAC)
     if (parsed.role !== "ADMIN") {
       alert("Acceso denegado: Violación de política de control de acceso. Se requieren privilegios de Administrador.");
       router.push("/");
@@ -77,18 +77,18 @@ export default function AdminDashboardPage() {
           <div>
             <div className="flex items-center gap-3">
               <span className="px-3 py-1 bg-amber-400/10 border border-amber-400/30 text-amber-400 text-[10px] font-black rounded-lg uppercase tracking-widest">
-                ISO/IEC 27001 Compliance Framework Active
+                ISO/IEC 27001 Compliance & Business Intelligence
               </span>
               <span className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-bold bg-emerald-950/50 px-3 py-0.5 rounded-full border border-emerald-800/40">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                Secure Tunnel & SSDLC OK
+                Secure Tunnel & Analytics OK
               </span>
             </div>
             <h1 className="text-2xl md:text-3xl font-black text-white mt-2 tracking-wide">
-              PANEL EJECUTIVO DE GESTIÓN & <span className="text-amber-400">AUDITORÍA</span>
+              PANEL EJECUTIVO DE GESTIÓN & <span className="text-amber-400">ANALÍTICA</span>
             </h1>
             <p className="text-xs text-neutral-400 mt-0.5">
-              Sistema Centralizado de Control de Acceso, Gobierno de Identidades y Trazabilidad Inmutable
+              Control de Accesos, Trazabilidad Inmutable, Modelos Descriptivos e Inferencia de Datos
             </p>
           </div>
 
@@ -98,6 +98,7 @@ export default function AdminDashboardPage() {
               { id: "users", label: "👥 Gobierno de Identidades" },
               { id: "audit", label: "🛡️ Bitácora Inmutable ISO" },
               { id: "security", label: "🔒 Controles SSDLC" },
+              { id: "analytics", label: "📈 Analítica & Modelos" },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -126,7 +127,7 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* PESTAÑA 1: RESUMEN EJECUTIVO (CONTENIDO EXPANDIDO Y TÉCNICO) */}
+        {/* PESTAÑA 1: RESUMEN EJECUTIVO */}
         {activeTab === "overview" && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -173,273 +174,4 @@ export default function AdminDashboardPage() {
                   <span className="text-xs text-emerald-400 font-semibold">Trazabilidad OK</span>
                 </div>
                 <div className="w-full bg-neutral-950 h-1.5 rounded-full mt-4 overflow-hidden">
-                  <div className="bg-emerald-400 h-full w-full"></div>
-                </div>
-                <p className="text-[10px] text-neutral-500 mt-3">Registros inmutables firmados con marca de tiempo.</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4">
-                <h3 className="text-sm font-black text-amber-400 uppercase tracking-wider">
-                  Matriz de Distribución de Permisos y Gobernanza (RBAC)
-                </h3>
-                <div className="space-y-4 pt-2">
-                  <div>
-                    <div className="flex justify-between text-xs font-bold mb-1">
-                      <span className="text-neutral-300">Clientes Finales (CLIENT)</span>
-                      <span className="text-amber-400">{clientCount} usuarios ({Math.round((clientCount / (totalUsers || 1)) * 100)}%)</span>
-                    </div>
-                    <div className="w-full bg-neutral-950 h-3 rounded-full overflow-hidden p-0.5 border border-neutral-800">
-                      <div className="bg-amber-400 h-full rounded-full" style={{ width: `${(clientCount / (totalUsers || 1)) * 100}%` }}></div>
-                    </div>
-                    <p className="text-[11px] text-neutral-400 mt-1">Acceso limitado al probador virtual, carrito de compras y perfil personal.</p>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs font-bold mb-1">
-                      <span className="text-neutral-300">Vendedores Autorizados (SELLER)</span>
-                      <span className="text-blue-400">{sellerCount} usuarios ({Math.round((sellerCount / (totalUsers || 1)) * 100)}%)</span>
-                    </div>
-                    <div className="w-full bg-neutral-950 h-3 rounded-full overflow-hidden p-0.5 border border-neutral-800">
-                      <div className="bg-blue-400 h-full rounded-full" style={{ width: `${(sellerCount / (totalUsers || 1)) * 100}%` }}></div>
-                    </div>
-                    <p className="text-[11px] text-neutral-400 mt-1">Capacidad operativa para integrar prendas al catálogo con saneamiento de archivos adjuntos.</p>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs font-bold mb-1">
-                      <span className="text-neutral-300">Administradores de Sistema (ADMIN)</span>
-                      <span className="text-emerald-400">{adminCount} usuarios ({Math.round((adminCount / (totalUsers || 1)) * 100)}%)</span>
-                    </div>
-                    <div className="w-full bg-neutral-950 h-3 rounded-full overflow-hidden p-0.5 border border-neutral-800">
-                      <div className="bg-emerald-400 h-full rounded-full" style={{ width: `${(adminCount / (totalUsers || 1)) * 100}%` }}></div>
-                    </div>
-                    <p className="text-[11px] text-neutral-400 mt-1">Control absoluto del sistema, modificación de privilegios y consulta de bitácoras de seguridad.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-sm font-black text-white uppercase tracking-wider">Estado de Conformidad</h3>
-                    <span className="text-xs font-black text-emerald-400 bg-emerald-950 px-2.5 py-1 rounded-md border border-emerald-800">99.1% Óptimo</span>
-                  </div>
-                  <p className="text-xs text-neutral-400 leading-relaxed">
-                    Subsistema de auditoría inmutable activo bajo controles normativos ISO/IEC 27001. Toda alteración de privilegios de usuario y transacciones críticas generan registros sellados con marca temporal en la tabla <code className="text-amber-400">AuditLog</code>.
-                  </p>
-                </div>
-                <div className="pt-4 border-t border-neutral-800 mt-4 space-y-2 text-[11px] text-neutral-400">
-                  <div className="flex justify-between">
-                    <span>Protocolo de Cifrado:</span>
-                    <span className="text-emerald-400 font-bold">bcryptjs (Salt Factor 10)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Motor de Autenticación:</span>
-                    <span className="text-emerald-400 font-bold">JWT / Sesión Segura + OTP</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Integridad de Base de Datos:</span>
-                    <span className="text-emerald-400 font-bold">PostgreSQL RLS Activo</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PESTAÑA 2: GOBIERNO DE IDENTIDADES (CONTENIDO EXPANDIDO Y TÉCNICO) */}
-        {activeTab === "users" && (
-          <div className="bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden shadow-2xl">
-            <div className="p-5 border-b border-neutral-800 flex justify-between items-center">
-              <div>
-                <h2 className="text-sm font-black text-amber-400 uppercase tracking-wider">Directorio Central de Identidades</h2>
-                <p className="text-xs text-neutral-400">Gestión de roles en tiempo real con auditoría forense automática y control de privilegios</p>
-              </div>
-              <span className="text-xs bg-neutral-950 px-3 py-1 rounded-xl text-neutral-400 border border-neutral-800 font-mono">
-                {users.length} Cuentas Registradas
-              </span>
-            </div>
-
-            {loading ? (
-              <div className="p-12 text-center text-xs text-neutral-500">Sincronizando directorio de usuarios con Supabase...</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-neutral-300">
-                  <thead className="bg-neutral-950 text-neutral-400 uppercase text-[10px] tracking-wider font-bold border-b border-neutral-800">
-                    <tr>
-                      <th className="py-3.5 px-6">Identidad / Nombre</th>
-                      <th className="py-3.5 px-6">Correo Electrónico (Principal)</th>
-                      <th className="py-3.5 px-6">Rol de Seguridad Asignado</th>
-                      <th className="py-3.5 px-6 text-right">Modificar Privilegios (RBAC)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-800/60">
-                    {users.map((u) => (
-                      <tr key={u.id} className="hover:bg-neutral-950/50 transition">
-                        <td className="py-4 px-6 font-bold text-white flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-amber-400/10 border border-amber-400/30 flex items-center justify-center text-amber-400 font-black text-xs">
-                            {u.name ? u.name[0].toUpperCase() : "U"}
-                          </div>
-                          <div>
-                            <div>{u.name || "Sin nombre registrado"}</div>
-                            <span className="text-[10px] text-neutral-500 font-mono">ID: {u.id.slice(0, 8)}...</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 text-neutral-300 font-mono text-[11px]">{u.email}</td>
-                        <td className="py-4 px-6">
-                          <span
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase border ${
-                              u.role === "ADMIN"
-                                ? "bg-emerald-950/80 text-emerald-400 border-emerald-800"
-                                : u.role === "SELLER"
-                                ? "bg-blue-950/80 text-blue-400 border-blue-800"
-                                : "bg-neutral-800 text-neutral-300 border-neutral-700"
-                            }`}
-                          >
-                            {u.role}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6 text-right">
-                          <select
-                            value={u.role}
-                            onChange={(e) => handleRoleChange(u.id, e.target.value as any)}
-                            className="bg-neutral-950 border border-neutral-700 text-amber-400 rounded-xl px-3 py-1.5 text-xs font-bold outline-none focus:border-amber-400 cursor-pointer"
-                          >
-                            <option value="CLIENT">Cliente (CLIENT)</option>
-                            <option value="SELLER">Vendedor (SELLER)</option>
-                            <option value="ADMIN">Administrador (ADMIN)</option>
-                          </select>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* PESTAÑA 3: BITÁCORA INMUTABLE ISO/IEC 27001 (CONTENIDO EXPANDIDO Y TÉCNICO) */}
-        {activeTab === "audit" && (
-          <div className="bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden shadow-2xl">
-            <div className="p-5 border-b border-neutral-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-                  <h2 className="text-sm font-black text-amber-400 uppercase tracking-wider">
-                    Bitácora Inmutable de Auditoría ISO/IEC 27001 (Audit Logs)
-                  </h2>
-                </div>
-                <p className="text-xs text-neutral-400 mt-0.5">
-                  Registro criptográfico de eventos críticos y trazabilidad forense de acciones administrativas
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono bg-emerald-950 text-emerald-400 border border-emerald-800 px-3 py-1 rounded-xl font-bold uppercase">
-                  Integridad Verificada SHA-256
-                </span>
-              </div>
-            </div>
-
-            {loading ? (
-              <div className="p-12 text-center text-xs text-neutral-500">Cargando registros de auditoría inmutable...</div>
-            ) : auditLogs.length === 0 ? (
-              <div className="p-12 text-center text-xs text-neutral-500">No se registran eventos críticos en la bitácora actual de Supabase.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-neutral-300">
-                  <thead className="bg-neutral-950 text-neutral-400 uppercase text-[10px] tracking-wider font-bold border-b border-neutral-800">
-                    <tr>
-                      <th className="py-3.5 px-6">Marca Temporal (ISO)</th>
-                      <th className="py-3.5 px-6">Administrador Responsable</th>
-                      <th className="py-3.5 px-6">Acción del Sistema</th>
-                      <th className="py-3.5 px-6">Metadatos / Detalle Forense del Evento</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-800/60 font-mono text-[11px]">
-                    {auditLogs.map((log) => (
-                      <tr key={log.id} className="hover:bg-neutral-950/50 transition">
-                        <td className="py-3.5 px-6 text-neutral-400">
-                          {new Date(log.createdAt).toLocaleString("es-CO", { timeZone: "America/Bogota" })}
-                        </td>
-                        <td className="py-3.5 px-6 text-amber-400 font-semibold">
-                          {log.admin?.email || log.adminId}
-                        </td>
-                        <td className="py-3.5 px-6 font-bold text-white uppercase tracking-wider">
-                          <span className="px-2 py-0.5 rounded bg-neutral-950 border border-neutral-800 text-amber-400">
-                            {log.action}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-6 text-neutral-300">{log.details || log.target || "N/A"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* PESTAÑA 4: CONTROLES DE CUMPLIMIENTO SSDLC (CONTENIDO EXPANDIDO Y TÉCNICO) */}
-        {activeTab === "security" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4">
-              <h3 className="text-sm font-black text-amber-400 uppercase tracking-wider">
-                🛡️ Arquitectura de Seguridad y Controles (SSDLC)
-              </h3>
-              <ul className="space-y-3 text-xs text-neutral-300">
-                <li className="flex items-start gap-2.5 bg-neutral-950 p-3.5 rounded-2xl border border-neutral-800">
-                  <span className="text-emerald-400 font-bold text-sm">✓</span>
-                  <div>
-                    <strong className="text-white block font-bold">Control de Acceso Basado en Roles (RBAC):</strong>
-                    Aislamiento estricto de rutas administrativas en cliente y servidor para prevenir ataques de escalación de privilegios horizontales y verticales (Mitigación OWASP A01: Broken Access Control).
-                  </div>
-                </li>
-                <li className="flex items-start gap-2.5 bg-neutral-950 p-3.5 rounded-2xl border border-neutral-800">
-                  <span className="text-emerald-400 font-bold text-sm">✓</span>
-                  <div>
-                    <strong className="text-white block font-bold">Sanitización e Inspección de Activos Multimedia:</strong>
-                    Validación exhaustiva de extensiones (JPG/PNG/WEBP) y control estricto de umbrales de peso (&lt;2MB) para prevenir inyecciones de código malicioso mediante la carga de archivos en el probador virtual.
-                  </div>
-                </li>
-                <li className="flex items-start gap-2.5 bg-neutral-950 p-3.5 rounded-2xl border border-neutral-800">
-                  <span className="text-emerald-400 font-bold text-sm">✓</span>
-                  <div>
-                    <strong className="text-white block font-bold">Prevención de Redirecciones y SSRF:</strong>
-                    Validación rigurosa de URLs y enlaces externos para mitigar vectores de vulnerabilidad en pasarelas de terceros y conexiones salientes del sistema.
-                  </div>
-                </li>
-              </ul>
-            </div>
-
-            <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4">
-              <h3 className="text-sm font-black text-amber-400 uppercase tracking-wider">
-                🔐 Criptografía y Gestión de Identidad Avanzada
-              </h3>
-              <div className="space-y-3 text-xs text-neutral-300">
-                <div className="bg-neutral-950 p-3.5 rounded-2xl border border-neutral-800">
-                  <p className="text-neutral-400 font-bold uppercase text-[10px] tracking-wider">Algoritmo de Hashing de Credenciales</p>
-                  <p className="text-emerald-400 font-mono text-xs mt-1">bcryptjs (Adaptive One-way Function - 10 Salt Rounds)</p>
-                  <p className="text-[10px] text-neutral-500 mt-1">Protección robusta contra ataques de fuerza bruta y Rainbow Tables.</p>
-                </div>
-                <div className="bg-neutral-950 p-3.5 rounded-2xl border border-neutral-800">
-                  <p className="text-neutral-400 font-bold uppercase text-[10px] tracking-wider">Canal de Doble Factor / OTP</p>
-                  <p className="text-amber-400 font-mono text-xs mt-1">Nodemailer SMTP + Token Criptográfico de 6 Dígitos</p>
-                  <p className="text-[10px] text-neutral-500 mt-1">Garantiza la autenticidad del correo electrónico en el registro de usuarios.</p>
-                </div>
-                <div className="bg-neutral-950 p-3.5 rounded-2xl border border-neutral-800">
-                  <p className="text-neutral-400 font-bold uppercase text-[10px] tracking-wider">Ciclo de Vida de Tokens OTP</p>
-                  <p className="text-white font-mono text-xs mt-1">Expiración estricta a los 300 segundos (5 minutos)</p>
-                  <p className="text-[10px] text-neutral-500 mt-1">Inutilización automática posterior al primer uso exitoso.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-      </div>
-    </div>
-  );
-}
+                  <div className="bg-emerald-400 h-full

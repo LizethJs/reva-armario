@@ -26,30 +26,35 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: "", success: false });
 
-  // --- REGLAS Y DESGLOSE DE VALIDACIÓN EN TIEMPO REAL ---
-  const isNameValid = /^[a-zA-AáéíóúÁÉÍÓÚñÑ\s]{3,50}$/.test(formData.name.trim());
+  // --- REGLAS Y DESGLOSE DE VALIDACIÓN ESTRICTA EN TIEMPO REAL ---
+  // Nombre: Solo letras y espacios, entre 3 y 50 caracteres (Expresión regular corregida)
+  const isNameValid = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]{3,50}$/.test(formData.name.trim());
 
-  // Teléfono: Celular en Colombia
+  // Teléfono: Celular en Colombia (10 dígitos exactos iniciando por 3)
   const isPhoneDigitsOnly = /^[0-9]*$/.test(formData.phone.trim());
   const startsWithThree = formData.phone.trim().startsWith("3");
   const isPhoneValid = /^[3][0-9]{9}$/.test(formData.phone.trim());
 
-  // Correo: Desglose específico
+  // Correo: Desglose específico de formato y dominio
   const hasAtSymbol = formData.email.includes("@");
   const hasDomain = /@[^\s@]+\.[^\s@]+$/.test(formData.email.trim());
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim());
 
-  // Contraseña: Checklist
+  // Contraseña Estricta: Checklist completo (Mayúscula, Minúscula, Número, Símbolo)
   const hasMinLength = formData.password.length >= 8;
   const hasUppercase = /[A-Z]/.test(formData.password);
+  const hasLowercase = /[a-z]/.test(formData.password);
   const hasNumber = /\d/.test(formData.password);
-  const hasSpecialChar = /[@$!%*?&]/.test(formData.password);
-  const isPasswordValid = hasMinLength && hasUppercase && hasNumber && hasSpecialChar;
+  const hasSpecialChar = /[@$!%*?&#._-]/.test(formData.password);
+  
+  const isPasswordValid =
+    hasMinLength && hasUppercase && hasLowercase && hasNumber && hasSpecialChar;
 
   // Confirmación de Contraseña
   const isConfirmPasswordValid =
     formData.confirmPassword.length > 0 && formData.confirmPassword === formData.password;
 
+  // El formulario solo es válido si TODAS las reglas estrictas se cumplen
   const isFormValid =
     isNameValid && isPhoneValid && isEmailValid && isPasswordValid && isConfirmPasswordValid;
 
@@ -62,7 +67,7 @@ export default function RegisterPage() {
 
     if (!isFormValid) {
       setMessage({
-        text: "Por favor cumple con todos los requisitos de seguridad marcados.",
+        text: "Por favor corrige los campos marcados antes de continuar.",
         success: false,
       });
       return;
@@ -137,7 +142,7 @@ export default function RegisterPage() {
           <h1 className="text-xl font-black tracking-widest text-white">PORTAL RËVA</h1>
           <p className="text-xs text-neutral-400 mt-1 text-center">
             {step === "form"
-              ? "Registro seguro con validación en tiempo real"
+              ? "Registro seguro con validación estricta en tiempo real"
               : "Verificación OTP por correo"}
           </p>
         </div>
@@ -218,7 +223,7 @@ export default function RegisterPage() {
                   )}
                   {!startsWithThree && (
                     <p className="text-red-400">
-                      ✗ Debe iniciar con el número 3 (formato móvil Colombia).
+                      ✗ Debe iniciar con el número 3 (formato celular Colombia).
                     </p>
                   )}
                   {formData.phone.length !== 10 && (
@@ -268,11 +273,11 @@ export default function RegisterPage() {
               {formData.email && (
                 <div className="text-[10px] mt-1 space-y-0.5 font-medium">
                   {!hasAtSymbol && (
-                    <p className="text-red-400">✗ Falta el carácter '@' en la dirección.</p>
+                    <p className="text-red-400">✗ Falta el carácter '@' en el correo.</p>
                   )}
                   {hasAtSymbol && !hasDomain && (
                     <p className="text-red-400">
-                      ✗ Falta el dominio después del '@' (ej: .com o .edu.co).
+                      ✗ Falta un dominio válido después del '@' (ejemplo: .com o .edu.co).
                     </p>
                   )}
                   {isEmailValid && (
@@ -282,7 +287,7 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* CONTRASEÑA SEGURA CON BOTÓN OJITO */}
+            {/* CONTRASEÑA SEGURA ESTRICTA */}
             <div>
               <label className="block text-neutral-400 mb-1 font-medium">Contraseña Segura</label>
               <div className="relative">
@@ -310,25 +315,30 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+
+              {/* LISTA DE CONTROL DE REQUISITOS DE SEGURIDAD EN TIEMPO REAL */}
               {formData.password && (
-                <div className="mt-2 bg-neutral-950 p-2.5 rounded-xl border border-neutral-800 text-[10px] space-y-1">
-                  <p className={hasMinLength ? "text-emerald-400" : "text-neutral-500"}>
-                    {hasMinLength ? "✓" : "○"} Mínimo 8 caracteres
+                <div className="mt-2 bg-neutral-950 p-2.5 rounded-xl border border-neutral-800 text-[10px] space-y-1 font-medium">
+                  <p className={hasMinLength ? "text-emerald-400" : "text-red-400"}>
+                    {hasMinLength ? "✓ Mínimo 8 caracteres" : "✗ Falta alcanzar 8 caracteres"}
                   </p>
-                  <p className={hasUppercase ? "text-emerald-400" : "text-neutral-500"}>
-                    {hasUppercase ? "✓" : "○"} Al menos una mayúscula (A-Z)
+                  <p className={hasUppercase ? "text-emerald-400" : "text-red-400"}>
+                    {hasUppercase ? "✓ Al menos una mayúscula (A-Z)" : "✗ Falta incluir una mayúscula (A-Z)"}
                   </p>
-                  <p className={hasNumber ? "text-emerald-400" : "text-neutral-500"}>
-                    {hasNumber ? "✓" : "○"} Al menos un número (0-9)
+                  <p className={hasLowercase ? "text-emerald-400" : "text-red-400"}>
+                    {hasLowercase ? "✓ Al menos una minúscula (a-z)" : "✗ Falta incluir una minúscula (a-z)"}
                   </p>
-                  <p className={hasSpecialChar ? "text-emerald-400" : "text-neutral-500"}>
-                    {hasSpecialChar ? "✓" : "○"} Al menos un símbolo especial (@$!%*?&)
+                  <p className={hasNumber ? "text-emerald-400" : "text-red-400"}>
+                    {hasNumber ? "✓ Al menos un número (0-9)" : "✗ Falta incluir un número (0-9)"}
+                  </p>
+                  <p className={hasSpecialChar ? "text-emerald-400" : "text-red-400"}>
+                    {hasSpecialChar ? "✓ Al menos un símbolo especial" : "✗ Falta incluir un símbolo (@, $, !, %, *, ?, &, #, ., _, -)"}
                   </p>
                 </div>
               )}
             </div>
 
-            {/* CONFIRMAR CONTRASEÑA CON BOTÓN OJITO */}
+            {/* CONFIRMAR CONTRASEÑA */}
             <div>
               <label className="block text-neutral-400 mb-1 font-medium">
                 Confirmar Contraseña
