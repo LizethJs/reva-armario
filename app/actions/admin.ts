@@ -13,7 +13,33 @@ async function logAuditAction(adminId: string, action: string, target: string, d
   }
 }
 
-// 1. Obtiene la lista de usuarios para el panel (Compatible con formato de éxito)
+// 1. Obtiene las estadísticas generales del panel
+export async function getAdminStats() {
+  try {
+    const totalUsers = await prisma.user.count();
+    const verifiedUsers = await prisma.user.count({ where: { isVerified: true } });
+    const totalGarments = await prisma.garment.count();
+
+    const clientCount = await prisma.user.count({ where: { role: "CLIENT" } });
+    const sellerCount = await prisma.user.count({ where: { role: "SELLER" } });
+    const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
+
+    return {
+      success: true,
+      stats: {
+        totalUsers,
+        verifiedUsers,
+        totalGarments,
+        rolesBreakdown: { CLIENT: clientCount, SELLER: sellerCount, ADMIN: adminCount },
+      },
+    };
+  } catch (error: any) {
+    console.error("Error al obtener estadísticas:", error);
+    return { success: false, error: "Error interno al calcular estadísticas." };
+  }
+}
+
+// 2. Obtiene la lista de usuarios para el panel (Compatible con formato de éxito)
 export async function getUsers(adminEmail: string) {
   try {
     const admin = await prisma.user.findUnique({ where: { email: adminEmail } });
@@ -47,7 +73,7 @@ export async function getUsersList(adminEmail: string) {
   return res.users;
 }
 
-// 2. Modifica el rol de un usuario y registra el evento de auditoría
+// 3. Modifica el rol de un usuario y registra el evento de auditoría
 export async function updateUserRole(
   adminEmail: string,
   targetUserId: string,
@@ -78,7 +104,7 @@ export async function updateUserRole(
   }
 }
 
-// 3. Obtiene la bitácora de auditoría para el Administrador
+// 4. Obtiene la bitácora de auditoría para el Administrador
 export async function getAuditLogs(adminEmail: string) {
   try {
     const admin = await prisma.user.findUnique({ where: { email: adminEmail } });
@@ -96,5 +122,67 @@ export async function getAuditLogs(adminEmail: string) {
   } catch (error) {
     console.error("Error al obtener registros de auditoría:", error);
     return { success: false, error: "Error interno al consultar bitácora." };
+  }
+}
+
+// --- FUNCIONALIDAD DE ROLES Y PERMISOS RBAC ---
+
+export async function createRole(roleName: string, description: string) {
+  try {
+    const role = await prisma.roleModel.create({
+      data: { name: roleName.trim().toUpperCase(), description },
+    });
+    return { success: true, role, message: `Rol '${role.name}' creado exitosamente.` };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Error al crear el rol." };
+  }
+}
+
+export async function assignRoleToUser(userId: string, roleId: string) {
+  try {
+    await prisma.userRole.create({
+      data: { userId, roleId },
+    });
+    return { success: true, message: "Rol asignado correctamente al usuario." };
+  } catch (error: any) {
+    return { success: false, message: "El usuario ya tiene asignado este rol." };
+  }
+}
+
+export async function assignPermissionToUser(userId: string, permissionName: string, description: string) {
+  try {
+    let permission = await prisma.permission.findUnique({
+      where: { name: permissionName.trim().toUpperCase() },
+    });
+
+    if (!permission) {
+      permission = await prisma.permission.create({
+        data: { name: permissionName.trim().toUpperCase(), description },
+      });
+    }
+
+    await prisma.userPermission.create({
+      data: { userId, permissionId: permission.id },
+    });
+
+    return { success: true, message: `Permiso '${permission.name}' asignado al usuario.` };
+  } catch (error: any) {
+    return { success: false, message: "El usuario ya cuenta con este permiso asignado." };
+  }
+}
+
+export async function getUsersWithRolesAndPermissions() {
+  try {
+    const users = await prisma.user.findMany({
+      take: 10,
+      include: {
+        userRoles: { include: { role: true } },
+        userPermissions: { include: { permission: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    return { success: true, users };
+  } catch (error: any) {
+    return { success: false, users: [], message: error.message };
   }
 }

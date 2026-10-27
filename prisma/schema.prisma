@@ -14,19 +14,21 @@ enum Role {
 }
 
 model User {
-  id               String     @id @default(cuid())
+  id               String    @id @default(cuid())
   name             String?
-  email            String     @unique
+  email            String    @unique
   password         String
-  role             Role       @default(CLIENT)
+  role             Role      @default(CLIENT)
   verificationCode String?
   otpExpiresAt     DateTime?
-  isVerified       Boolean    @default(false)
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  isVerified       Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  garments         Garment[]
-  auditLogs        AuditLog[] @relation("AdminActions")
+  garments        Garment[]
+  auditLogs       AuditLog[]       @relation("AdminActions")
+  userRoles       UserRole[]
+  userPermissions UserPermission[]
 }
 
 model Garment {
@@ -41,11 +43,11 @@ model Garment {
   vendorName    String?
   vendorContact String?
 
-  userId        String?
-  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model AuditLog {
@@ -56,4 +58,42 @@ model AuditLog {
   target    String   // ID o correo afectado
   details   String?  // Descripción o metadatos de la acción
   createdAt DateTime @default(now())
+}
+
+// --- MODELOS DE ROLES Y PERMISOS RBAC ---
+
+model RoleModel {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String?
+  userRoles   UserRole[]
+  createdAt   DateTime   @default(now())
+}
+
+model Permission {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  description     String?
+  userPermissions UserPermission[]
+  createdAt       DateTime         @default(now())
+}
+
+model UserRole {
+  id     String    @id @default(uuid())
+  userId String
+  roleId String
+  user   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   RoleModel @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+}
+
+model UserPermission {
+  id           String     @id @default(uuid())
+  userId       String
+  permissionId String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
 }
