@@ -14,13 +14,38 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  // Estado específico para el error de caracteres especiales en el correo (Requisito 2)
+  const [emailInputError, setEmailInputError] = useState("");
+
   // Validaciones en tiempo real para la contraseña
   const hasMinLength = newPassword.length >= 8;
   const hasUpperCase = /[A-Z]/.test(newPassword);
   const hasNumberOrSymbol = /(?=.*\d)(?=.*[@$!%*?&])/.test(newPassword);
 
+  // Función para validar caracteres especiales prohibidos en el correo en tiempo real
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormData({ ...formData, email: value });
+
+    // Expresión regular que detecta caracteres especiales no permitidos en un correo (ej: 15 caracteres especiales como !#$%^&*()+=[]{}|;:',<>/?`~)
+    const specialCharsRegex = /[!#$%^&*()+=\[\]{};':"\\|,<>/?`~]/;
+
+    if (specialCharsRegex.test(value)) {
+      setEmailInputError("⚠️ Error: El campo de correo electrónico contiene caracteres especiales no válidos.");
+    } else {
+      setEmailInputError("");
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Si hay un error de caracteres especiales detectado antes del botón, bloqueamos el proceso
+    if (emailInputError) {
+      setErrorMessage("Por favor, corrija los errores en el campo de correo antes de continuar.");
+      return;
+    }
+
     setLoading(true);
     setErrorMessage("");
     setSuccessMessage("");
@@ -143,7 +168,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* MENSAJE DE ERROR */}
+        {/* MENSAJE DE ERROR GENERAL */}
         {errorMessage && (
           <div className="p-3 mb-4 rounded-xl text-xs font-medium text-center bg-red-950/50 border border-red-800 text-red-300">
             {errorMessage}
@@ -163,14 +188,20 @@ export default function LoginPage() {
             <div>
               <label className="block text-[11px] text-zinc-400 mb-1.5 font-medium">Correo Electrónico</label>
               <input
-                type="email"
+                type="text"
                 name="email"
                 required
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={handleEmailChange} // <-- Validación en tiempo real de caracteres especiales
                 className="w-full px-3.5 py-2.5 bg-[#101010] border border-zinc-800 rounded-xl text-white text-xs outline-none focus:border-amber-500"
                 placeholder="usuario@reva.com"
               />
+              {/* Alerta instantánea en tiempo real ANTES de oprimir el botón */}
+              {emailInputError && (
+                <p className="text-[11px] text-red-400 mt-1.5 font-medium animate-pulse">
+                  {emailInputError}
+                </p>
+              )}
             </div>
 
             <div>
@@ -188,7 +219,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || Boolean(emailInputError)} // Se deshabilita si hay caracteres especiales inválidos
               className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-extrabold rounded-xl text-xs transition cursor-pointer disabled:opacity-50 mt-2"
             >
               {loading ? "Validando credenciales..." : "Iniciar Sesión"}
