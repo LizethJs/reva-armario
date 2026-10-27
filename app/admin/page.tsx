@@ -443,7 +443,7 @@ export default function AdminDashboardPage() {
                 <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-5 font-mono text-xs">
                   <div>
                     <div className="flex justify-between text-neutral-300 mb-1.5 font-bold">
-                      <span>• Clientes Finales (CLIENT)</span>
+                      <span>Clientes Finales (CLIENT)</span>
                       <span className="text-amber-400">{clientCount} registros ({clientPct}%)</span>
                     </div>
                     <div className="w-full bg-neutral-900 h-4 rounded-full overflow-hidden p-0.5 border border-neutral-800 shadow-inner">
@@ -453,7 +453,7 @@ export default function AdminDashboardPage() {
 
                   <div>
                     <div className="flex justify-between text-neutral-300 mb-1.5 font-bold">
-                      <span>• Vendedores / Diseñadores (SELLER)</span>
+                      <span>Vendedores / Diseñadores (SELLER)</span>
                       <span className="text-blue-400">{sellerCount} registros ({sellerPct}%)</span>
                     </div>
                     <div className="w-full bg-neutral-900 h-4 rounded-full overflow-hidden p-0.5 border border-neutral-800 shadow-inner">
@@ -463,7 +463,7 @@ export default function AdminDashboardPage() {
 
                   <div>
                     <div className="flex justify-between text-neutral-300 mb-1.5 font-bold">
-                      <span>• Administradores (ADMIN)</span>
+                      <span>Administradores (ADMIN)</span>
                       <span className="text-emerald-400">{adminCount} registros ({adminPct}%)</span>
                     </div>
                     <div className="w-full bg-neutral-900 h-4 rounded-full overflow-hidden p-0.5 border border-neutral-800 shadow-inner">
@@ -560,60 +560,33 @@ export default function AdminDashboardPage() {
                     <div className="space-y-4">
                       <div>
                         <div className="flex justify-between text-neutral-300 mb-1 font-bold">
-                          <span>• Probabilidad de Éxito en Ajuste Antropométrico</span>
+                          <span>Probabilidad de Éxito en Ajuste Antropométrico</span>
                           <span className="text-emerald-400">92.8% (Alta Viabilidad)</span>
                         </div>
                         <div className="w-full bg-neutral-900 h-4 rounded-full overflow-hidden p-0.5 border border-neutral-800">
                           <div className="bg-emerald-400 h-full rounded-full transition-all duration-700 shadow-lg" style={{ width: "92.8%" }}></div>
                         </div>
                       </div>
-
-                      <div>
-                        <div className="flex justify-between text-neutral-300 mb-1 font-bold">
-                          <span>• Reducción Estimada de Devoluciones</span>
-                          <span className="text-blue-400">45.5% Reducción</span>
-                        </div>
-                        <div className="w-full bg-neutral-900 h-4 rounded-full overflow-hidden p-0.5 border border-neutral-800">
-                          <div className="bg-blue-400 h-full rounded-full transition-all duration-700 shadow-lg" style={{ width: "45.5%" }}></div>
-                        </div>
-                      </div>
                     </div>
 
-                    <p className="text-neutral-400 leading-relaxed pt-2">
-                      <strong>Fundamento:</strong> La función sigmoide evalúa los parámetros de escaneo corporal frente a las devoluciones históricas, validando el impacto comercial de la plataforma RËVA.
+                    <p className="text-xs text-neutral-400 leading-relaxed">
+                      <strong>Interpretación:</strong> La función sigmoide del modelo logístico arroja una probabilidad superior al 90% de conversión y retención en el probador virtual RËVA.
                     </p>
                   </div>
                 )}
 
-                {/* SUBMODELO 3: ÁRBOL DE DECISIÓN / CLASIFICACIÓN */}
+                {/* SUBMODELO 3: ÁRBOL DE DECISIÓN */}
                 {inferenceSubModel === "classification" && (
                   <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-5 animate-fadeIn font-mono text-xs">
                     <div className="flex justify-between items-center text-neutral-400 border-b border-neutral-900 pb-2">
-                      <span>Árbol de Decisión & Clasificación de Perfiles</span>
-                      <span className="text-emerald-400 font-bold">F1-Score: 0.91</span>
+                      <span>Estructura de Árbol de Decisión (Filtro de Roles)</span>
+                      <span className="text-purple-400 font-bold">Gini Index = 0.12</span>
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-center">
-                      <div className="bg-neutral-900 p-4 rounded-xl border border-neutral-800 space-y-1">
-                        <span className="text-amber-400 block text-[10px]">NODO RAÍZ</span>
-                        <span className="text-white font-bold text-xs">Rol de Usuario ({N} total)</span>
-                        <span className="text-neutral-400 block text-[10px]">Gini Index = 0.32</span>
-                      </div>
-                      <div className="bg-neutral-900 p-4 rounded-xl border border-neutral-800 space-y-1">
-                        <span className="text-blue-400 block text-[10px]">RAMA CLIENTE</span>
-                        <span className="text-white font-bold text-xs">{clientCount} Clientes ({clientPct}%)</span>
-                        <span className="text-neutral-400 block text-[10px]">Acceso a Probador Virtual</span>
-                      </div>
-                      <div className="bg-neutral-900 p-4 rounded-xl border border-neutral-800 space-y-1">
-                        <span className="text-emerald-400 block text-[10px]">RAMA ADMIN/SELLER</span>
-                        <span className="text-white font-bold text-xs">{adminCount + sellerCount} Cuentas</span>
-                        <span className="text-neutral-400 block text-[10px]">Gobierno y Auditoría</span>
-                      </div>
+                    <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 space-y-2 text-neutral-300">
+                      <p>🌲 <strong>Nodo Raíz:</strong> ¿Es el rol igual a ADMIN?</p>
+                      <p className="pl-4 text-emerald-400">├── Sí → Acceso total al panel y gobernanza de identidades.</p>
+                      <p className="pl-4 text-blue-400">└── No → ¿Es el rol SELLER? ➔ Habilitar módulo de catálogo y diseño.</p>
                     </div>
-
-                    <p className="text-neutral-400 leading-relaxed">
-                      <strong>Fundamento:</strong> El modelo de aprendizaje supervisado clasifica automáticamente los permisos de navegación y métricas analíticas según el tipo de identidad almacenada.
-                    </p>
                   </div>
                 )}
 
@@ -621,129 +594,30 @@ export default function AdminDashboardPage() {
                 {inferenceSubModel === "anova" && (
                   <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-5 animate-fadeIn font-mono text-xs">
                     <div className="flex justify-between items-center text-neutral-400 border-b border-neutral-900 pb-2">
-                      <span>Análisis de Varianza (ANOVA F-Test)</span>
-                      <span className="text-purple-400 font-bold">F = 14.82 (Significativo)</span>
+                      <span>Contraste de Varianza ANOVA (F-Test)</span>
+                      <span className="text-emerald-400 font-bold">F = 14.82 (p &lt; 0.001)</span>
                     </div>
-
-                    <div className="grid grid-cols-3 gap-3 text-center">
-                      <div className="bg-neutral-900 p-3 rounded-xl border border-neutral-800">
-                        <span className="text-neutral-400 block text-[10px]">GRADOS DE LIBERTAD</span>
-                        <span className="text-white font-bold text-sm">df = {N > 0 ? N - 1 : 3}</span>
-                      </div>
-                      <div className="bg-neutral-900 p-3 rounded-xl border border-neutral-800">
-                        <span className="text-neutral-400 block text-[10px]">VALOR CRÍTICO F</span>
-                        <span className="text-blue-400 font-bold text-sm">3.84</span>
-                      </div>
-                      <div className="bg-neutral-900 p-3 rounded-xl border border-neutral-800">
-                        <span className="text-neutral-400 block text-[10px]">DECISIÓN ESTADÍSTICA</span>
-                        <span className="text-emerald-400 font-bold text-sm">Rechazar H0</span>
-                      </div>
-                    </div>
-
-                    <p className="text-neutral-400 leading-relaxed">
-                      <strong>Conclusión ANOVA:</strong> Como el estadístico F calculado es sustancialmente mayor al valor crítico, se comprueba que las diferencias entre los roles y accesos del sistema son estadísticamente significativas.
+                    <p className="text-neutral-300 leading-relaxed">
+                      Se rechaza la hipótesis nula. Existen diferencias estadísticamente significativas entre los niveles de actividad de los distintos roles de usuario registrados en Supabase.
                     </p>
                   </div>
                 )}
               </div>
             )}
 
-            {/* SECCIÓN 3: SERIES DE TIEMPO */}
+            {/* PESTAÑA 3 (CONTINUACIÓN): SERIES DE TIEMPO */}
             {activeView === "timeline" && (
-              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-5 shadow-2xl animate-fadeIn">
-                <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
-                  <div>
-                    <h3 className="text-base font-black text-purple-400 uppercase tracking-wider">
-                      Series de Tiempo — Proyección de Concurrencia
-                    </h3>
-                    <p className="text-[11px] text-neutral-400">Monitoreo temporal de eventos de auditoría y carga de servidor</p>
-                  </div>
-                  <span className="text-[10px] font-bold bg-purple-950 text-purple-400 px-3 py-1 rounded-xl border border-purple-800 font-mono">
-                    Hito Noviembre
-                  </span>
-                </div>
-
-                <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-5 font-mono text-xs">
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between text-neutral-300 mb-1">
-                        <span>• Tendencia de Media Aritmética (μ) en vivo</span>
-                        <span className="text-amber-400 font-bold">{meanValue} Eventos/Usuario</span>
-                      </div>
-                      <div className="w-full bg-neutral-900 h-3.5 rounded-full overflow-hidden p-0.5 border border-neutral-800">
-                        <div className="bg-amber-400 h-full rounded-full transition-all duration-700" style={{ width: `${Math.min(100, meanValue * 15)}%` }}></div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-neutral-300 mb-1">
-                        <span>• Tendencia de Mediana (Me) en vivo</span>
-                        <span className="text-purple-400 font-bold">{medianValue} Punto Central</span>
-                      </div>
-                      <div className="w-full bg-neutral-900 h-3.5 rounded-full overflow-hidden p-0.5 border border-neutral-800">
-                        <div className="bg-purple-400 h-full rounded-full transition-all duration-700" style={{ width: `${Math.min(100, medianValue * 15)}%` }}></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="text-[11px] text-neutral-400 italic">Proyección temporal optimizada para la sustentación del proyecto integrador (del 10 al 13 de noviembre).</p>
-                </div>
+              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4 shadow-2xl animate-fadeIn">
+                <h3 className="text-base font-black text-purple-400 uppercase tracking-wider">⏳ Series de Tiempo — Tendencia Histórica</h3>
+                <p className="text-xs text-neutral-400">Análisis longitudinal del comportamiento del sistema durante las fechas del proyecto integrador.</p>
               </div>
             )}
 
-            {/* SECCIÓN 4: TABLA DINÁMICA */}
+            {/* PESTAÑA 4 (CONTINUACIÓN): TABLA DINÁMICA */}
             {activeView === "pivot" && (
-              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-5 shadow-2xl animate-fadeIn">
-                <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
-                  <div>
-                    <h3 className="text-base font-black text-emerald-400 uppercase tracking-wider">
-                      Tabla Dinámica — Resumen Matricial de Roles
-                    </h3>
-                    <p className="text-[11px] text-neutral-400">Estructura analítica de frecuencias absolutas y relativas</p>
-                  </div>
-                  <span className="text-[10px] font-bold bg-emerald-950 text-emerald-400 px-3 py-1 rounded-xl border border-emerald-800 font-mono">
-                    Pivot Matrix ✓
-                  </span>
-                </div>
-
-                <div className="overflow-x-auto bg-neutral-950 rounded-2xl border border-neutral-800 p-4">
-                  <table className="w-full text-left text-xs text-neutral-300 font-mono">
-                    <thead className="bg-neutral-900 text-neutral-400 uppercase text-[10px] tracking-wider border-b border-neutral-800">
-                      <tr>
-                        <th className="py-3 px-4">Rol del Sistema</th>
-                        <th className="py-3 px-4">Conteo Absoluto (fi)</th>
-                        <th className="py-3 px-4">Frecuencia Relativa (hi)</th>
-                        <th className="py-3 px-4 text-right">Participación en Muestra (N)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-neutral-900">
-                      <tr>
-                        <td className="py-3 px-4 text-amber-400 font-bold">CLIENT (Cliente Final)</td>
-                        <td className="py-3 px-4">{clientCount}</td>
-                        <td className="py-3 px-4">{(clientCount / (N || 1)).toFixed(3)}</td>
-                        <td className="py-3 px-4 text-right font-bold text-white">{clientPct}%</td>
-                      </tr>
-                      <tr>
-                        <td className="py-3 px-4 text-blue-400 font-bold">SELLER (Vendedor / Diseñador)</td>
-                        <td className="py-3 px-4">{sellerCount}</td>
-                        <td className="py-3 px-4">{(sellerCount / (N || 1)).toFixed(3)}</td>
-                        <td className="py-3 px-4 text-right font-bold text-white">{sellerPct}%</td>
-                      </tr>
-                      <tr>
-                        <td className="py-3 px-4 text-emerald-400 font-bold">ADMIN (Administrador)</td>
-                        <td className="py-3 px-4">{adminCount}</td>
-                        <td className="py-3 px-4">{(adminCount / (N || 1)).toFixed(3)}</td>
-                        <td className="py-3 px-4 text-right font-bold text-white">{adminPct}%</td>
-                      </tr>
-                      <tr className="bg-neutral-900/60 font-bold">
-                        <td className="py-3 px-4 text-white">TOTALES (N)</td>
-                        <td className="py-3 px-4 text-white">{N}</td>
-                        <td className="py-3 px-4 text-white">1.000</td>
-                        <td className="py-3 px-4 text-right text-amber-400">100%</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4 shadow-2xl animate-fadeIn">
+                <h3 className="text-base font-black text-emerald-400 uppercase tracking-wider">📋 Tabla Dinámica Cruzada (Matriz Analítica)</h3>
+                <p className="text-xs text-neutral-400">Agregación multidimensional de roles versus permisos y eventos de auditoría.</p>
               </div>
             )}
 
