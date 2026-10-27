@@ -38,12 +38,11 @@ export default function AdminDashboardPage() {
     fetchData(email);
   }, [router]);
 
-  // FUNCIÓN DE ACTUALIZACIÓN FORZADA (Limpia overrides locales y recarga de la BD)
+  // FUNCIÓN DE ACTUALIZACIÓN FORZADA
   async function handleForceRefresh(email: string) {
     setLoading(true);
     setActionMessage({ text: "Actualizando base de datos en tiempo real...", success: true });
     try {
-      // Limpiar el almacenamiento local para forzar lectura real
       localStorage.removeItem("reva_role_overrides");
 
       const usersRes = await getUsers(email);
@@ -59,7 +58,7 @@ export default function AdminDashboardPage() {
       setActionMessage({ text: "Error al actualizar los datos", success: false });
     } finally {
       setLoading(false);
-      setTimeout(() => setActionMessage({ text: "", success: false }, 3000));
+      setTimeout(() => setActionMessage({ text: "", success: false }), 3000);
     }
   }
 
@@ -141,7 +140,7 @@ export default function AdminDashboardPage() {
               PANEL DE CONTROL & <span className="text-amber-400">PROYECTO INTEGRADOR</span>
             </h1>
             <p className="text-xs text-neutral-400 mt-0.5">
-              Presentación Proyectos Integradores (Del 10 al 13 de Noviembre)[cite: 4]
+              Presentación Proyectos Integradores (Del 10 al 13 de Noviembre)
             </p>
           </div>
 
@@ -348,9 +347,9 @@ export default function AdminDashboardPage() {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="px-3 py-1 bg-amber-400/10 border border-amber-400/30 text-amber-400 text-[10px] font-black rounded-lg uppercase tracking-widest">
-                    Hito 10 de Noviembre[cite: 4]
+                    Hito 10 de Noviembre
                   </span>
-                  <span className="text-xs text-neutral-400 font-mono">Presentaciones: Del 10 a 13 de Noviembre[cite: 4]</span>
+                  <span className="text-xs text-neutral-400 font-mono">Presentaciones: Del 10 al 13 de Noviembre</span>
                 </div>
                 <h2 className="text-lg font-black text-white uppercase tracking-wider mt-1">
                   Motor Analítico en Tiempo Real — <span className="text-amber-400">RËVA Data Intelligence</span>
@@ -380,7 +379,7 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-2xl shadow-lg">
-                <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Media Aritmética ($\mu$)</span>
+                <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Media Aritmética (μ)</span>
                 <div className="flex items-baseline justify-between mt-1">
                   <span className="text-2xl font-black text-amber-400 font-mono">{meanValue}</span>
                   <span className="text-[10px] text-neutral-400">Eventos / usuario</span>
@@ -388,7 +387,7 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-2xl shadow-lg">
-                <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Mediana ($Me$)</span>
+                <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Mediana (Me)</span>
                 <div className="flex items-baseline justify-between mt-1">
                   <span className="text-2xl font-black text-purple-400 font-mono">{medianValue}</span>
                   <span className="text-[10px] text-neutral-400">Valor central</span>
@@ -396,7 +395,7 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-2xl shadow-lg">
-                <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Prueba de Hipótesis ($p$)</span>
+                <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Prueba de Hipótesis (p)</span>
                 <div className="flex items-baseline justify-between mt-1">
                   <span className="text-2xl font-black text-emerald-400 font-mono">{pValueCalc}</span>
                   <span className="text-[10px] text-emerald-400 font-bold">p &lt; 0.05 OK</span>
@@ -554,7 +553,7 @@ export default function AdminDashboardPage() {
                 {inferenceSubModel === "logistic" && (
                   <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-5 animate-fadeIn font-mono text-xs">
                     <div className="flex justify-between items-center text-neutral-400 border-b border-neutral-900 pb-2">
-                      <span>Modelo Logístico de Probabilidad de Compra ($P(Y=1)$)</span>
+                      <span>Modelo Logístico de Probabilidad de Compra P(Y=1)</span>
                       <span className="text-amber-400 font-bold">Accuracy: 94.2%</span>
                     </div>
 
@@ -637,7 +636,7 @@ export default function AdminDashboardPage() {
                       </div>
                       <div className="bg-neutral-900 p-3 rounded-xl border border-neutral-800">
                         <span className="text-neutral-400 block text-[10px]">DECISIÓN ESTADÍSTICA</span>
-                        <span className="text-emerald-400 font-bold text-sm">Rechazar $H_0$</span>
+                        <span className="text-emerald-400 font-bold text-sm">Rechazar H0</span>
                       </div>
                     </div>
 
@@ -660,7 +659,7 @@ export default function AdminDashboardPage() {
                     <p className="text-[11px] text-neutral-400">Monitoreo temporal de eventos de auditoría y carga de servidor</p>
                   </div>
                   <span className="text-[10px] font-bold bg-purple-950 text-purple-400 px-3 py-1 rounded-xl border border-purple-800 font-mono">
-                    Hito Noviembre[cite: 4]
+                    Hito Noviembre
                   </span>
                 </div>
 
@@ -668,7 +667,7 @@ export default function AdminDashboardPage() {
                   <div className="space-y-4">
                     <div>
                       <div className="flex justify-between text-neutral-300 mb-1">
-                        <span>• Tendencia de Media Aritmética ($\mu$) en vivo</span>
+                        <span>• Tendencia de Media Aritmética (μ) en vivo</span>
                         <span className="text-amber-400 font-bold">{meanValue} Eventos/Usuario</span>
                       </div>
                       <div className="w-full bg-neutral-900 h-3.5 rounded-full overflow-hidden p-0.5 border border-neutral-800">
@@ -678,7 +677,7 @@ export default function AdminDashboardPage() {
 
                     <div>
                       <div className="flex justify-between text-neutral-300 mb-1">
-                        <span>• Tendencia de Mediana ($Me$) en vivo</span>
+                        <span>• Tendencia de Mediana (Me) en vivo</span>
                         <span className="text-purple-400 font-bold">{medianValue} Punto Central</span>
                       </div>
                       <div className="w-full bg-neutral-900 h-3.5 rounded-full overflow-hidden p-0.5 border border-neutral-800">
@@ -687,7 +686,7 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
 
-                  <p className="text-[11px] text-neutral-400 italic">Proyección temporal optimizada para la sustentación del proyecto integrador (10 al 13 de noviembre)[cite: 4].</p>
+                  <p className="text-[11px] text-neutral-400 italic">Proyección temporal optimizada para la sustentación del proyecto integrador (del 10 al 13 de noviembre).</p>
                 </div>
               </div>
             )}
@@ -712,9 +711,9 @@ export default function AdminDashboardPage() {
                     <thead className="bg-neutral-900 text-neutral-400 uppercase text-[10px] tracking-wider border-b border-neutral-800">
                       <tr>
                         <th className="py-3 px-4">Rol del Sistema</th>
-                        <th className="py-3 px-4">Conteo Absoluto ($f_i$)</th>
-                        <th className="py-3 px-4">Frecuencia Relativa ($h_i$)</th>
-                        <th className="py-3 px-4 text-right">Participación en Muestra ($N$)</th>
+                        <th className="py-3 px-4">Conteo Absoluto (fi)</th>
+                        <th className="py-3 px-4">Frecuencia Relativa (hi)</th>
+                        <th className="py-3 px-4 text-right">Participación en Muestra (N)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-900">
