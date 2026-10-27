@@ -13,7 +13,34 @@ async function logAuditAction(adminId: string, action: string, target: string, d
   }
 }
 
-// 1. Obtiene la lista de usuarios para el panel
+// 1. OBTENER ESTADÍSTICAS DEL DASHBOARD
+export async function getAdminStats() {
+  try {
+    const totalUsers = await prisma.user.count();
+    const verifiedUsers = await prisma.user.count({ where: { isVerified: true } });
+    const totalGarments = await prisma.garment.count();
+    
+    // Contar usuarios por rol principal
+    const clientCount = await prisma.user.count({ where: { role: "CLIENT" } });
+    const sellerCount = await prisma.user.count({ where: { role: "SELLER" } });
+    const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
+
+    return {
+      success: true,
+      stats: {
+        totalUsers,
+        verifiedUsers,
+        totalGarments,
+        rolesBreakdown: { CLIENT: clientCount, SELLER: sellerCount, ADMIN: adminCount },
+      },
+    };
+  } catch (error: any) {
+    console.error("Error al obtener estadísticas:", error);
+    return { success: false, error: "Error interno al calcular estadísticas." };
+  }
+}
+
+// 2. OBTENER USUARIOS PARA EL PANEL
 export async function getUsers(adminEmail: string) {
   try {
     const admin = await prisma.user.findUnique({ where: { email: adminEmail } });
@@ -46,7 +73,7 @@ export async function getUsersList(adminEmail: string) {
   return res.users;
 }
 
-// 2. Modifica el rol básico de un usuario y registra auditoría
+// 3. ACTUALIZAR ROL PRINCIPAL DE USUARIO CON LOG DE AUDITORÍA
 export async function updateUserRole(
   adminEmail: string,
   targetUserId: string,
@@ -77,7 +104,7 @@ export async function updateUserRole(
   }
 }
 
-// 3. Obtiene la bitácora de auditoría
+// 4. OBTENER BITÁCORA DE AUDITORÍA (ISO 27001)
 export async function getAuditLogs(adminEmail: string) {
   try {
     const admin = await prisma.user.findUnique({ where: { email: adminEmail } });
@@ -98,12 +125,12 @@ export async function getAuditLogs(adminEmail: string) {
   }
 }
 
-// --- FUNCIONES PARA EL REQUISITO 5: GESTIÓN DE ROLES Y PERMISOS (RBAC) ---
+// --- REQUISITO 5: FUNCIONES RBAC (ROLES Y PERMISOS INDEPENDIENTES) ---
 
 export async function createRole(roleName: string, description: string) {
   try {
     // @ts-ignore
-    const role = await prisma.role.create({
+    const role = await prisma.roleModel.create({
       data: { name: roleName.trim().toUpperCase(), description },
     });
     return { success: true, role, message: `Rol '${role.name}' creado exitosamente.` };
@@ -143,7 +170,7 @@ export async function assignPermissionToUser(userId: string, permissionName: str
       data: { userId, permissionId: permission.id },
     });
 
-    return { success: true, message: `Permiso asignado al usuario.` };
+    return { success: true, message: `Permiso '${permission.name}' asignado al usuario.` };
   } catch (error: any) {
     return { success: false, message: "El usuario ya cuenta con este permiso asignado." };
   }
