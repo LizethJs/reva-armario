@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { getUsers, updateUserRole, getAuditLogs } from "../actions/admin";
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"overview" | "users" | "audit" | "security">("overview");
   const [users, setUsers] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -13,16 +15,26 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     const session = localStorage.getItem("user_session");
-    if (session) {
-      const parsed = JSON.parse(session);
-      const email = parsed.email || "admin@reva.com";
-      setAdminEmail(email);
-      loadData(email);
-    } else {
-      setAdminEmail("admin@reva.com");
-      loadData("admin@reva.com");
+    
+    if (!session) {
+      // Si no hay sesión iniciada, redirigir al login
+      router.push("/login");
+      return;
     }
-  }, []);
+
+    const parsed = JSON.parse(session);
+
+    // CONTROL DE ACCESO ESTRICTO: Si el usuario NO es ADMIN, bloquear el acceso
+    if (parsed.role !== "ADMIN") {
+      alert("Acceso denegado: Se requieren privilegios de Administrador.");
+      router.push("/"); // Redirigir al inicio/tienda
+      return;
+    }
+
+    const email = parsed.email || "admin@reva.com";
+    setAdminEmail(email);
+    loadData(email);
+  }, [router]);
 
   async function loadData(email: string) {
     setLoading(true);
