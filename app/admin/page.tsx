@@ -44,7 +44,7 @@ export default function AdminDashboardPage() {
       const usersRes = await getUsers(email);
       let loadedUsers = usersRes.success && usersRes.users ? usersRes.users : [];
 
-      // Aplicar overrides locales si existen para evitar pérdida de estado
+      // Cargar overrides locales para mantener la sincronización visual inmediata
       const localOverrides = JSON.parse(localStorage.getItem("reva_role_overrides") || "{}");
       loadedUsers = loadedUsers.map((u: any) => ({
         ...u,
@@ -62,30 +62,30 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // FUNCIÓN DE CAMBIO DE ROL INSTANTÁNEA (ACTUALIZACIÓN DIRECTA EN ESTADO)
+  // FUNCIÓN DE CAMBIO DE ROL 100% REACTIVA E INSTANTÁNEA
   const handleRoleChange = (targetUserId: string, newRole: "CLIENT" | "SELLER" | "ADMIN") => {
     setActionMessage({ text: "Actualizando rol y recalculando analítica...", success: true });
 
-    // 1. Guardar en localStorage para persistencia visual inmediata
+    // 1. Guardar override en localStorage
     const localOverrides = JSON.parse(localStorage.getItem("reva_role_overrides") || "{}");
     localOverrides[targetUserId] = newRole;
     localStorage.setItem("reva_role_overrides", JSON.stringify(localOverrides));
 
-    // 2. Modificar el estado local al instante para forzar el re-renderizado de porcentajes y gráficas
+    // 2. Actualizar el estado global de usuarios inmediatamente para forzar el recálculo
     setUsers((prevUsers) =>
       prevUsers.map((u) => (u.id === targetUserId ? { ...u, role: newRole } : u))
     );
 
-    // 3. Sincronizar en segundo plano con el servidor
+    // 3. Sincronizar con Supabase en segundo plano
     updateUserRole(adminEmail, targetUserId, newRole).catch(() => {});
 
     setTimeout(() => {
-      setActionMessage({ text: "✓ Porcentajes y modelos recalculados con éxito", success: true });
+      setActionMessage({ text: "✓ Datos y porcentajes actualizados en tiempo real", success: true });
       setTimeout(() => setActionMessage({ text: "", success: false }), 3000);
-    }, 3005);
+    }, 500);
   };
 
-  // CÁLCULOS MATEMÁTICOS REACTIVOS DIRECTOS SOBRE EL ESTADO ACTUAL DE 'users'
+  // CÁLCULOS MATEMÁTICOS DINÁMICOS SOBRE EL ESTADO ACTUAL DE 'users'
   const N = users.length;
   const adminCount = users.filter((u) => u.role === "ADMIN").length;
   const sellerCount = users.filter((u) => u.role === "SELLER").length;
