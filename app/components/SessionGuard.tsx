@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -8,7 +8,7 @@ export default function SessionGuard() {
   const [expired, setExpired] = useState(false);
 
   useEffect(() => {
-    // Revisa la validez de la sesión cada 3 segundos
+    // Verificamos cada segundo si la sesión ha expirado de forma real
     const interval = setInterval(() => {
       const sessionData = localStorage.getItem("user_session");
 
@@ -16,22 +16,22 @@ export default function SessionGuard() {
         try {
           const parsed = JSON.parse(sessionData);
 
-          // Si existe sessionExpiresAt y el tiempo actual superó el límite de 5 minutos
+          // Si el objeto tiene la estampa de tiempo y la hora actual ya la superó
           if (parsed.sessionExpiresAt && Date.now() > parsed.sessionExpiresAt) {
             setExpired(true);
             clearInterval(interval);
 
-            // Espera 3 segundos mostrando la alerta y luego redirige al login
+            // Muestra la alerta 3 segundos y redirige al login de forma automática
             setTimeout(() => {
               localStorage.removeItem("user_session");
               router.push("/login");
             }, 3000);
           }
         } catch (e) {
-          console.error("Error leyendo la sesión:", e);
+          console.error("Error al validar la sesión:", e);
         }
       }
-    }, 3000);
+    }, 1000); // Revisa cada 1 segundo en tiempo real
 
     return () => clearInterval(interval);
   }, [router]);
@@ -39,12 +39,12 @@ export default function SessionGuard() {
   if (!expired) return null;
 
   return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] w-[90%] max-w-md bg-red-950/90 border-2 border-red-500 text-red-200 px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-md flex items-center justify-between animate-bounce">
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] w-[90%] max-w-md bg-red-950/95 border-2 border-red-500 text-red-200 px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-md flex items-center justify-between animate-bounce">
       <div className="flex items-center gap-3">
         <span className="text-2xl">⚠️</span>
         <div>
           <h4 className="font-black text-sm uppercase text-red-400">Sesión Expirada</h4>
-          <p className="text-xs text-red-200">Has superado el límite de 5 minutos de inactividad. Redirigiendo...</p>
+          <p className="text-xs text-red-200">Se han cumplido los 5 minutos de inactividad. Cerrando sesión...</p>
         </div>
       </div>
     </div>
