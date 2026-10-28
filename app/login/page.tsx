@@ -14,17 +14,13 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Estado del error en tiempo real para el correo
   const [emailInputError, setEmailInputError] = useState("");
 
-  // Validaciones en tiempo real para la contraseña
   const hasMinLength = newPassword.length >= 8;
   const hasUpperCase = /[A-Z]/.test(newPassword);
   const hasNumberOrSymbol = /(?=.*\d)(?=.*[@$!%*?&])/.test(newPassword);
 
-  // Función de validación estricta de caracteres especiales prohibidos
   const validateEmailInput = (value: string) => {
-    // Detecta los 15 caracteres especiales prohibidos: ! # $ % ^ & * ( ) + = [ ] { } | ; : ' " \ , < > / ? ` ~
     const forbiddenCharsRegex = /[!#$%^&*()+=\[\]{};':"\\|,<>/?`~]/;
     
     if (forbiddenCharsRegex.test(value)) {
@@ -37,7 +33,7 @@ export default function LoginPage() {
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setFormData({ ...formData, email: value });
-    validateEmailInput(value); // Validar ANTES de oprimir el botón
+    validateEmailInput(value);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -52,10 +48,8 @@ export default function LoginPage() {
       const res = await loginUser(formData);
 
       if (res && res.success && res.user) {
-        // Guardamos el objeto completo retornado por la Server Action (incluyendo sessionExpiresAt a 5 min)
         localStorage.setItem("user_session", JSON.stringify(res.user));
         
-        // Redirección según rol o ruta por defecto
         if (res.user.role === "ADMIN") {
           window.location.href = "/admin";
         } else {
@@ -113,7 +107,7 @@ export default function LoginPage() {
       }
     } catch (err) {
       setErrorMessage("Error al conectar con el servidor para el reenvío.");
-    } fontally {
+    } finally {
       setLoading(false);
     }
   };
@@ -159,7 +153,6 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-black text-white px-4 py-8">
       <div className="relative max-w-md w-full bg-[#181818] p-8 rounded-2xl shadow-2xl border-t-2 border-amber-500">
         
-        {/* ENCABEZADO */}
         <div className="flex flex-col items-center justify-center mb-6">
           <div className="w-12 h-12 bg-amber-500 text-black font-extrabold text-xl rounded-xl flex items-center justify-center mb-3 shadow-lg shadow-amber-500/20">
             R
@@ -172,7 +165,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* MENSAJES GENERALES */}
         {errorMessage && (
           <div className="p-3 mb-4 rounded-xl text-xs font-medium text-center bg-red-950/50 border border-red-800 text-red-300">
             {errorMessage}
@@ -185,7 +177,6 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* VISTA 1: INICIO DE SESIÓN */}
         {view === "login" && (
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
@@ -201,7 +192,6 @@ export default function LoginPage() {
                 }`}
                 placeholder="usuario@reva.com"
               />
-              {/* Alerta dinámica instantánea */}
               {emailInputError && (
                 <p className="text-[11px] text-red-400 mt-1.5 font-medium animate-pulse">
                   {emailInputError}
@@ -247,7 +237,6 @@ export default function LoginPage() {
           </form>
         )}
 
-        {/* VISTA 2: SOLICITAR CORREO DE RECUPERACIÓN */}
         {view === "forgot_email" && (
           <form onSubmit={handleSendOtp} className="space-y-4">
             <div>
@@ -282,7 +271,6 @@ export default function LoginPage() {
           </form>
         )}
 
-        {/* VISTA 3: INGRESAR OTP Y NUEVA CONTRASEÑA */}
         {view === "forgot_otp" && (
           <form onSubmit={handleVerifyAndReset} className="space-y-4">
             <div>
