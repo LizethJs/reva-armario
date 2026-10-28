@@ -4,6 +4,12 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 
+// --- CONFIGURACIÓN DE TIEMPOS DE SEGURIDAD (ISO 27001) ---
+const SESSION_EXPIRATION_MINUTES = 5; // Requisito 10: 5 minutos de inactividad máxima
+const MAX_ATTEMPTS = 5; // Límite de 5 intentos fallidos
+const BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutos de bloqueo
+const OTP_EXPIRATION_MINUTES = 5; // 5 minutos de vigencia de OTP
+
 // --- SISTEMA DE RATE LIMITING EN MEMORIA ---
 interface RateLimitRecord {
   attempts: number;
@@ -11,10 +17,6 @@ interface RateLimitRecord {
 }
 
 const rateLimitMap = new Map<string, RateLimitRecord>();
-
-const MAX_ATTEMPTS = 5; // Límite de 3 intentos fallidos
-const BLOCK_DURATION_MS = 15 * 60 * 1000;; // 15 minutos de bloqueo
-const OTP_EXPIRATION_MINUTES = 5; // 5 minutos de vigencia
 
 function checkRateLimit(key: string): { allowed: boolean; remainingMinutes?: number } {
   const now = Date.now();
@@ -74,7 +76,7 @@ async function sendOtpEmail(email: string, otp: string) {
       from: `"RËVA Virtual Room" <${senderEmail}>`,
       to: email,
       replyTo: senderEmail,
-      subject: `${otp} - Tu código de verificación RËVA`,
+      subject: `Código de verificación RËVA: ${otp}`,
       text: `Tu código de verificación OTP es: ${otp}. Válido por 5 minutos.`,
       html: `
         <div style="font-family: Arial, sans-serif; background-color: #0d0f12; color: #ffffff; padding: 30px; border-radius: 12px; text-align: center; max-width: 480px; margin: auto;">
@@ -316,6 +318,9 @@ export async function loginUser(data: { email: string; password: string }) {
 
     resetRateLimit(rateLimitKey);
 
+    // Requisito 10: Generamos el timestamp de expiración por inactividad a los 5 minutos exactos
+    const sessionExpiresAt = Date.now() + SESSION_EXPIRATION_MINUTES * 60 * 1000;
+
     return {
       success: true,
       redirectTo: "/",
@@ -323,6 +328,7 @@ export async function loginUser(data: { email: string; password: string }) {
         name: user.name,
         email: user.email,
         role: user.role || "CLIENT",
+        sessionExpiresAt: sessionExpiresAt, // Expiración exacta de 5 minutos
       },
       message: "¡Bienvenido!",
     };
