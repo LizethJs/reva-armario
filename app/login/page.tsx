@@ -22,7 +22,6 @@ export default function LoginPage() {
 
   const validateEmailInput = (value: string) => {
     const forbiddenCharsRegex = /[!#$%^&*()+=\[\]{};':"\\|,<>/?`~]/;
-    
     if (forbiddenCharsRegex.test(value)) {
       setEmailInputError("⚠️ Error: El campo contiene caracteres especiales no permitidos.");
     } else {
@@ -50,8 +49,11 @@ export default function LoginPage() {
       if (res && res.success && res.user) {
         localStorage.setItem("user_session", JSON.stringify(res.user));
         
+        // Redirección estricta según el rol de la base de datos
         if (res.user.role === "ADMIN") {
           window.location.href = "/admin";
+        } else if (res.user.role === "SELLER") {
+          window.location.href = "/seller";
         } else {
           window.location.href = res.redirectTo || "/";
         }
@@ -78,7 +80,6 @@ export default function LoginPage() {
 
     try {
       const res = await forgotPassword(forgotEmail);
-
       if (res && res.success) {
         setLoading(false);
         setView("forgot_otp");

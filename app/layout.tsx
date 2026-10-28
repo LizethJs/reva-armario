@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import SessionGuard from "./components/SessionGuard"; // Ruta ajustada correctamente a la carpeta app/components
+import SessionGuard from "./components/SessionGuard";
 
 export const metadata: Metadata = {
   title: "Alta Daily",
@@ -15,7 +15,6 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className="antialiased">
-        {/* Guardián Global de Expiración de Sesión (5 Minutos) */}
         <SessionGuard />
         {children}
       </body>
