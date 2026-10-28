@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 
 // --- CONFIGURACIÓN DE TIEMPOS DE SEGURIDAD (ISO 27001) ---
-const SESSION_EXPIRATION_MINUTES = 5; // Requisito 10: 5 minutos de inactividad máxima
+const SESSION_EXPIRATION_MINUTES = 8; // Requisito 10: Ajustado a 8 minutos de inactividad
 const MAX_ATTEMPTS = 5; // Límite de 5 intentos fallidos
 const BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutos de bloqueo
 const OTP_EXPIRATION_MINUTES = 5; // 5 minutos de vigencia de OTP
@@ -53,11 +53,11 @@ function resetRateLimit(key: string) {
   rateLimitMap.delete(key);
 }
 
-// --- CONFIGURACIÓN DE NODEMAILER OPTIMIZADA PARA DOMINIOS EXTERNOS ---
+// --- CONFIGURACIÓN DE NODEMAILER OPTIMIZADA ---
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 465,
-  secure: true, // SSL para máxima compatibilidad
+  secure: true,
   auth: {
     user: process.env.EMAIL_SERVER_USER,
     pass: process.env.EMAIL_SERVER_PASSWORD,
@@ -318,12 +318,20 @@ export async function loginUser(data: { email: string; password: string }) {
 
     resetRateLimit(rateLimitKey);
 
-    // Requisito 10: Generamos el timestamp de expiración por inactividad a los 5 minutos exactos
+    // Requisito 10: Expiración de sesión por inactividad ajustada a 8 minutos
     const sessionExpiresAt = Date.now() + SESSION_EXPIRATION_MINUTES * 60 * 1000;
 
-    // Redirección inteligente según el rol registrado en la base de datos
-    const userRole = user.role || "CLIENT";
-    const targetRedirect = userRole === "ADMIN" ? "/admin" : "/";
+    // Redirección explicita por rol incluyendo SELLER
+    const userRole = user.role ? user.role.toUpperCase() : "CLIENT";
+    let targetRedirect = "/";
+
+    if (userRole === "ADMIN") {
+      targetRedirect = "/admin";
+    } else if (userRole === "SELLER") {
+      targetRedirect = "/seller";
+    } else {
+      targetRedirect = "/";
+    }
 
     return {
       success: true,
@@ -332,7 +340,7 @@ export async function loginUser(data: { email: string; password: string }) {
         name: user.name,
         email: user.email,
         role: userRole,
-        sessionExpiresAt: sessionExpiresAt, // Expiración exacta de 5 minutos
+        sessionExpiresAt: sessionExpiresAt,
       },
       message: "¡Bienvenido!",
     };
@@ -345,7 +353,7 @@ export async function loginUser(data: { email: string; password: string }) {
   }
 }
 
-// --- ACTIONS PARA RECUPERACIÓN DE CONTRASEÑA CON CORREO REAL ---
+// --- ACTIONS PARA RECUPERACIÓN DE CONTRASEÑA ---
 
 export async function forgotPassword(email: string) {
   try {
