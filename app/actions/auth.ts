@@ -321,13 +321,17 @@ export async function loginUser(data: { email: string; password: string }) {
     // Requisito 10: Generamos el timestamp de expiración por inactividad a los 5 minutos exactos
     const sessionExpiresAt = Date.now() + SESSION_EXPIRATION_MINUTES * 60 * 1000;
 
+    // Redirección inteligente según el rol registrado en la base de datos
+    const userRole = user.role || "CLIENT";
+    const targetRedirect = userRole === "ADMIN" ? "/admin" : "/";
+
     return {
       success: true,
-      redirectTo: "/",
+      redirectTo: targetRedirect,
       user: {
         name: user.name,
         email: user.email,
-        role: user.role || "CLIENT",
+        role: userRole,
         sessionExpiresAt: sessionExpiresAt, // Expiración exacta de 5 minutos
       },
       message: "¡Bienvenido!",
