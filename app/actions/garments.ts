@@ -39,22 +39,26 @@ export async function getGarmentsByUser(userId: string) {
   }
 }
 
-// 3. Guardar una nueva prenda de forma permanente con validación de enlaces de terceros
-export async function createGarment(data: {
-  name: string;
-  category: 'tops' | 'bottoms' | 'shoes' | 'outerwear' | string;
-  vibe?: string;
-  url: string;
-  price?: string;
-  storeUrl?: string;
-  description?: string;
-  vendorName?: string;
-  vendorContact?: string;
-  userId?: string;
-}) {
+// 3. Guardar una nueva prenda recibiendo FormData de forma segura
+export async function createGarment(formData: FormData) {
   try {
+    const name = formData.get('name')?.toString().trim() || '';
+    const category = formData.get('category')?.toString().trim() || 'tops';
+    const vibe = formData.get('vibe')?.toString().trim() || 'Casual';
+    const url = formData.get('url')?.toString().trim() || '';
+    const price = formData.get('price')?.toString().trim() || '$50.000 COP';
+    const storeUrl = formData.get('storeUrl')?.toString().trim() || '';
+    const description = formData.get('description')?.toString().trim() || '';
+    const vendorName = formData.get('vendorName')?.toString().trim() || 'Administrador';
+    const vendorContact = formData.get('vendorContact')?.toString().trim() || '';
+    const userId = formData.get('userId')?.toString().trim() || null;
+
+    if (!name || !url) {
+      return { success: false, error: 'El nombre y la imagen de la prenda son obligatorios.' };
+    }
+
     // 🔒 Validación SSDLC de seguridad: Sanitizar y verificar URL de enlaces de terceros
-    let cleanStoreUrl = data.storeUrl?.trim() || '';
+    let cleanStoreUrl = storeUrl;
     if (cleanStoreUrl && !cleanStoreUrl.startsWith('http://') && !cleanStoreUrl.startsWith('https://')) {
       return { 
         success: false, 
@@ -64,17 +68,16 @@ export async function createGarment(data: {
 
     const newGarment = await prisma.garment.create({
       data: {
-        name: data.name,
-        category: data.category,
-        vibe: data.vibe || 'Casual',
-        url: data.url,
-        price: data.price || '$50.000 COP',
+        name,
+        category,
+        vibe,
+        url,
+        price,
         storeUrl: cleanStoreUrl,
-        description: data.description || '',
-        vendorName: data.vendorName || 'Administrador',
-        vendorContact: data.vendorContact || '',
-        userId: data.userId || null,
-        isFavorite?: boolean // <-- Añade esta línea aquí
+        description,
+        vendorName,
+        vendorContact,
+        userId,
       },
     });
 
