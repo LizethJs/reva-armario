@@ -284,7 +284,7 @@ export async function loginUser(data: { email: string; password: string }) {
     if (userRole === "ADMIN") {
       targetRedirect = "/admin";
     } else if (userRole === "SELLER") {
-      targetRedirect = "/seller";
+      targetRedirect = "/"; // <--- Corregido a la raíz para evitar el error 404
     } else {
       targetRedirect = "/";
     }
