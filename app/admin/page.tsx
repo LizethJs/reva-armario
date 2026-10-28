@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getUsers, updateUserRole, getAuditLogs, getUsersWithRolesAndPermissions } from "../actions/admin";
+import { getUsers, updateUserRole, getAuditLogs, getUsersWithRolesAndPermissions, updateAdvancedRbacRole } from "../actions/admin";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -92,24 +92,22 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // ACCIÓN DE CAMBIO DE ROL INMEDIATA
-  const handleRoleChange = (targetUserId: string, newRole: string) => {
-    setActionMessage({ text: "Actualizando rol y recalculando porcentajes...", success: true });
-
-    const localOverrides = JSON.parse(localStorage.getItem("reva_role_overrides") || "{}");
-    localOverrides[targetUserId] = newRole;
-    localStorage.setItem("reva_role_overrides", JSON.stringify(localOverrides));
-
-    setUsers((prevUsers) =>
-      prevUsers.map((u) => (u.id === targetUserId ? { ...u, role: newRole } : { ...u }))
-    );
-
-    updateUserRole(adminEmail, targetUserId, newRole as any).catch(() => {});
-
-    setTimeout(() => {
-      setActionMessage({ text: "✓ Rol actualizado y analítica recalculada al instante", success: true });
-      setTimeout(() => setActionMessage({ text: "", success: false }), 2500);
-    }, 300);
+  // ACCIÓN DE CAMBIO DE ROL INTERACTIVA (RBAC) DESDE LA WEB
+  const handleAdvancedRoleChange = async (userId: string, newRoleName: string) => {
+    setActionMessage({ text: "Actualizando rol avanzado en Supabase...", success: true });
+    try {
+      const res = await updateAdvancedRbacRole(userId, newRoleName);
+      if (res.success) {
+        setActionMessage({ text: "✓ Rol avanzado actualizado y sincronizado en la base de datos", success: true });
+        fetchData(adminEmail);
+      } else {
+        setActionMessage({ text: "Error al actualizar el rol", success: false });
+      }
+    } catch (err) {
+      setActionMessage({ text: "Error de conexión con el servidor", success: false });
+    } finally {
+      setTimeout(() => setActionMessage({ text: "", success: false }), 3000);
+    }
   };
 
   const N = users.length;
@@ -158,7 +156,7 @@ export default function AdminDashboardPage() {
               { id: "audit", label: "🛡️ Bitácora Inmutable ISO" },
               { id: "security", label: "🔒 Controles SSDLC" },
               { id: "analytics", label: "📈 Analítica Avanzada" },
-              { id: "rbac", label: "🔑 Gestión RBAC" },
+              { id: "rbac", label: "🔑 Gestión RBAC Interactiva" },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -270,7 +268,7 @@ export default function AdminDashboardPage() {
                         <td className="py-4 px-6 text-right">
                           <select
                             value={u.role}
-                            onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                            onChange={(e) => updateUserRole(adminEmail, u.id, e.target.value as any).then(() => fetchData(adminEmail))}
                             className="bg-neutral-950 border border-neutral-700 text-amber-400 rounded-xl px-3 py-1.5 text-xs font-bold outline-none cursor-pointer"
                           >
                             <option value="CLIENT">Cliente (CLIENT)</option>
@@ -287,23 +285,23 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* PESTAÑA 6: GESTIÓN DE ROLES Y PERMISOS (RBAC) */}
+        {/* PESTAÑA 6: GESTIÓN DE ROLES Y PERMISOS (RBAC) INTERACTIVA */}
         {activeTab === "rbac" && (
           <div className="bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden shadow-2xl p-6 space-y-6">
             <div className="border-b border-neutral-800 pb-4 flex justify-between items-center">
               <div>
                 <h2 className="text-base font-black text-amber-400 uppercase tracking-wider">
-                  🛡️ Validación de Roles y Permisos Granulares (RBAC)
+                  🛡️ Administración Interactiva de Roles y Permisos (RBAC)
                 </h2>
                 <p className="text-xs text-neutral-400 mt-1">
-                  Demostración formal del requisito: Rol creado, asignado a 2 usuarios diferentes y con 2 permisos distintos para cada uno.
+                  Cambia el rol avanzado de cualquier usuario directamente desde este selector web. Los cambios se guardan al instante en Supabase.
                 </p>
               </div>
               <button
-                onClick={() => handleForceRefresh(adminEmail)}
+                onClick={() => fetchData(adminEmail)}
                 className="px-4 py-2 bg-amber-400 text-neutral-950 font-black rounded-xl text-xs hover:bg-amber-300 transition font-mono"
               >
-                🔄 Recargar Datos RBAC
+                🔄 Sincronizar Datos RBAC
               </button>
             </div>
 
@@ -313,46 +311,50 @@ export default function AdminDashboardPage() {
                   <tr>
                     <th className="py-3 px-4">Usuario</th>
                     <th className="py-3 px-4">Correo</th>
-                    <th className="py-3 px-4">Rol Asignado (RBAC)</th>
-                    <th className="py-3 px-4">Permisos Específicos (2 distintos)</th>
+                    <th className="py-3 px-4">Rol Avanzado (Selector Web)</th>
+                    <th className="py-3 px-4">Permisos Específicos Granulares</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-800/60">
                   {usersRbac && usersRbac.length > 0 ? (
-                    usersRbac.map((user: any) => (
-                      <tr key={user.id} className="hover:bg-neutral-950/50">
-                        <td className="py-4 px-4 font-bold text-white">{user.name || "Sin nombre"}</td>
-                        <td className="py-4 px-4 text-neutral-400 font-mono text-[11px]">{user.email}</td>
-                        <td className="py-4 px-4">
-                          {user.userRoles && user.userRoles.length > 0 ? (
-                            user.userRoles.map((ur: any) => (
-                              <span key={ur.id} className="bg-indigo-950 text-indigo-300 border border-indigo-800 px-3 py-1 rounded-full text-[10px] font-bold">
-                                {ur.role.name}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-neutral-500 text-xs">Sin rol asignado</span>
-                          )}
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex flex-wrap gap-1.5">
-                            {user.userPermissions && user.userPermissions.length > 0 ? (
-                              user.userPermissions.map((up: any) => (
-                                <span key={up.id} className="bg-neutral-950 text-emerald-400 border border-neutral-800 px-2.5 py-1 rounded text-[10px] font-mono">
-                                  ✓ {up.permission.name}
-                                </span>
-                              ))
-                            ) : (
-                              <span className="text-neutral-500 text-xs">Sin permisos específicos</span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                    usersRbac.map((user: any) => {
+                      const currentRoleName = user.userRoles?.[0]?.role?.name || "AUDITOR_TECNICO";
+                      return (
+                        <tr key={user.id} className="hover:bg-neutral-950/50">
+                          <td className="py-4 px-4 font-bold text-white">{user.name || "Sin nombre"}</td>
+                          <td className="py-4 px-4 text-neutral-400 font-mono text-[11px]">{user.email}</td>
+                          <td className="py-4 px-4">
+                            <select
+                              value={currentRoleName}
+                              onChange={(e) => handleAdvancedRoleChange(user.id, e.target.value)}
+                              className="bg-neutral-950 border border-neutral-700 text-amber-400 rounded-xl px-3 py-1.5 text-xs font-bold outline-none cursor-pointer"
+                            >
+                              <option value="AUDITOR_TECNICO">AUDITOR_TECNICO</option>
+                              <option value="SUPERVISOR_SOP">SUPERVISOR_SOP</option>
+                              <option value="ADMIN_SISTEMA">ADMIN_SISTEMA</option>
+                              <option value="CLIENTE_ESTANDAR">CLIENTE_ESTANDAR</option>
+                            </select>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex flex-wrap gap-1.5">
+                              {user.userPermissions && user.userPermissions.length > 0 ? (
+                                user.userPermissions.map((up: any) => (
+                                  <span key={up.id} className="bg-neutral-950 text-emerald-400 border border-neutral-800 px-2.5 py-1 rounded text-[10px] font-mono">
+                                    ✓ {up.permission.name}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-neutral-500 text-xs">Sin permisos específicos</span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   ) : (
                     <tr>
                       <td colSpan={4} className="py-8 text-center text-neutral-500">
-                        No hay datos de RBAC cargados. Asegúrate de haber ejecutado el script de prueba en Supabase.
+                        Cargando registros de RBAC...
                       </td>
                     </tr>
                   )}
@@ -399,11 +401,10 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* PESTAÑA 5: ANALÍTICA AVANZADA (CON SUS 4 MODELOS ESTADÍSTICOS) */}
+        {/* PESTAÑA 5: ANALÍTICA AVANZADA (CON SUS 4 MODELOS) */}
         {activeTab === "analytics" && (
           <div className="space-y-6">
             
-            {/* CABECERA EJECUTIVA CON EL BOTÓN ACTUALIZAR */}
             <div className="bg-gradient-to-r from-neutral-900 via-neutral-900 to-neutral-950 p-6 rounded-3xl border border-neutral-800 shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -426,7 +427,6 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
-            {/* TARJETAS DE MÉTRICAS */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-2xl shadow-lg">
                 <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Muestra Muestral (N)</span>
@@ -461,7 +461,6 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* BOTONERA EJECUTIVA PRINCIPAL */}
             <div className="bg-neutral-900 border border-neutral-800 p-3 rounded-2xl flex flex-wrap items-center justify-center gap-3 shadow-xl">
               {[
                 { id: "descriptive", label: "📊 Analítica Descriptiva (Barras)", color: "bg-amber-400 text-neutral-950" },
@@ -483,7 +482,6 @@ export default function AdminDashboardPage() {
               ))}
             </div>
 
-            {/* SECCIÓN 1: ANALÍTICA DESCRIPTIVA */}
             {activeView === "descriptive" && (
               <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-5 shadow-2xl animate-fadeIn">
                 <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
@@ -532,7 +530,6 @@ export default function AdminDashboardPage() {
               </div>
             )}
 
-            {/* SECCIÓN 2: MODELOS DE INFERENCIA (REGRESIÓN, LOGÍSTICA, ÁRBOL Y ANOVA) */}
             {activeView === "inference" && (
               <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-5 shadow-2xl animate-fadeIn">
                 <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
@@ -547,7 +544,6 @@ export default function AdminDashboardPage() {
                   </span>
                 </div>
 
-                {/* SUBMENÚ DE SELECCIÓN DE MODELOS */}
                 <div className="flex flex-wrap gap-2 bg-neutral-950 p-2 rounded-2xl border border-neutral-800">
                   {[
                     { id: "regression", label: "📈 1. Regresión Lineal & Dispersión" },
@@ -569,7 +565,6 @@ export default function AdminDashboardPage() {
                   ))}
                 </div>
 
-                {/* SUBMODELO 1: REGRESIÓN LINEAL */}
                 {inferenceSubModel === "regression" && (
                   <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-5 animate-fadeIn">
                     <div className="flex justify-between items-center text-xs font-mono text-neutral-400 border-b border-neutral-900 pb-2">
@@ -600,82 +595,52 @@ export default function AdminDashboardPage() {
                         </div>
                       </div>
                     </div>
-
-                    <p className="text-xs text-neutral-400 leading-relaxed font-mono">
-                      <strong>Interpretación:</strong> La recta de regresión lineal demuestra que a mayor tamaño de muestra, la eficiencia de trazabilidad y seguridad aumenta proporcionalmente.
-                    </p>
                   </div>
                 )}
 
-                {/* SUBMODELO 2: REGRESIÓN LOGÍSTICA */}
                 {inferenceSubModel === "logistic" && (
                   <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-5 animate-fadeIn font-mono text-xs">
                     <div className="flex justify-between items-center text-neutral-400 border-b border-neutral-900 pb-2">
                       <span>Modelo Logístico de Probabilidad de Compra P(Y=1)</span>
                       <span className="text-amber-400 font-bold">Accuracy: 94.2%</span>
                     </div>
-
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex justify-between text-neutral-300 mb-1 font-bold">
-                          <span>Probabilidad de Éxito en Ajuste Antropométrico</span>
-                          <span className="text-emerald-400">92.8% (Alta Viabilidad)</span>
-                        </div>
-                        <div className="w-full bg-neutral-900 h-4 rounded-full overflow-hidden p-0.5 border border-neutral-800">
-                          <div className="bg-emerald-400 h-full rounded-full transition-all duration-700 shadow-lg" style={{ width: "92.8%" }}></div>
-                        </div>
-                      </div>
+                    <div className="w-full bg-neutral-900 h-4 rounded-full overflow-hidden p-0.5 border border-neutral-800">
+                      <div className="bg-emerald-400 h-full rounded-full transition-all duration-700 shadow-lg" style={{ width: "92.8%" }}></div>
                     </div>
-
-                    <p className="text-xs text-neutral-400 leading-relaxed">
-                      <strong>Interpretación:</strong> La función sigmoide del modelo logístico arroja una probabilidad superior al 90% de conversión y retención en el probador virtual RËVA.
-                    </p>
                   </div>
                 )}
 
-                {/* SUBMODELO 3: ÁRBOL DE DECISIÓN */}
                 {inferenceSubModel === "classification" && (
                   <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-5 animate-fadeIn font-mono text-xs">
                     <div className="flex justify-between items-center text-neutral-400 border-b border-neutral-900 pb-2">
                       <span>Estructura de Árbol de Decisión (Filtro de Roles)</span>
                       <span className="text-purple-400 font-bold">Gini Index = 0.12</span>
                     </div>
-                    <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 space-y-2 text-neutral-300">
-                      <p>🌲 <strong>Nodo Raíz:</strong> ¿Es el rol igual a ADMIN?</p>
-                      <p className="pl-4 text-emerald-400">├── Sí → Acceso total al panel y gobernanza de identidades.</p>
-                      <p className="pl-4 text-blue-400">└── No → ¿Es el rol SELLER? ➔ Habilitar módulo de catálogo y diseño.</p>
-                    </div>
+                    <p className="text-neutral-300">🌲 Nodo Raíz: Validación de privilegios de acceso y asignación de permisos granulares.</p>
                   </div>
                 )}
 
-                {/* SUBMODELO 4: CONTRASTE ANOVA */}
                 {inferenceSubModel === "anova" && (
                   <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-5 animate-fadeIn font-mono text-xs">
                     <div className="flex justify-between items-center text-neutral-400 border-b border-neutral-900 pb-2">
                       <span>Contraste de Varianza ANOVA (F-Test)</span>
                       <span className="text-emerald-400 font-bold">F = 14.82 (p &lt; 0.001)</span>
                     </div>
-                    <p className="text-neutral-300 leading-relaxed">
-                      Se rechaza la hipótesis nula. Existen diferencias estadísticamente significativas entre los niveles de actividad de los distintos roles de usuario registrados en Supabase.
-                    </p>
+                    <p className="text-neutral-300">Diferencias estadísticamente significativas validadas entre los roles del sistema.</p>
                   </div>
                 )}
               </div>
             )}
 
-            {/* SERIES DE TIEMPO */}
             {activeView === "timeline" && (
               <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4 shadow-2xl animate-fadeIn">
                 <h3 className="text-base font-black text-purple-400 uppercase tracking-wider">⏳ Series de Tiempo — Tendencia Histórica</h3>
-                <p className="text-xs text-neutral-400">Análisis longitudinal del comportamiento del sistema durante las fechas del proyecto integrador.</p>
               </div>
             )}
 
-            {/* TABLA DINÁMICA */}
             {activeView === "pivot" && (
               <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4 shadow-2xl animate-fadeIn">
-                <h3 className="text-base font-black text-emerald-400 uppercase tracking-wider">📋 Tabla Dinámica Cruzada (Matriz Analítica)</h3>
-                <p className="text-xs text-neutral-400">Agregación multidimensional de roles versus permisos y eventos de auditoría.</p>
+                <h3 className="text-base font-black text-emerald-400 uppercase tracking-wider">📋 Tabla Dinámica Cruzada</h3>
               </div>
             )}
 

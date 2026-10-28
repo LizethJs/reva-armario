@@ -39,7 +39,7 @@ export async function getAdminStats() {
   }
 }
 
-// 2. Obtiene la lista de usuarios para el panel (Compatible con formato de éxito)
+// 2. Obtiene la lista de usuarios para el panel
 export async function getUsers(adminEmail: string) {
   try {
     const admin = await prisma.user.findUnique({ where: { email: adminEmail } });
@@ -66,7 +66,6 @@ export async function getUsers(adminEmail: string) {
   }
 }
 
-// Mantiene compatibilidad si otra parte del código llama a getUsersList
 export async function getUsersList(adminEmail: string) {
   const res = await getUsers(adminEmail);
   if (!res.success) throw new Error(res.error);
@@ -184,5 +183,27 @@ export async function getUsersWithRolesAndPermissions() {
     return { success: true, users };
   } catch (error: any) {
     return { success: false, users: [], message: error.message };
+  }
+}
+
+// 5. Actualiza el rol RBAC interactivamente desde el selector web
+export async function updateAdvancedRbacRole(userId: string, newRoleName: string) {
+  try {
+    let role = await prisma.roleModel.findFirst({ where: { name: newRoleName } });
+    if (!role) {
+      role = await prisma.roleModel.create({
+        data: { name: newRoleName, description: "Rol asignado interactivamente desde el panel web" },
+      });
+    }
+
+    await prisma.userRole.deleteMany({ where: { userId } });
+    await prisma.userRole.create({
+      data: { userId, roleId: role.id },
+    });
+
+    return { success: true, message: "Rol avanzado actualizado en Supabase con éxito." };
+  } catch (error: any) {
+    console.error("Error al actualizar rol RBAC avanzado:", error);
+    return { success: false, message: error.message || "Error al actualizar el rol en la base de datos." };
   }
 }
