@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getUsers, updateUserRole, getAuditLogs, getUsersWithRolesAndPermissions, updateAdvancedRbacRole } from "../actions/admin";
+import { getUsers, updateUserRole, getAuditLogs, getUsersWithRolesAndPermissions, updateAdvancedRbacRole, updateUserPermissions } from "../actions/admin";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -92,7 +92,7 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // ACCIÓN DE CAMBIO DE ROL INTERACTIVA (RBAC) DESDE LA WEB
+  // ACCIÓN DE CAMBIO DE ROL AVANZADO INTERACTIVA (RBAC)
   const handleAdvancedRoleChange = async (userId: string, newRoleName: string) => {
     setActionMessage({ text: "Actualizando rol avanzado en Supabase...", success: true });
     try {
@@ -291,10 +291,10 @@ export default function AdminDashboardPage() {
             <div className="border-b border-neutral-800 pb-4 flex justify-between items-center">
               <div>
                 <h2 className="text-base font-black text-amber-400 uppercase tracking-wider">
-                  🛡️ Administración Interactiva de Roles y Permisos (RBAC)
+                  🛡️ Administración Interactiva de Roles y Permisos Granulares
                 </h2>
                 <p className="text-xs text-neutral-400 mt-1">
-                  Cambia el rol avanzado de cualquier usuario directamente desde este selector web. Los cambios se guardan al instante en Supabase.
+                  Modifica el rol avanzado y marca o desmarca los permisos específicos de cada usuario. Todo se actualiza de inmediato en Supabase.
                 </p>
               </div>
               <button
@@ -310,19 +310,23 @@ export default function AdminDashboardPage() {
                 <thead className="bg-neutral-950 text-neutral-400 uppercase text-[10px] tracking-wider font-bold border-b border-neutral-800">
                   <tr>
                     <th className="py-3 px-4">Usuario</th>
-                    <th className="py-3 px-4">Correo</th>
+                    <th className="py-3 px-4">Correo Electrónico</th>
                     <th className="py-3 px-4">Rol Avanzado (Selector Web)</th>
-                    <th className="py-3 px-4">Permisos Específicos Granulares</th>
+                    <th className="py-3 px-4">Permisos Granulares (Checkboxes Interactivos)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-800/60">
                   {usersRbac && usersRbac.length > 0 ? (
                     usersRbac.map((user: any) => {
                       const currentRoleName = user.userRoles?.[0]?.role?.name || "AUDITOR_TECNICO";
+                      const assignedPerms = user.userPermissions?.map((up: any) => up.permission.name) || [];
+
                       return (
                         <tr key={user.id} className="hover:bg-neutral-950/50">
                           <td className="py-4 px-4 font-bold text-white">{user.name || "Sin nombre"}</td>
                           <td className="py-4 px-4 text-neutral-400 font-mono text-[11px]">{user.email}</td>
+                          
+                          {/* Selector de Rol Avanzado */}
                           <td className="py-4 px-4">
                             <select
                               value={currentRoleName}
@@ -335,17 +339,52 @@ export default function AdminDashboardPage() {
                               <option value="CLIENTE_ESTANDAR">CLIENTE_ESTANDAR</option>
                             </select>
                           </td>
+
+                          {/* Checkboxes Interactivos para Permisos Granulares */}
                           <td className="py-4 px-4">
-                            <div className="flex flex-wrap gap-1.5">
-                              {user.userPermissions && user.userPermissions.length > 0 ? (
-                                user.userPermissions.map((up: any) => (
-                                  <span key={up.id} className="bg-neutral-950 text-emerald-400 border border-neutral-800 px-2.5 py-1 rounded text-[10px] font-mono">
-                                    ✓ {up.permission.name}
-                                  </span>
-                                ))
-                              ) : (
-                                <span className="text-neutral-500 text-xs">Sin permisos específicos</span>
-                              )}
+                            <div className="flex flex-col gap-2">
+                              {[
+                                "EDITAR_PRECIOS",
+                                "EXPORTAR_DATOS",
+                                "EDITAR_CATALOGO_PRECIOS",
+                                "EXPORTAR_DATOS_SYSTEM",
+                                "VER_REPORTES",
+                                "AUDITAR_LOGS",
+                                "VER_REPORTES_AVANZADOS",
+                                "AUDITAR_LOGS_ISO"
+                              ].map((perm) => {
+                                const hasPermission = assignedPerms.includes(perm);
+                                return (
+                                  <label key={perm} className="flex items-center gap-2 cursor-pointer text-[11px] font-mono">
+                                    <input
+                                      type="checkbox"
+                                      checked={hasPermission}
+                                      onChange={async (e) => {
+                                        let updatedPerms = [...assignedPerms];
+                                        if (e.target.checked) {
+                                          updatedPerms.push(perm);
+                                        } else {
+                                          updatedPerms = updatedPerms.filter((p) => p !== perm);
+                                        }
+
+                                        setActionMessage({ text: "Actualizando permisos en Supabase...", success: true });
+                                        const res = await updateUserPermissions(user.id, updatedPerms);
+                                        if (res.success) {
+                                          setActionMessage({ text: "✓ Permisos granulares actualizados con éxito", success: true });
+                                          fetchData(adminEmail);
+                                        } else {
+                                          setActionMessage({ text: "Error al actualizar permisos", success: false });
+                                        }
+                                        setTimeout(() => setActionMessage({ text: "", success: false }), 2500);
+                                      }}
+                                      className="w-3.5 h-3.5 accent-amber-400 rounded cursor-pointer"
+                                    />
+                                    <span className={hasPermission ? "text-emerald-400 font-bold" : "text-neutral-500"}>
+                                      {perm}
+                                    </span>
+                                  </label>
+                                );
+                              })}
                             </div>
                           </td>
                         </tr>

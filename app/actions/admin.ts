@@ -72,7 +72,7 @@ export async function getUsersList(adminEmail: string) {
   return res.users;
 }
 
-// 3. Modifica el rol de un usuario y registra el evento de auditoría
+// 3. Modifica el rol base de un usuario y registra el evento de auditoría
 export async function updateUserRole(
   adminEmail: string,
   targetUserId: string,
@@ -93,7 +93,7 @@ export async function updateUserRole(
       admin.id,
       "UPDATE_USER_ROLE",
       targetUserId,
-      `El administrador ${admin.email} actualizó el rol de ${updatedUser.email} a ${newRole}`
+      `El administrador ${admin.email} actualizó el rol base de ${updatedUser.email} a ${newRole}`
     );
 
     return { success: true, message: `Rol de ${updatedUser.email} actualizado a ${newRole} con éxito.` };
@@ -126,50 +126,6 @@ export async function getAuditLogs(adminEmail: string) {
 
 // --- FUNCIONALIDAD DE ROLES Y PERMISOS RBAC ---
 
-export async function createRole(roleName: string, description: string) {
-  try {
-    const role = await prisma.roleModel.create({
-      data: { name: roleName.trim().toUpperCase(), description },
-    });
-    return { success: true, role, message: `Rol '${role.name}' creado exitosamente.` };
-  } catch (error: any) {
-    return { success: false, message: error.message || "Error al crear el rol." };
-  }
-}
-
-export async function assignRoleToUser(userId: string, roleId: string) {
-  try {
-    await prisma.userRole.create({
-      data: { userId, roleId },
-    });
-    return { success: true, message: "Rol asignado correctamente al usuario." };
-  } catch (error: any) {
-    return { success: false, message: "El usuario ya tiene asignado este rol." };
-  }
-}
-
-export async function assignPermissionToUser(userId: string, permissionName: string, description: string) {
-  try {
-    let permission = await prisma.permission.findUnique({
-      where: { name: permissionName.trim().toUpperCase() },
-    });
-
-    if (!permission) {
-      permission = await prisma.permission.create({
-        data: { name: permissionName.trim().toUpperCase(), description },
-      });
-    }
-
-    await prisma.userPermission.create({
-      data: { userId, permissionId: permission.id },
-    });
-
-    return { success: true, message: `Permiso '${permission.name}' asignado al usuario.` };
-  } catch (error: any) {
-    return { success: false, message: "El usuario ya cuenta con este permiso asignado." };
-  }
-}
-
 export async function getUsersWithRolesAndPermissions() {
   try {
     const users = await prisma.user.findMany({
@@ -186,13 +142,13 @@ export async function getUsersWithRolesAndPermissions() {
   }
 }
 
-// 5. Actualiza el rol RBAC interactivamente desde el selector web
+// 5. Actualiza el rol avanzado (RBAC) interactivamente desde la web
 export async function updateAdvancedRbacRole(userId: string, newRoleName: string) {
   try {
     let role = await prisma.roleModel.findFirst({ where: { name: newRoleName } });
     if (!role) {
       role = await prisma.roleModel.create({
-        data: { name: newRoleName, description: "Rol asignado interactivamente desde el panel web" },
+        data: { name: newRoleName, description: "Rol avanzado gestionado desde el panel web" },
       });
     }
 
@@ -205,5 +161,33 @@ export async function updateAdvancedRbacRole(userId: string, newRoleName: string
   } catch (error: any) {
     console.error("Error al actualizar rol RBAC avanzado:", error);
     return { success: false, message: error.message || "Error al actualizar el rol en la base de datos." };
+  }
+}
+
+// 6. Actualiza los permisos granulares de un usuario de forma interactiva desde la web
+export async function updateUserPermissions(userId: string, permissionNames: string[]) {
+  try {
+    await prisma.userPermission.deleteMany({ where: { userId } });
+
+    for (const permName of permissionNames) {
+      let permission = await prisma.permission.findUnique({
+        where: { name: permName.trim().toUpperCase() },
+      });
+
+      if (!permission) {
+        permission = await prisma.permission.create({
+          data: { name: permName.trim().toUpperCase(), description: "Permiso dinámico gestionado desde la web" },
+        });
+      }
+
+      await prisma.userPermission.create({
+        data: { userId, permissionId: permission.id },
+      });
+    }
+
+    return { success: true, message: "Permisos granulares actualizados correctamente en Supabase." };
+  } catch (error: any) {
+    console.error("Error al actualizar permisos granulares:", error);
+    return { success: false, message: error.message || "Error al actualizar los permisos." };
   }
 }
