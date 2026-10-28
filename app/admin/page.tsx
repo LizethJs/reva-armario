@@ -433,30 +433,55 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* PESTAÑA 3: BITÁCORA */}
+        {/* PESTAÑA 3: BITÁCORA INMUTABLE CONECTADA (Requisito 9) */}
         {activeTab === "audit" && (
           <div className="bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden shadow-2xl">
             <div className="p-5 border-b border-neutral-800 flex justify-between items-center">
               <div>
                 <h2 className="text-sm font-black text-amber-400 uppercase tracking-wider">Bitácora Inmutable ISO/IEC 27001</h2>
-                <p className="text-xs text-neutral-400">Registro de eventos y trazabilidad forense</p>
+                <p className="text-xs text-neutral-400">Trazabilidad forense en tiempo real de acciones administrativas</p>
               </div>
               <span className="text-xs bg-neutral-950 px-3 py-1 rounded-xl text-emerald-400 border border-neutral-800 font-mono">
-                {totalAuditEvents} Eventos Registrados
+                {auditLogs.length} Eventos Registrados
               </span>
             </div>
+            
             <div className="p-6">
-              <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800 space-y-3 font-mono text-xs">
-                <div className="flex justify-between text-neutral-400 border-b border-neutral-900 pb-2">
-                  <span>Timestamp</span>
-                  <span>Acción del Sistema</span>
-                  <span>Estado</span>
-                </div>
-                <div className="flex justify-between text-neutral-300">
-                  <span className="text-neutral-500">2026-11-10 08:30:12</span>
-                  <span className="text-amber-400">INICIALIZACIÓN DE KERNEL ANALÍTICO</span>
-                  <span className="text-emerald-400">SUCCESS</span>
-                </div>
+              <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800 overflow-x-auto max-h-[500px] overflow-y-auto">
+                {auditLogs.length > 0 ? (
+                  <table className="w-full text-left border-collapse font-mono text-xs">
+                    <thead>
+                      <tr className="text-neutral-400 border-b border-neutral-900 text-[10px] uppercase">
+                        <th className="pb-3 pr-4">Timestamp</th>
+                        <th className="pb-3 pr-4">Acción Crítica</th>
+                        <th className="pb-3 pr-4">Objetivo (ID)</th>
+                        <th className="pb-3">Detalles Forenses</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-900/60">
+                      {auditLogs.map((log: any) => (
+                        <tr key={log.id} className="hover:bg-neutral-900/40 transition">
+                          <td className="py-3 pr-4 text-neutral-500 whitespace-nowrap">
+                            {new Date(log.createdAt).toLocaleString()}
+                          </td>
+                          <td className="py-3 pr-4 text-amber-400 font-bold whitespace-nowrap">
+                            {log.action}
+                          </td>
+                          <td className="py-3 pr-4 text-neutral-400 font-mono text-[11px] truncate max-w-[120px]">
+                            {log.target || "N/A"}
+                          </td>
+                          <td className="py-3 text-neutral-300">
+                            {log.details || "Sin detalles adicionales"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="py-12 text-center text-neutral-500 font-mono text-xs">
+                    No hay eventos registrados en la bitácora todavía. Realiza un cambio de rol o contraseña para generar el primer registro forense.
+                  </div>
+                )}
               </div>
             </div>
           </div>
