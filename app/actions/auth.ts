@@ -5,12 +5,11 @@ import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 
 // --- CONFIGURACIÓN DE TIEMPOS DE SEGURIDAD (ISO 27001) ---
-const SESSION_EXPIRATION_MINUTES = 8; // Requisito 10: Ajustado a 8 minutos de inactividad
-const MAX_ATTEMPTS = 5; // Límite de 5 intentos fallidos
-const BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutos de bloqueo
-const OTP_EXPIRATION_MINUTES = 5; // 5 minutos de vigencia de OTP
+const SESSION_EXPIRATION_MINUTES = 8; // Requisito 10: 8 minutos exactos
+const MAX_ATTEMPTS = 5; 
+const BLOCK_DURATION_MS = 15 * 60 * 1000; 
+const OTP_EXPIRATION_MINUTES = 5; 
 
-// --- SISTEMA DE RATE LIMITING EN MEMORIA ---
 interface RateLimitRecord {
   attempts: number;
   blockedUntil: number | null;
@@ -53,7 +52,6 @@ function resetRateLimit(key: string) {
   rateLimitMap.delete(key);
 }
 
-// --- CONFIGURACIÓN DE NODEMAILER OPTIMIZADA ---
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 465,
@@ -71,8 +69,7 @@ const transporter = nodemailer.createTransport({
 async function sendOtpEmail(email: string, otp: string) {
   try {
     const senderEmail = process.env.EMAIL_SERVER_USER;
-
-    const info = await transporter.sendMail({
+    await transporter.sendMail({
       from: `"RËVA Virtual Room" <${senderEmail}>`,
       to: email,
       replyTo: senderEmail,
@@ -89,16 +86,12 @@ async function sendOtpEmail(email: string, otp: string) {
         </div>
       `,
     });
-
-    console.log("Correo OTP enviado correctamente a:", email, "Message ID:", info.messageId);
     return true;
   } catch (err) {
     console.error("⚠️ Error crítico enviando correo OTP con Nodemailer:", err);
     throw err;
   }
 }
-
-// --- ACTIONS DE REGISTRO Y LOGIN ---
 
 export async function registerUser(data: {
   name: string;
@@ -143,10 +136,7 @@ export async function registerUser(data: {
       const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
       await prisma.user.update({
         where: { email: sanitizedEmail },
-        data: { 
-          verificationCode: newOtp,
-          otpExpiresAt: otpExpiresAt
-        } as any,
+        data: { verificationCode: newOtp, otpExpiresAt } as any,
       });
 
       await sendOtpEmail(sanitizedEmail, newOtp);
@@ -187,11 +177,10 @@ export async function registerUser(data: {
       message: "Registro iniciado. Revisa tu correo para el código OTP.",
     };
   } catch (error: any) {
-    console.error("Error crítico en registerUser:", error);
     return { 
       success: false, 
       redirectToOtp: false, 
-      message: `Error al procesar registro o enviar correo: ${error.message || "Verifica las credenciales SMTP."}` 
+      message: `Error al procesar registro: ${error.message || "Verifica las credenciales SMTP."}` 
     };
   }
 }
@@ -203,43 +192,26 @@ export async function verifyOtp(email: string, otpInput: string) {
 
     const limitCheck = checkRateLimit(rateLimitKey);
     if (!limitCheck.allowed) {
-      return {
-        success: false,
-        message: `Demasiados intentos fallidos. Por seguridad, reintenta en ${limitCheck.remainingMinutes} minutos.`,
-      };
+      return { success: false, message: `Demasiados intentos. Reintenta en ${limitCheck.remainingMinutes} minutos.` };
     }
 
     const user = await prisma.user.findUnique({ where: { email: sanitizedEmail } });
-
-    if (!user) {
-      return { success: false, message: "Usuario no encontrado." };
-    }
+    if (!user) return { success: false, message: "Usuario no encontrado." };
 
     if (user.otpExpiresAt && new Date() > new Date(user.otpExpiresAt)) {
       registerFailedAttempt(rateLimitKey);
-      return {
-        success: false,
-        message: "El código OTP ha expirado (válido por 5 minutos). Solicita uno nuevo.",
-      };
+      return { success: false, message: "El código OTP ha expirado (5 minutos)." };
     }
 
     if (user.verificationCode !== otpInput.trim()) {
       registerFailedAttempt(rateLimitKey);
-      return { 
-        success: false, 
-        message: "El código OTP es incorrecto. Verifica el código enviado a tu correo." 
-      };
+      return { success: false, message: "El código OTP es incorrecto." };
     }
 
     resetRateLimit(rateLimitKey);
-
     await prisma.user.update({
       where: { email: user.email },
-      data: {
-        isVerified: true,
-        verificationCode: null,
-        otpExpiresAt: null,
-      } as any,
+      data: { isVerified: true, verificationCode: null, otpExpiresAt: null } as any,
     });
 
     return { success: true, message: "¡Cuenta verificada exitosamente!" };
@@ -255,30 +227,23 @@ export async function resendOtp(email: string) {
 
     const limitCheck = checkRateLimit(rateLimitKey);
     if (!limitCheck.allowed) {
-      return {
-        success: false,
-        message: `Has solicitado demasiados códigos OTP. Reintenta en ${limitCheck.remainingMinutes} minutos.`,
-      };
+      return { success: false, message: `Espera ${limitCheck.remainingMinutes} minutos para reenviar.` };
     }
 
     const user = await prisma.user.findUnique({ where: { email: sanitizedEmail } });
     if (!user) return { success: false, message: "Usuario no encontrado." };
 
     registerFailedAttempt(rateLimitKey);
-
     const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
     const newOtpExpiresAt = new Date(Date.now() + OTP_EXPIRATION_MINUTES * 60 * 1000);
 
     await prisma.user.update({
       where: { email: user.email },
-      data: { 
-        verificationCode: newOtp,
-        otpExpiresAt: newOtpExpiresAt
-      } as any,
+      data: { verificationCode: newOtp, otpExpiresAt: newOtpExpiresAt } as any,
     });
 
     await sendOtpEmail(user.email, newOtp);
-    return { success: true, message: "Nuevo código OTP enviado a tu correo (válido por 5 min)." };
+    return { success: true, message: "Nuevo código OTP enviado exitosamente." };
   } catch (error: any) {
     return { success: false, message: error.message || "Error al reenviar OTP." };
   }
@@ -291,19 +256,13 @@ export async function loginUser(data: { email: string; password: string }) {
 
     const limitCheck = checkRateLimit(rateLimitKey);
     if (!limitCheck.allowed) {
-      return {
-        success: false,
-        message: `Cuenta bloqueada temporalmente por exceso de intentos fallidos. Intenta en ${limitCheck.remainingMinutes} minutos.`,
-      };
+      return { success: false, message: `Cuenta bloqueada temporalmente. Intenta en ${limitCheck.remainingMinutes} minutos.` };
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: sanitizedEmail },
-    });
-
+    const user = await prisma.user.findUnique({ where: { email: sanitizedEmail } });
     if (!user) {
       registerFailedAttempt(rateLimitKey);
-      return { success: false, message: "El correo no está registrado en la base de datos." };
+      return { success: false, message: "El correo no está registrado." };
     }
 
     if (!user.isVerified) {
@@ -318,10 +277,7 @@ export async function loginUser(data: { email: string; password: string }) {
 
     resetRateLimit(rateLimitKey);
 
-    // Requisito 10: Expiración de sesión por inactividad ajustada a 8 minutos
     const sessionExpiresAt = Date.now() + SESSION_EXPIRATION_MINUTES * 60 * 1000;
-
-    // Redirección explicita por rol incluyendo SELLER
     const userRole = user.role ? user.role.toUpperCase() : "CLIENT";
     let targetRedirect = "/";
 
@@ -345,41 +301,27 @@ export async function loginUser(data: { email: string; password: string }) {
       message: "¡Bienvenido!",
     };
   } catch (error: any) {
-    console.error("Error detallado en loginUser:", error);
-    return { 
-      success: false, 
-      message: `Error de servidor/Prisma: ${error.message || "Verifica la conexión a Supabase."}` 
-    };
+    return { success: false, message: `Error de servidor: ${error.message || "Verifica la base de datos."}` };
   }
 }
-
-// --- ACTIONS PARA RECUPERACIÓN DE CONTRASEÑA ---
 
 export async function forgotPassword(email: string) {
   try {
     const sanitizedEmail = email.toLowerCase().trim();
     const user = await prisma.user.findUnique({ where: { email: sanitizedEmail } });
-
-    if (!user) {
-      return { success: false, message: "El correo ingresado no está registrado." };
-    }
+    if (!user) return { success: false, message: "El correo ingresado no está registrado." };
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiresAt = new Date(Date.now() + OTP_EXPIRATION_MINUTES * 60 * 1000);
 
     await prisma.user.update({
       where: { email: sanitizedEmail },
-      data: {
-        verificationCode: otpCode,
-        otpExpiresAt: otpExpiresAt,
-      } as any,
+      data: { verificationCode: otpCode, otpExpiresAt } as any,
     });
 
     await sendOtpEmail(sanitizedEmail, otpCode);
-
-    return { success: true, message: "Código de restablecimiento enviado literalmente a tu correo." };
+    return { success: true, message: "Código de restablecimiento enviado a tu correo." };
   } catch (error: any) {
-    console.error("Error en forgotPassword:", error);
     return { success: false, message: "Error al enviar el correo de recuperación." };
   }
 }
@@ -388,13 +330,10 @@ export async function resetPasswordWithOtp(data: { email: string; otp: string; n
   try {
     const sanitizedEmail = data.email.toLowerCase().trim();
     const user = await prisma.user.findUnique({ where: { email: sanitizedEmail } });
-
-    if (!user) {
-      return { success: false, message: "Usuario no encontrado." };
-    }
+    if (!user) return { success: false, message: "Usuario no encontrado." };
 
     if (user.otpExpiresAt && new Date() > new Date(user.otpExpiresAt)) {
-      return { success: false, message: "El código OTP ha expirado. Solicita uno nuevo." };
+      return { success: false, message: "El código OTP ha expirado." };
     }
 
     if (user.verificationCode !== data.otp.trim()) {
@@ -403,23 +342,17 @@ export async function resetPasswordWithOtp(data: { email: string; otp: string; n
 
     const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!\%*?&]{8,}$/.test(data.newPassword);
     if (!isPasswordValid) {
-      return { success: false, message: "La nueva contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un símbolo." };
+      return { success: false, message: "La nueva contraseña debe cumplir con los requisitos de seguridad." };
     }
 
     const hashedPassword = await bcrypt.hash(data.newPassword, 10);
-
     await prisma.user.update({
       where: { email: sanitizedEmail },
-      data: {
-        password: hashedPassword,
-        verificationCode: null,
-        otpExpiresAt: null,
-      } as any,
+      data: { password: hashedPassword, verificationCode: null, otpExpiresAt: null } as any,
     });
 
     return { success: true, message: "Contraseña actualizada exitosamente." };
   } catch (error: any) {
-    console.error("Error en resetPasswordWithOtp:", error);
     return { success: false, message: "Error al actualizar la contraseña." };
   }
 }

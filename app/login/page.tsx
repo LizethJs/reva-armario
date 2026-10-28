@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { loginUser, forgotPassword, resetPasswordWithOtp, resendOtp } from "../actions/auth";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [view, setView] = useState<"login" | "forgot_email" | "forgot_otp">("login");
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [forgotEmail, setForgotEmail] = useState("");
@@ -49,14 +51,20 @@ export default function LoginPage() {
       if (res && res.success && res.user) {
         localStorage.setItem("user_session", JSON.stringify(res.user));
         
-        // Redirección estricta según el rol de la base de datos
-        if (res.user.role === "ADMIN") {
-          window.location.href = "/admin";
-        } else if (res.user.role === "SELLER") {
-          window.location.href = "/seller";
+        const userRole = res.user.role ? res.user.role.toUpperCase() : "";
+        let targetRoute = "/";
+
+        if (userRole === "ADMIN") {
+          targetRoute = "/admin";
+        } else if (userRole === "SELLER") {
+          targetRoute = "/seller";
         } else {
-          window.location.href = res.redirectTo || "/";
+          targetRoute = res.redirectTo || "/";
         }
+
+        // Usamos router.push de Next.js para una transición limpia y sin 404 en Vercel
+        router.push(targetRoute);
+        router.refresh();
       } else {
         setErrorMessage(res?.message || "Credenciales incorrectas. Verifique sus datos.");
         setLoading(false);
@@ -160,7 +168,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-xl font-extrabold tracking-wider text-white">PORTAL RËVA</h1>
           <p className="text-xs text-zinc-400 mt-1">
-            {view === "login" && "Gestión de identidad y acceso digital (Sesión: 5 min)"}
+            {view === "login" && "Gestión de identidad y acceso digital (Sesión: 8 min)"}
             {view === "forgot_email" && "Recuperación de Credenciales (Paso 1)"}
             {view === "forgot_otp" && "Doble Factor de Autenticación (Paso 2)"}
           </p>
