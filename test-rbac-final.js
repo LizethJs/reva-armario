@@ -5,20 +5,20 @@ async function run() {
   // 1. Obtener al menos 2 usuarios existentes
   const users = await prisma.user.findMany({ take: 2 });
   if (users.length < 2) {
-    console.log("❌ Se necesitan al menos 2 usuarios en la base de datos.");
+    console.log("❌ Faltan usuarios en la BD. Asegúrate de tener al menos 2.");
     return;
   }
 
-  // 2. Crear un rol nuevo (ej. AUDITOR_TECNICO)
+  // 2. Crear un rol nuevo (Ej: AUDITOR_TECNICO)
   const newRole = await prisma.roleModel.create({
     data: { 
       name: "AUDITOR_TECNICO", 
-      description: "Rol personalizado para evaluación y control" 
+      description: "Rol para sustentación del proyecto" 
     }
   });
   console.log(`✓ Rol creado: ${newRole.name}`);
 
-  // 3. Asignar ese mismo rol nuevo a 2 usuarios diferentes
+  // 3. Asignar ese mismo rol a los 2 usuarios diferentes
   await prisma.userRole.createMany({
     data: [
       { userId: users[0].id, roleId: newRole.id },
@@ -26,7 +26,7 @@ async function run() {
     ],
     skipDuplicates: true
   });
-  console.log(`✓ Rol asignado a los usuarios: ${users[0].email} y ${users[1].email}`);
+  console.log(`✓ Rol asignado a: ${users[0].email} y ${users[1].email}`);
 
   // 4. Crear 4 permisos diferentes
   const p1 = await prisma.permission.create({ data: { name: "VER_REPORTES_AVANZADOS" } });
@@ -37,16 +37,16 @@ async function run() {
   // 5. Configurar 2 permisos distintos para cada usuario
   await prisma.userPermission.createMany({
     data: [
-      // Al Usuario 1 se le asignan 2 permisos específicos
+      // Al Usuario 1 le damos 2 permisos
       { userId: users[0].id, permissionId: p1.id },
       { userId: users[0].id, permissionId: p2.id },
-      // Al Usuario 2 se le asignan 2 permisos diferentes
+      // Al Usuario 2 le damos 2 permisos diferentes
       { userId: users[1].id, permissionId: p3.id },
       { userId: users[1].id, permissionId: p4.id }
     ],
     skipDuplicates: true
   });
-  console.log("✓ ¡2 permisos distintos configurados correctamente para cada usuario!");
+  console.log("✓ ¡Permisos configurados con éxito!");
 }
 
 run()

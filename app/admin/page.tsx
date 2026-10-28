@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getUsers, updateUserRole, getAuditLogs } from "../actions/admin";
+import { getUsers, updateUserRole, getAuditLogs, getUsersWithRolesAndPermissions } from "../actions/admin";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"overview" | "users" | "audit" | "security" | "analytics">("users");
+  const [activeTab, setActiveTab] = useState<"overview" | "users" | "audit" | "security" | "analytics" | "rbac">("users");
   const [users, setUsers] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [usersRbac, setUsersRbac] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [adminEmail, setAdminEmail] = useState("");
   const [actionMessage, setActionMessage] = useState({ text: "", success: false });
@@ -52,6 +53,9 @@ export default function AdminDashboardPage() {
       const auditRes = await getAuditLogs(email);
       if (auditRes.success) setAuditLogs(auditRes.logs || []);
 
+      const rbacRes = await getUsersWithRolesAndPermissions();
+      if (rbacRes.success) setUsersRbac(rbacRes.users || []);
+
       setActionMessage({ text: "✓ Datos actualizados correctamente desde el servidor", success: true });
     } catch (err) {
       console.error("Error al actualizar:", err);
@@ -78,6 +82,9 @@ export default function AdminDashboardPage() {
 
       const auditRes = await getAuditLogs(email);
       if (auditRes.success) setAuditLogs(auditRes.logs || []);
+
+      const rbacRes = await getUsersWithRolesAndPermissions();
+      if (rbacRes.success) setUsersRbac(rbacRes.users || []);
     } catch (err) {
       console.error("Error cargando datos:", err);
     } finally {
@@ -151,6 +158,7 @@ export default function AdminDashboardPage() {
               { id: "audit", label: "🛡️ Bitácora Inmutable ISO" },
               { id: "security", label: "🔒 Controles SSDLC" },
               { id: "analytics", label: "📈 Analítica Avanzada" },
+              { id: "rbac", label: "🔑 Gestión RBAC" },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -189,9 +197,6 @@ export default function AdminDashboardPage() {
                   <h3 className="text-3xl font-black text-white">{N}</h3>
                   <span className="text-xs text-amber-400 font-bold">Base Activa</span>
                 </div>
-                <div className="w-full bg-neutral-950 h-1.5 rounded-full mt-4 overflow-hidden">
-                  <div className="bg-amber-400 h-full w-full"></div>
-                </div>
               </div>
 
               <div className="bg-neutral-900 border border-neutral-800 p-5 rounded-2xl shadow-lg">
@@ -199,9 +204,6 @@ export default function AdminDashboardPage() {
                 <div className="flex items-baseline justify-between mt-2">
                   <h3 className="text-3xl font-black text-amber-400">{adminCount}</h3>
                   <span className="text-xs text-neutral-400">Control Total</span>
-                </div>
-                <div className="w-full bg-neutral-950 h-1.5 rounded-full mt-4 overflow-hidden">
-                  <div className="bg-amber-400 h-full" style={{ width: `${(adminCount / (N || 1)) * 100}%` }}></div>
                 </div>
               </div>
 
@@ -211,9 +213,6 @@ export default function AdminDashboardPage() {
                   <h3 className="text-3xl font-black text-blue-400">{sellerCount}</h3>
                   <span className="text-xs text-neutral-400">Catálogo Habilitado</span>
                 </div>
-                <div className="w-full bg-neutral-950 h-1.5 rounded-full mt-4 overflow-hidden">
-                  <div className="bg-blue-400 h-full" style={{ width: `${(sellerCount / (N || 1)) * 100}%` }}></div>
-                </div>
               </div>
 
               <div className="bg-neutral-900 border border-neutral-800 p-5 rounded-2xl shadow-lg">
@@ -221,9 +220,6 @@ export default function AdminDashboardPage() {
                 <div className="flex items-baseline justify-between mt-2">
                   <h3 className="text-3xl font-black text-emerald-400">{totalAuditEvents}</h3>
                   <span className="text-xs text-emerald-400 font-semibold">Trazabilidad OK</span>
-                </div>
-                <div className="w-full bg-neutral-950 h-1.5 rounded-full mt-4 overflow-hidden">
-                  <div className="bg-emerald-400 h-full w-full"></div>
                 </div>
               </div>
             </div>
@@ -291,6 +287,73 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
+        {/* PESTAÑA 6: GESTIÓN DE ROLES Y PERMISOS (RBAC) - NUEVA */}
+        {activeTab === "rbac" && (
+          <div className="bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden shadow-2xl p-6 space-y-6">
+            <div className="border-b border-neutral-800 pb-4">
+              <h2 className="text-base font-black text-amber-400 uppercase tracking-wider">
+                🛡️ Validación de Roles y Permisos Granulares (RBAC)
+              </h2>
+              <p className="text-xs text-neutral-400 mt-1">
+                Demostración formal del requisito: Rol creado, asignado a 2 usuarios diferentes y con 2 permisos distintos para cada uno.
+              </p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-neutral-300 border-collapse">
+                <thead className="bg-neutral-950 text-neutral-400 uppercase text-[10px] tracking-wider font-bold border-b border-neutral-800">
+                  <tr>
+                    <th className="py-3 px-4">Usuario</th>
+                    <th className="py-3 px-4">Correo</th>
+                    <th className="py-3 px-4">Rol Asignado</th>
+                    <th className="py-3 px-4">Permisos Específicos (2 distintos)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-800/60">
+                  {usersRbac && usersRbac.length > 0 ? (
+                    usersRbac.map((user: any) => (
+                      <tr key={user.id} className="hover:bg-neutral-950/50">
+                        <td className="py-4 px-4 font-bold text-white">{user.name || "Sin nombre"}</td>
+                        <td className="py-4 px-4 text-neutral-400 font-mono text-[11px]">{user.email}</td>
+                        <td className="py-4 px-4">
+                          {user.userRoles && user.userRoles.length > 0 ? (
+                            user.userRoles.map((ur: any) => (
+                              <span key={ur.id} className="bg-indigo-950 text-indigo-300 border border-indigo-800 px-2.5 py-1 rounded-full text-[10px] font-bold">
+                                {ur.role.name}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-neutral-500 text-xs">Sin rol RBAC</span>
+                          )}
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex flex-wrap gap-1.5">
+                            {user.userPermissions && user.userPermissions.length > 0 ? (
+                              user.userPermissions.map((up: any) => (
+                                <span key={up.id} className="bg-neutral-950 text-emerald-400 border border-neutral-800 px-2 py-0.5 rounded text-[10px] font-mono">
+                                  {up.permission.name}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-neutral-500 text-xs">Sin permisos específicos</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-neutral-500">
+                        No hay datos de RBAC cargados. Ejecuta el script de prueba en la base de datos para sembrar los registros.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* PESTAÑA 3: BITÁCORA */}
         {activeTab === "audit" && (
           <div className="bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden shadow-2xl">
@@ -315,16 +378,6 @@ export default function AdminDashboardPage() {
                   <span className="text-amber-400">INICIALIZACIÓN DE KERNEL ANALÍTICO</span>
                   <span className="text-emerald-400">SUCCESS</span>
                 </div>
-                <div className="flex justify-between text-neutral-300">
-                  <span className="text-neutral-500">2026-11-10 09:15:40</span>
-                  <span className="text-blue-400">SINCRONIZACIÓN SUPABASE POSTGRESQL</span>
-                  <span className="text-emerald-400">SUCCESS</span>
-                </div>
-                <div className="flex justify-between text-neutral-300">
-                  <span className="text-neutral-500">2026-11-10 10:00:05</span>
-                  <span className="text-purple-400">EVALUACIÓN DE MODELO INFERENCIAL (p &lt; 0.05)</span>
-                  <span className="text-emerald-400">VERIFICADO</span>
-                </div>
               </div>
             </div>
           </div>
@@ -341,22 +394,16 @@ export default function AdminDashboardPage() {
         {/* PESTAÑA 5: ANALÍTICA AVANZADA */}
         {activeTab === "analytics" && (
           <div className="space-y-6">
-            
-            {/* CABECERA EJECUTIVA CON EL BOTÓN ACTUALIZAR */}
             <div className="bg-gradient-to-r from-neutral-900 via-neutral-900 to-neutral-950 p-6 rounded-3xl border border-neutral-800 shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="px-3 py-1 bg-amber-400/10 border border-amber-400/30 text-amber-400 text-[10px] font-black rounded-lg uppercase tracking-widest">
                     Hito 10 de Noviembre
                   </span>
-                  <span className="text-xs text-neutral-400 font-mono">Presentaciones: Del 10 al 13 de Noviembre</span>
                 </div>
                 <h2 className="text-lg font-black text-white uppercase tracking-wider mt-1">
                   Motor Analítico en Tiempo Real — <span className="text-amber-400">RËVA Data Intelligence</span>
                 </h2>
-                <p className="text-xs text-neutral-400">
-                  Procesamiento cuantitativo directo sincronizado con Supabase PostgreSQL
-                </p>
               </div>
 
               <button
@@ -367,260 +414,6 @@ export default function AdminDashboardPage() {
                 <span>{loading ? "⏳" : "🔄"}</span> {loading ? "Actualizando..." : "Actualizar Base de Datos"}
               </button>
             </div>
-
-            {/* TARJETAS DE MÉTRICAS */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-2xl shadow-lg">
-                <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Muestra Muestral (N)</span>
-                <div className="flex items-baseline justify-between mt-1">
-                  <span className="text-2xl font-black text-white font-mono">{N > 0 ? N : 4}</span>
-                  <span className="text-[10px] text-emerald-400 font-bold">Supabase DB</span>
-                </div>
-              </div>
-
-              <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-2xl shadow-lg">
-                <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Media Aritmética (μ)</span>
-                <div className="flex items-baseline justify-between mt-1">
-                  <span className="text-2xl font-black text-amber-400 font-mono">{meanValue}</span>
-                  <span className="text-[10px] text-neutral-400">Eventos / usuario</span>
-                </div>
-              </div>
-
-              <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-2xl shadow-lg">
-                <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Mediana (Me)</span>
-                <div className="flex items-baseline justify-between mt-1">
-                  <span className="text-2xl font-black text-purple-400 font-mono">{medianValue}</span>
-                  <span className="text-[10px] text-neutral-400">Valor central</span>
-                </div>
-              </div>
-
-              <div className="bg-neutral-900 border border-neutral-800 p-4 rounded-2xl shadow-lg">
-                <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Prueba de Hipótesis (p)</span>
-                <div className="flex items-baseline justify-between mt-1">
-                  <span className="text-2xl font-black text-emerald-400 font-mono">{pValueCalc}</span>
-                  <span className="text-[10px] text-emerald-400 font-bold">p &lt; 0.05 OK</span>
-                </div>
-              </div>
-            </div>
-
-            {/* BOTONERA EJECUTIVA PRINCIPAL */}
-            <div className="bg-neutral-900 border border-neutral-800 p-3 rounded-2xl flex flex-wrap items-center justify-center gap-3 shadow-xl">
-              {[
-                { id: "descriptive", label: "📊 Analítica Descriptiva (Barras)", color: "bg-amber-400 text-neutral-950" },
-                { id: "inference", label: "📈 Modelos de Inferencia (Predictivos)", color: "bg-blue-500 text-neutral-950" },
-                { id: "timeline", label: "⏳ Series de Tiempo (Tendencia)", color: "bg-purple-500 text-neutral-950" },
-                { id: "pivot", label: "📋 Tabla Dinámica (Matriz)", color: "bg-emerald-500 text-neutral-950" },
-              ].map((btn) => (
-                <button
-                  key={btn.id}
-                  onClick={() => setActiveView(btn.id as any)}
-                  className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer font-mono ${
-                    activeView === btn.id
-                      ? `${btn.color} shadow-lg scale-105`
-                      : "bg-neutral-950 text-neutral-400 border border-neutral-800 hover:text-white hover:bg-neutral-900"
-                  }`}
-                >
-                  {btn.label}
-                </button>
-              ))}
-            </div>
-
-            {/* SECCIÓN 1: ANALÍTICA DESCRIPTIVA REACTIVA */}
-            {activeView === "descriptive" && (
-              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-5 shadow-2xl animate-fadeIn">
-                <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
-                  <div>
-                    <h3 className="text-base font-black text-amber-400 uppercase tracking-wider">
-                      Analítica Descriptiva — Distribución de Frecuencias
-                    </h3>
-                    <p className="text-[11px] text-neutral-400">Conteos absolutos y relativos de identidades en Supabase</p>
-                  </div>
-                  <span className="text-[10px] font-bold bg-amber-400/10 text-amber-400 px-3 py-1 rounded-xl border border-amber-400/30 font-mono">
-                    Obligatorio ✓
-                  </span>
-                </div>
-
-                <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-5 font-mono text-xs">
-                  <div>
-                    <div className="flex justify-between text-neutral-300 mb-1.5 font-bold">
-                      <span>Clientes Finales (CLIENT)</span>
-                      <span className="text-amber-400">{clientCount} registros ({clientPct}%)</span>
-                    </div>
-                    <div className="w-full bg-neutral-900 h-4 rounded-full overflow-hidden p-0.5 border border-neutral-800 shadow-inner">
-                      <div className="bg-amber-400 h-full rounded-full transition-all duration-700 shadow-lg" style={{ width: `${clientPct}%` }}></div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-neutral-300 mb-1.5 font-bold">
-                      <span>Vendedores / Diseñadores (SELLER)</span>
-                      <span className="text-blue-400">{sellerCount} registros ({sellerPct}%)</span>
-                    </div>
-                    <div className="w-full bg-neutral-900 h-4 rounded-full overflow-hidden p-0.5 border border-neutral-800 shadow-inner">
-                      <div className="bg-blue-400 h-full rounded-full transition-all duration-700 shadow-lg" style={{ width: `${sellerPct}%` }}></div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-neutral-300 mb-1.5 font-bold">
-                      <span>Administradores (ADMIN)</span>
-                      <span className="text-emerald-400">{adminCount} registros ({adminPct}%)</span>
-                    </div>
-                    <div className="w-full bg-neutral-900 h-4 rounded-full overflow-hidden p-0.5 border border-neutral-800 shadow-inner">
-                      <div className="bg-emerald-400 h-full rounded-full transition-all duration-700 shadow-lg" style={{ width: `${adminPct}%` }}></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* SECCIÓN 2: MODELOS DE INFERENCIA Y APRENDIZAJE SUPERVISADO */}
-            {activeView === "inference" && (
-              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-5 shadow-2xl animate-fadeIn">
-                <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
-                  <div>
-                    <h3 className="text-base font-black text-blue-400 uppercase tracking-wider">
-                      Analítica de Inferencia — Modelos Predictivos y Supervisados
-                    </h3>
-                    <p className="text-[11px] text-neutral-400">Seleccione el modelo estadístico a evaluar sobre la muestra N = {N}</p>
-                  </div>
-                  <span className="text-[10px] font-bold bg-blue-950 text-blue-400 px-3 py-1 rounded-xl border border-blue-800 font-mono">
-                    p-valor = {pValueCalc} (&lt; 0.05)
-                  </span>
-                </div>
-
-                {/* SUBMENÚ DE SELECCIÓN DE MODELOS ESTADÍSTICOS */}
-                <div className="flex flex-wrap gap-2 bg-neutral-950 p-2 rounded-2xl border border-neutral-800">
-                  {[
-                    { id: "regression", label: "📈 1. Regresión Lineal & Dispersión" },
-                    { id: "logistic", label: "📊 2. Regresión Logística (Binaria)" },
-                    { id: "classification", label: "🌲 3. Árbol de Decisión (Clasificación)" },
-                    { id: "anova", label: "📉 4. Contraste ANOVA (Varianza)" },
-                  ].map((sub) => (
-                    <button
-                      key={sub.id}
-                      onClick={() => setInferenceSubModel(sub.id as any)}
-                      className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer font-mono ${
-                        inferenceSubModel === sub.id
-                          ? "bg-blue-500 text-neutral-950 shadow-md font-black"
-                          : "bg-neutral-900 text-neutral-400 border border-neutral-800 hover:text-white"
-                      }`}
-                    >
-                      {sub.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* SUBMODELO 1: REGRESIÓN LINEAL Y DISPERSIÓN */}
-                {inferenceSubModel === "regression" && (
-                  <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-5 animate-fadeIn">
-                    <div className="flex justify-between items-center text-xs font-mono text-neutral-400 border-b border-neutral-900 pb-2">
-                      <span>Gráfica de Dispersión (Muestra N vs Actividad del Sistema)</span>
-                      <span className="text-emerald-400 font-bold">r = 0.89 (Correlación Fuerte)</span>
-                    </div>
-
-                    <div className="relative h-56 bg-neutral-900/80 rounded-2xl border border-neutral-800 p-6 flex flex-col justify-between overflow-hidden shadow-inner">
-                      <div className="absolute inset-0 bg-[linear-gradient(to_right,#262626_1px,transparent_1px),linear-gradient(to_bottom,#262626_1px,transparent_1px)] bg-[size:2rem_2rem] opacity-40"></div>
-                      <div className="absolute inset-x-6 top-1/2 h-0.5 bg-gradient-to-r from-blue-600 via-blue-400 to-emerald-400 shadow-[0_0_12px_rgba(59,130,246,0.8)] z-10"></div>
-
-                      <div className="relative z-20 flex justify-between items-end h-full font-mono text-xs">
-                        <div className="flex flex-col items-center gap-2">
-                          <span className="w-3.5 h-3.5 bg-amber-400 rounded-full shadow-[0_0_10px_#f59e0b]"></span>
-                          <span className="text-[10px] text-neutral-400">N=1</span>
-                        </div>
-                        <div className="flex flex-col items-center gap-2 -translate-y-4">
-                          <span className="w-3.5 h-3.5 bg-blue-400 rounded-full shadow-[0_0_10px_#3b82f6]"></span>
-                          <span className="text-[10px] text-neutral-400">N=2</span>
-                        </div>
-                        <div className="flex flex-col items-center gap-2 -translate-y-8">
-                          <span className="w-3.5 h-3.5 bg-purple-400 rounded-full shadow-[0_0_10px_#a855f7]"></span>
-                          <span className="text-[10px] text-neutral-400">N=3</span>
-                        </div>
-                        <div className="flex flex-col items-center gap-2 -translate-y-12">
-                          <span className="w-4 h-4 bg-emerald-400 rounded-full shadow-[0_0_15px_#34d399] animate-bounce"></span>
-                          <span className="text-[10px] text-emerald-400 font-bold">N={N} (Actual)</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-neutral-400 leading-relaxed font-mono">
-                      <strong>Interpretación:</strong> La recta de regresión lineal demuestra que a mayor tamaño de muestra, la eficiencia de trazabilidad y seguridad aumenta proporcionalmente.
-                    </p>
-                  </div>
-                )}
-
-                {/* SUBMODELO 2: REGRESIÓN LOGÍSTICA */}
-                {inferenceSubModel === "logistic" && (
-                  <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-5 animate-fadeIn font-mono text-xs">
-                    <div className="flex justify-between items-center text-neutral-400 border-b border-neutral-900 pb-2">
-                      <span>Modelo Logístico de Probabilidad de Compra P(Y=1)</span>
-                      <span className="text-amber-400 font-bold">Accuracy: 94.2%</span>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex justify-between text-neutral-300 mb-1 font-bold">
-                          <span>Probabilidad de Éxito en Ajuste Antropométrico</span>
-                          <span className="text-emerald-400">92.8% (Alta Viabilidad)</span>
-                        </div>
-                        <div className="w-full bg-neutral-900 h-4 rounded-full overflow-hidden p-0.5 border border-neutral-800">
-                          <div className="bg-emerald-400 h-full rounded-full transition-all duration-700 shadow-lg" style={{ width: "92.8%" }}></div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-neutral-400 leading-relaxed">
-                      <strong>Interpretación:</strong> La función sigmoide del modelo logístico arroja una probabilidad superior al 90% de conversión y retención en el probador virtual RËVA.
-                    </p>
-                  </div>
-                )}
-
-                {/* SUBMODELO 3: ÁRBOL DE DECISIÓN */}
-                {inferenceSubModel === "classification" && (
-                  <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-5 animate-fadeIn font-mono text-xs">
-                    <div className="flex justify-between items-center text-neutral-400 border-b border-neutral-900 pb-2">
-                      <span>Estructura de Árbol de Decisión (Filtro de Roles)</span>
-                      <span className="text-purple-400 font-bold">Gini Index = 0.12</span>
-                    </div>
-                    <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 space-y-2 text-neutral-300">
-                      <p>🌲 <strong>Nodo Raíz:</strong> ¿Es el rol igual a ADMIN?</p>
-                      <p className="pl-4 text-emerald-400">├── Sí → Acceso total al panel y gobernanza de identidades.</p>
-                      <p className="pl-4 text-blue-400">└── No → ¿Es el rol SELLER? ➔ Habilitar módulo de catálogo y diseño.</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* SUBMODELO 4: CONTRASTE ANOVA */}
-                {inferenceSubModel === "anova" && (
-                  <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-5 animate-fadeIn font-mono text-xs">
-                    <div className="flex justify-between items-center text-neutral-400 border-b border-neutral-900 pb-2">
-                      <span>Contraste de Varianza ANOVA (F-Test)</span>
-                      <span className="text-emerald-400 font-bold">F = 14.82 (p &lt; 0.001)</span>
-                    </div>
-                    <p className="text-neutral-300 leading-relaxed">
-                      Se rechaza la hipótesis nula. Existen diferencias estadísticamente significativas entre los niveles de actividad de los distintos roles de usuario registrados en Supabase.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* PESTAÑA 3 (CONTINUACIÓN): SERIES DE TIEMPO */}
-            {activeView === "timeline" && (
-              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4 shadow-2xl animate-fadeIn">
-                <h3 className="text-base font-black text-purple-400 uppercase tracking-wider">⏳ Series de Tiempo — Tendencia Histórica</h3>
-                <p className="text-xs text-neutral-400">Análisis longitudinal del comportamiento del sistema durante las fechas del proyecto integrador.</p>
-              </div>
-            )}
-
-            {/* PESTAÑA 4 (CONTINUACIÓN): TABLA DINÁMICA */}
-            {activeView === "pivot" && (
-              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4 shadow-2xl animate-fadeIn">
-                <h3 className="text-base font-black text-emerald-400 uppercase tracking-wider">📋 Tabla Dinámica Cruzada (Matriz Analítica)</h3>
-                <p className="text-xs text-neutral-400">Agregación multidimensional de roles versus permisos y eventos de auditoría.</p>
-              </div>
-            )}
-
           </div>
         )}
 
