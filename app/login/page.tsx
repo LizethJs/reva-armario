@@ -49,14 +49,19 @@ export default function LoginPage() {
       if (res && res.success && res.user) {
         localStorage.setItem("user_session", JSON.stringify(res.user));
         
-        // Redirección estricta según el rol de la base de datos
-        if (res.user.role === "ADMIN") {
-          window.location.href = "/admin";
-        } else if (res.user.role === "SELLER") {
-          window.location.href = "/seller";
+        // Redirección estricta robusta contra el error 404 en Vercel
+        const userRole = res.user.role ? res.user.role.toUpperCase() : "";
+        let targetRoute = "/";
+
+        if (userRole === "ADMIN") {
+          targetRoute = "/admin";
+        } else if (userRole === "SELLER") {
+          targetRoute = "/seller";
         } else {
-          window.location.href = res.redirectTo || "/";
+          targetRoute = res.redirectTo || "/";
         }
+
+        window.location.assign(targetRoute);
       } else {
         setErrorMessage(res?.message || "Credenciales incorrectas. Verifique sus datos.");
         setLoading(false);
@@ -160,7 +165,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-xl font-extrabold tracking-wider text-white">PORTAL RËVA</h1>
           <p className="text-xs text-zinc-400 mt-1">
-            {view === "login" && "Gestión de identidad y acceso digital (Sesión: 5 min)"}
+            {view === "login" && "Gestión de identidad y acceso digital (Sesión: 8 min)"}
             {view === "forgot_email" && "Recuperación de Credenciales (Paso 1)"}
             {view === "forgot_otp" && "Doble Factor de Autenticación (Paso 2)"}
           </p>
