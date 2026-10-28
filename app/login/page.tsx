@@ -52,8 +52,15 @@ export default function LoginPage() {
       const res = await loginUser(formData);
 
       if (res && res.success && res.user) {
+        // Guardamos el objeto completo retornado por la Server Action (incluyendo sessionExpiresAt a 5 min)
         localStorage.setItem("user_session", JSON.stringify(res.user));
-        window.location.href = "/";
+        
+        // Redirección según rol o ruta por defecto
+        if (res.user.role === "ADMIN") {
+          window.location.href = "/admin";
+        } else {
+          window.location.href = res.redirectTo || "/";
+        }
       } else {
         setErrorMessage(res?.message || "Credenciales incorrectas. Verifique sus datos.");
         setLoading(false);
@@ -106,7 +113,7 @@ export default function LoginPage() {
       }
     } catch (err) {
       setErrorMessage("Error al conectar con el servidor para el reenvío.");
-    } finally {
+    } fontally {
       setLoading(false);
     }
   };
@@ -159,7 +166,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-xl font-extrabold tracking-wider text-white">PORTAL RËVA</h1>
           <p className="text-xs text-zinc-400 mt-1">
-            {view === "login" && "Gestión de identidad y acceso digital"}
+            {view === "login" && "Gestión de identidad y acceso digital (Sesión: 5 min)"}
             {view === "forgot_email" && "Recuperación de Credenciales (Paso 1)"}
             {view === "forgot_otp" && "Doble Factor de Autenticación (Paso 2)"}
           </p>
