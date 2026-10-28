@@ -8,20 +8,16 @@ export default function SessionGuard() {
   const [expired, setExpired] = useState(false);
 
   useEffect(() => {
-    // Verificamos cada segundo si la sesión ha expirado de forma real
-    const interval = setInterval(() => {
+    // Función centralizada para verificar si la sesión expiró
+    const checkSession = () => {
       const sessionData = localStorage.getItem("user_session");
-
       if (sessionData) {
         try {
           const parsed = JSON.parse(sessionData);
-
-          // Si el objeto tiene la estampa de tiempo y la hora actual ya la superó
           if (parsed.sessionExpiresAt && Date.now() > parsed.sessionExpiresAt) {
             setExpired(true);
-            clearInterval(interval);
-
-            // Muestra la alerta 3 segundos y redirige al login de forma automática
+            
+            // Espera 3 segundos mostrando la alerta y borra la sesión
             setTimeout(() => {
               localStorage.removeItem("user_session");
               router.push("/login");
@@ -31,9 +27,23 @@ export default function SessionGuard() {
           console.error("Error al validar la sesión:", e);
         }
       }
-    }, 1000); // Revisa cada 1 segundo en tiempo real
+    };
 
-    return () => clearInterval(interval);
+    // 1. Validar al cargar cualquier página
+    checkSession();
+
+    // 2. Validar inmediatamente CADA VEZ que el usuario haga clic en la pantalla o interactúe
+    window.addEventListener("click", checkSession);
+    window.addEventListener("focus", checkSession); // Cuando vuelve a la pestaña
+
+    // 3. Mantener un intervalo de respaldo por si está en la misma pantalla sin cambiar de pestaña
+    const interval = setInterval(checkSession, 5000);
+
+    return () => {
+      window.removeEventListener("click", checkSession);
+      window.removeEventListener("focus", checkSession);
+      clearInterval(interval);
+    };
   }, [router]);
 
   if (!expired) return null;
