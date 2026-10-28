@@ -49,7 +49,7 @@ export default function LoginPage() {
       if (res && res.success && res.user) {
         localStorage.setItem("user_session", JSON.stringify(res.user));
         
-        // Redirección estricta robusta contra el error 404 en Vercel
+        // Redirección robusta contra el error 404 en Vercel
         const userRole = res.user.role ? res.user.role.toUpperCase() : "";
         let targetRoute = "/";
 
@@ -58,7 +58,8 @@ export default function LoginPage() {
         } else if (userRole === "SELLER") {
           targetRoute = "/seller";
         } else {
-          targetRoute = res.redirectTo || "/";
+          // Para clientes o usuarios estándar, forzamos la ruta principal o la segura devuelta
+          targetRoute = res.redirectTo && res.redirectTo !== "" ? res.redirectTo : "/";
         }
 
         window.location.assign(targetRoute);
