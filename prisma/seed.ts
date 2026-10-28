@@ -4,28 +4,29 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminEmail = "admin@reva.com"; // Modifica por el correo deseado
-  const adminPassword = "AdminSecurePassword123!"; // Modifica por una clave fuerte
+  const adminEmail = "admin@reva.com"; 
+  const adminPassword = "AdminSecurePassword123!"; 
 
-  const existingAdmin = await prisma.user.findUnique({
+  const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+  // Usamos upsert para que cree el admin si no existe, o actualice su contraseña si ya existe
+  const admin = await prisma.user.upsert({
     where: { email: adminEmail },
+    update: {
+      password: hashedPassword,
+      role: "ADMIN",
+      isVerified: true,
+    },
+    create: {
+      name: "Super Administrador RËVA",
+      email: adminEmail,
+      password: hashedPassword,
+      role: "ADMIN",
+      isVerified: true,
+    },
   });
 
-  if (!existingAdmin) {
-    const hashedPassword = await bcrypt.hash(adminPassword, 10);
-    await prisma.user.create({
-      data: {
-        name: "Super Administrador RËVA",
-        email: adminEmail,
-        password: hashedPassword,
-        role: "ADMIN",
-        isVerified: true,
-      },
-    });
-    console.log("✅ SuperAdmin creado correctamente:", adminEmail);
-  } else {
-    console.log("ℹ️ El administrador ya existe en la base de datos.");
-  }
+  console.log("✅ SuperAdmin sincronizado y actualizado correctamente:", admin.email);
 }
 
 main()
