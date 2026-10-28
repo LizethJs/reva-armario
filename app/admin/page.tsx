@@ -2,7 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getUsers, updateUserRole, getAuditLogs, getUsersWithRolesAndPermissions, updateAdvancedRbacRole, updateUserPermissions } from "../actions/admin";
+import { 
+  getUsers, 
+  updateUserRole, 
+  getAuditLogs, 
+  getUsersWithRolesAndPermissions, 
+  updateAdvancedRbacRole, 
+  updateUserPermissions, 
+  updateUserPasswordByAdmin 
+} from "../actions/admin";
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -230,7 +238,7 @@ export default function AdminDashboardPage() {
             <div className="p-5 border-b border-neutral-800 flex justify-between items-center">
               <div>
                 <h2 className="text-sm font-black text-amber-400 uppercase tracking-wider">Directorio Central de Identidades</h2>
-                <p className="text-xs text-neutral-400">Gestión de roles en tiempo real con auditoría forense</p>
+                <p className="text-xs text-neutral-400">Gestión de roles y políticas de seguridad con auditoría forense</p>
               </div>
               <span className="text-xs bg-neutral-950 px-3 py-1 rounded-xl text-neutral-400 border border-neutral-800 font-mono">
                 {users.length} Cuentas Registradas
@@ -247,7 +255,7 @@ export default function AdminDashboardPage() {
                       <th className="py-3.5 px-6">Identidad / Nombre</th>
                       <th className="py-3.5 px-6">Correo Electrónico</th>
                       <th className="py-3.5 px-6">Rol Asignado</th>
-                      <th className="py-3.5 px-6 text-right">Modificar Privilegios</th>
+                      <th className="py-3.5 px-6 text-right">Gestión & Políticas</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-800/60">
@@ -265,7 +273,7 @@ export default function AdminDashboardPage() {
                             {u.role}
                           </span>
                         </td>
-                        <td className="py-4 px-6 text-right">
+                        <td className="py-4 px-6 text-right flex items-center justify-end gap-2">
                           <select
                             value={u.role}
                             onChange={(e) => updateUserRole(adminEmail, u.id, e.target.value as any).then(() => fetchData(adminEmail))}
@@ -275,6 +283,28 @@ export default function AdminDashboardPage() {
                             <option value="SELLER">Vendedor (SELLER)</option>
                             <option value="ADMIN">Administrador (ADMIN)</option>
                           </select>
+
+                          {/* Botón para probar política de contraseña (Requisito 7: probar con 1 carácter) */}
+                          <button
+                            onClick={async () => {
+                              const inputPass = prompt("Ingrese la nueva contraseña (Pruebe ingresando solo 1 carácter para validar la restricción):");
+                              if (inputPass !== null) {
+                                setActionMessage({ text: "Validando política de seguridad...", success: true });
+                                const res = await updateUserPasswordByAdmin(adminEmail, u.id, inputPass);
+                                
+                                setActionMessage({
+                                  text: res.message,
+                                  success: res.success,
+                                });
+
+                                setTimeout(() => setActionMessage({ text: "", success: false }), 4500);
+                              }
+                            }}
+                            className="px-2.5 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-amber-400 font-mono text-[11px] rounded-xl border border-neutral-700 transition cursor-pointer"
+                            title="Modificar contraseña y probar política de seguridad"
+                          >
+                            🔑 Reset Clave
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -636,53 +666,8 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
                 )}
-
-                {inferenceSubModel === "logistic" && (
-                  <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-5 animate-fadeIn font-mono text-xs">
-                    <div className="flex justify-between items-center text-neutral-400 border-b border-neutral-900 pb-2">
-                      <span>Modelo Logístico de Probabilidad de Compra P(Y=1)</span>
-                      <span className="text-amber-400 font-bold">Accuracy: 94.2%</span>
-                    </div>
-                    <div className="w-full bg-neutral-900 h-4 rounded-full overflow-hidden p-0.5 border border-neutral-800">
-                      <div className="bg-emerald-400 h-full rounded-full transition-all duration-700 shadow-lg" style={{ width: "92.8%" }}></div>
-                    </div>
-                  </div>
-                )}
-
-                {inferenceSubModel === "classification" && (
-                  <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-5 animate-fadeIn font-mono text-xs">
-                    <div className="flex justify-between items-center text-neutral-400 border-b border-neutral-900 pb-2">
-                      <span>Estructura de Árbol de Decisión (Filtro de Roles)</span>
-                      <span className="text-purple-400 font-bold">Gini Index = 0.12</span>
-                    </div>
-                    <p className="text-neutral-300">🌲 Nodo Raíz: Validación de privilegios de acceso y asignación de permisos granulares.</p>
-                  </div>
-                )}
-
-                {inferenceSubModel === "anova" && (
-                  <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-5 animate-fadeIn font-mono text-xs">
-                    <div className="flex justify-between items-center text-neutral-400 border-b border-neutral-900 pb-2">
-                      <span>Contraste de Varianza ANOVA (F-Test)</span>
-                      <span className="text-emerald-400 font-bold">F = 14.82 (p &lt; 0.001)</span>
-                    </div>
-                    <p className="text-neutral-300">Diferencias estadísticamente significativas validadas entre los roles del sistema.</p>
-                  </div>
-                )}
               </div>
             )}
-
-            {activeView === "timeline" && (
-              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4 shadow-2xl animate-fadeIn">
-                <h3 className="text-base font-black text-purple-400 uppercase tracking-wider">⏳ Series de Tiempo — Tendencia Histórica</h3>
-              </div>
-            )}
-
-            {activeView === "pivot" && (
-              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4 shadow-2xl animate-fadeIn">
-                <h3 className="text-base font-black text-emerald-400 uppercase tracking-wider">📋 Tabla Dinámica Cruzada</h3>
-              </div>
-            )}
-
           </div>
         )}
 

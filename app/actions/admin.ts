@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
 // Registra acciones críticas en la tabla AuditLog (Cumplimiento ISO 27001)
 async function logAuditAction(adminId: string, action: string, target: string, details?: string) {
@@ -189,5 +190,53 @@ export async function updateUserPermissions(userId: string, permissionNames: str
   } catch (error: any) {
     console.error("Error al actualizar permisos granulares:", error);
     return { success: false, message: error.message || "Error al actualizar los permisos." };
+  }
+}
+
+// 7. Modifica la contraseña de un usuario como administrador validando políticas de seguridad (Requisito 7)
+export async function updateUserPasswordByAdmin(
+  adminEmail: string,
+  targetUserId: string,
+  newPassword: string
+) {
+  try {
+    const admin = await prisma.user.findUnique({ where: { email: adminEmail } });
+    if (!admin || admin.role !== "ADMIN") {
+      return { success: false, message: "Acceso denegado: Se requieren privilegios de Administrador." };
+    }
+
+    // Validación de la política de contraseña (mínimo 8 caracteres)
+    if (!newPassword || newPassword.trim().length < 8) {
+      await logAuditAction(
+        admin.id,
+        "FAILED_PASSWORD_CHANGE_POLICY",
+        targetUserId,
+        `Intento de asignación de contraseña débil (${newPassword ? newPassword.trim().length : 0} caracteres) para el usuario ID: ${targetUserId}`
+      );
+
+      return {
+        success: false,
+        message: "Violación de Política de Seguridad: La contraseña debe tener al menos 8 caracteres (se intentó ingresar un valor corto).",
+      };
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword.trim(), 10);
+
+    const updatedUser = await prisma.user.update({
+      where: { id: targetUserId },
+      data: { password: hashedPassword },
+    });
+
+    await logAuditAction(
+      admin.id,
+      "ADMIN_RESET_PASSWORD",
+      targetUserId,
+      `El administrador ${admin.email} restableció exitosamente la contraseña de ${updatedUser.email}`
+    );
+
+    return { success: true, message: `Contraseña de ${updatedUser.email} actualizada correctamente.` };
+  } catch (error: any) {
+    console.error("Error al restablecer contraseña:", error);
+    return { success: false, message: error.message || "Error al intentar cambiar la contraseña." };
   }
 }
