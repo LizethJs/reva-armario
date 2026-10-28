@@ -74,6 +74,7 @@ export async function createGarment(data: {
         vendorName: data.vendorName || 'Administrador',
         vendorContact: data.vendorContact || '',
         userId: data.userId || null,
+        isFavorite?: boolean // <-- Añade esta línea aquí
       },
     });
 

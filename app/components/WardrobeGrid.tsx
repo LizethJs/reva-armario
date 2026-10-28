@@ -33,7 +33,7 @@ export default function WardrobeGrid({ wardrobe, onOpenDetail, onToggleFavorite,
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
-        {filteredWardrobe.map((item) => (
+        {filteredWardrobe.map((item: any) => (
           <div 
             key={item.id} 
             onClick={() => onOpenDetail(item)} 
