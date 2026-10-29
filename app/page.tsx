@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { VirtualTryOnCam } from './components/VirtualTryOnCam';
 import WardrobeManager from './components/WardrobeManager';
-import { Plus, LogOut, UserCheck, X, ShoppingBag, User as UserIcon, ExternalLink } from 'lucide-react';
+import { Plus, LogOut, UserCheck, X, ShoppingBag, User as UserIcon, ExternalLink, ShieldAlert } from 'lucide-react';
 
 export interface Garment {
   id: string;
@@ -69,6 +69,7 @@ export default function Home() {
   const [newDescription, setNewDescription] = useState('');
   const [newVendorName, setNewVendorName] = useState('');
   const [newVendorContact, setNewVendorContact] = useState('');
+  const [uploadError, setUploadError] = useState('');
 
   useEffect(() => {
     // VALIDACIÓN ESTRICTA DE SEGURIDAD:
@@ -100,23 +101,65 @@ export default function Home() {
     }
   }, []);
 
+  // REQUISITO 14: Validación estricta anti-ejecutables (.exe disfrazados de PDF o imágenes)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    setUploadError('');
+
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setNewSource(reader.result);
+      const extension = file.name.split('.').pop()?.toLowerCase();
+
+      // Bloqueo por extensión obvia
+      if (['exe', 'bat', 'cmd', 'sh', 'msi', 'com'].includes(extension || '')) {
+        setUploadError('⚠️ ALERTA DE SEGURIDAD: Formato ejecutable prohibido.');
+        alert('⚠️ ALERTA DE SEGURIDAD (ISO 27001): Se ha bloqueado un archivo ejecutable.');
+        e.target.value = '';
+        return;
+      }
+
+      // Verificación de cabeceras binarias (Magic Bytes) para detectar .exe renombrados a .pdf/.png
+      const headerReader = new FileReader();
+      headerReader.onloadend = (evt) => {
+        if (evt.target?.readyState === FileReader.DONE) {
+          const arr = new Uint8Array(evt.target.result as ArrayBuffer).subarray(0, 4);
+          let header = '';
+          for (let i = 0; i < arr.length; i++) {
+            header += arr[i].toString(16).padStart(2, '0').toUpperCase();
+          }
+
+          // Firma MZ (4D5A) de ejecutables de Windows (.exe / .dll)
+          if (header.startsWith('4D5A')) {
+            setUploadError('🚨 AMENAZA BLOQUEADA: Ejecutable (.exe) camuflado detectado.');
+            alert('🚨 ALERTA FORENSE SSDLC (Requisito 14): El archivo contiene una firma binaria de ejecutable (.exe) a pesar de tener otra extensión. Carga rechazada.');
+            e.target.value = '';
+            setNewSource('');
+            return;
+          }
+
+          // Si pasa la validación de seguridad, carga el archivo normalmente
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (typeof reader.result === 'string') {
+              setNewSource(reader.result);
+            }
+          };
+          reader.readAsDataURL(file);
         }
       };
-      reader.readAsDataURL(file);
+
+      headerReader.readAsArrayBuffer(file.slice(0, 4));
     }
   };
 
   const handleAddGarment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (uploadError) {
+      alert('Por favor resuelva el error de seguridad del archivo antes de publicar.');
+      return;
+    }
+
     if (!newName.trim() || !newSource.trim()) {
-      alert('Por favor completa el nombre y añade una imagen.');
+      alert('Por favor completa el nombre y añade una imagen válida.');
       return;
     }
 
@@ -215,7 +258,7 @@ export default function Home() {
 
           {currentUser?.role === 'SELLER' && (
             <button
-              onClick={() => setShowAddModal(true)}
+              onClick={() => { setShowAddModal(true); setUploadError(''); }}
               className="bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-extrabold px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xl"
             >
               <Plus className="w-4 h-4"/> Publicar
@@ -309,13 +352,18 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="block text-neutral-400 mb-1">Imagen (Subir archivo)</label>
+                <label className="block text-neutral-400 mb-1">Imagen (Subir archivo con filtro anti-malware)</label>
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*, .pdf"
                   onChange={handleFileUpload}
                   className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-500 file:text-neutral-950 hover:file:bg-emerald-400 cursor-pointer"
                 />
+                {uploadError && (
+                  <p className="text-[11px] text-red-400 font-bold mt-1.5 flex items-center gap-1">
+                    <ShieldAlert className="w-3.5 h-3.5" /> {uploadError}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -342,7 +390,8 @@ export default function Home() {
 
               <button
                 type="submit"
-                className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-black rounded-xl transition cursor-pointer shadow-lg mt-2"
+                disabled={Boolean(uploadError)}
+                className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-black rounded-xl transition cursor-pointer shadow-lg mt-2 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Publicar Prenda en RËVA
               </button>
