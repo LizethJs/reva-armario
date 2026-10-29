@@ -290,12 +290,19 @@ export default function AdminDashboardPage() {
                             <option value="ADMIN">Administrador (ADMIN)</option>
                           </select>
 
-                          {/* Botón para probar política de contraseña */}
+                          {/* Botón para probar política estricta de contraseña (Requisito de seguridad) */}
                           <button
                             onClick={async () => {
-                              const inputPass = prompt("Ingrese la nueva contraseña (Pruebe ingresando solo 1 carácter para validar la restricción):");
+                              const inputPass = prompt("Ingrese la nueva contraseña (Debe tener mín. 8 caracteres, mayúscula, número y símbolo especial, ej: Admin123!):");
                               if (inputPass !== null) {
-                                setActionMessage({ text: "Validando política de seguridad...", success: true });
+                                // Validación estricta en el cliente igual que en el registro
+                                const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!\%*?&]{8,}$/.test(inputPass);
+                                if (!isPasswordValid) {
+                                  alert("⚠️ Error de seguridad: La contraseña es demasiado débil (ej. 123456). Requiere mínimo 8 caracteres, una mayúscula, un número y un símbolo especial.");
+                                  return;
+                                }
+
+                                setActionMessage({ text: "Validando política de seguridad estricta...", success: true });
                                 const res = await updateUserPasswordByAdmin(adminEmail, u.id, inputPass);
                                 
                                 setActionMessage({
@@ -307,7 +314,7 @@ export default function AdminDashboardPage() {
                               }
                             }}
                             className="px-2.5 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-amber-400 font-mono text-[11px] rounded-xl border border-neutral-700 transition cursor-pointer"
-                            title="Modificar contraseña y probar política de seguridad"
+                            title="Modificar contraseña y aplicar política estricta de seguridad"
                           >
                             🔑 Reset Clave
                           </button>
@@ -501,7 +508,7 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* PESTAÑA 5: ANALÍTICA AVANZADA (CON SUS 4 MODELOS COMPLETOS) */}
+        {/* PESTAÑA 5: ANALÍTICA AVANZADA (CON SUS 4 MODELOS COMPLETOS Y GRÁFICAS) */}
         {activeTab === "analytics" && (
           <div className="space-y-6">
             
