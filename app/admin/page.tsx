@@ -705,9 +705,9 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 font-mono text-xs space-y-3 text-neutral-300">
                   <p className="text-amber-400 font-bold">🎯 Modelo Activo: {inferenceSubModel.toUpperCase()}</p>
-                  <p>Evaluación de parámetros estadísticos sobre el conjunto de identidades sincronizadas (N = {N}). El nivel de confianza del modelo predictivo es de 95% ($p < 0.05$).</p>
+                  <p>Evaluación de parámetros estadísticos sobre el conjunto de identidades sincronizadas (N = {N}). El nivel de confianza del modelo predictivo es de 95% (p &lt; 0.05).</p>
                   <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 text-emerald-400">
-                    ✓ Coeficiente de Determinación ($R^2$): 0.894 | Precisión del Clasificador: 96.2%
+                    ✓ Coeficiente de Determinación (R^2): 0.894 | Precisión del Clasificador: 96.2%
                   </div>
                 </div>
               </div>
