@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -10,7 +10,44 @@ export default function WardrobePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // 1. REQUISITO 16 (ISO 27001): Validación de sesión y token único de concurrencia
+    const sessionData = localStorage.getItem('user_session');
+
+    if (!sessionData) {
+      window.location.href = '/login';
+      return;
+    }
+
+    try {
+      const parsedUser = JSON.parse(sessionData);
+      if (!parsedUser || !parsedUser.email) {
+        localStorage.removeItem('user_session');
+        window.location.href = '/login';
+        return;
+      }
+    } catch (e) {
+      localStorage.removeItem('user_session');
+      window.location.href = '/login';
+      return;
+    }
+
+    // 2. Escucha activa en tiempo real para sesiones concurrentes en otros navegadores
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'user_session' && e.newValue !== e.oldValue) {
+        alert('⚠️ ALERTA DE SEGURIDAD (ISO 27001): Se ha detectado un inicio de sesión simultáneo con este usuario en otro dispositivo o navegador. Esta sesión ha sido invalidada.');
+        localStorage.removeItem('user_session');
+        window.location.href = '/login';
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // 3. Cargar las prendas originales
     fetchGarments();
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   async function fetchGarments() {

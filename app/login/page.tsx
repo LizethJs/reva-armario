@@ -47,15 +47,15 @@ export default function LoginPage() {
       const res = await loginUser(formData);
 
       if (res && res.success && res.user) {
-        // REQUISITO 16 (ISO 27001): Inyección de un token de sesión único para control de concurrencia
+        // REQUISITO 16 (ISO 27001): Almacenamiento seguro del token dinámico de sesión único generado en el servidor
         const secureUserSession = {
           ...res.user,
-          session_token: Date.now().toString() + Math.random().toString(36).substring(2)
+          session_token: res.user.session_token || (Date.now().toString() + Math.random().toString(36).substring(2))
         };
 
         localStorage.setItem("user_session", JSON.stringify(secureUserSession));
         
-        // Redirección estricta según el rol de la base de datos
+        // Redirección estricta según el rol devuelto por la base de datos
         if (res.user.role === "ADMIN") {
           window.location.href = "/admin";
         } else if (res.user.role === "SELLER") {

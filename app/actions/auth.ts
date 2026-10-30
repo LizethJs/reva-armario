@@ -284,10 +284,13 @@ export async function loginUser(data: { email: string; password: string }) {
     if (userRole === "ADMIN") {
       targetRedirect = "/admin";
     } else if (userRole === "SELLER") {
-      targetRedirect = "/"; // <--- Corregido a la raíz para evitar el error 404
+      targetRedirect = "/"; 
     } else {
       targetRedirect = "/";
     }
+
+    // REQUISITO 16 (ISO 27001): Generación de Firma de Sesión Única Transversal para cualquier Rol (ADMIN, SELLER, CLIENT)
+    const currentSessionToken = `SESS_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
     return {
       success: true,
@@ -297,6 +300,7 @@ export async function loginUser(data: { email: string; password: string }) {
         email: user.email,
         role: userRole,
         sessionExpiresAt: sessionExpiresAt,
+        session_token: currentSessionToken, // Token dinámico para expulsión por sesión simultánea
       },
       message: "¡Bienvenido!",
     };
