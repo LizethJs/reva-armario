@@ -47,10 +47,11 @@ export default function LoginPage() {
       const res = await loginUser(formData);
 
       if (res && res.success && res.user) {
-        // REQUISITO 16 (ISO 27001): Almacenamiento seguro del token dinámico de sesión único generado en el servidor
+        // REQUISITO 16 (ISO 27001): Almacenamiento seguro del token dinámico y la expiración de sesión de 5 min
         const secureUserSession = {
           ...res.user,
-          session_token: res.user.session_token || (Date.now().toString() + Math.random().toString(36).substring(2))
+          session_token: res.user.session_token || (Date.now().toString() + Math.random().toString(36).substring(2)),
+          sessionExpiresAt: Date.now() + 5 * 60 * 1000, // Sincronizado con SessionGuard
         };
 
         localStorage.setItem("user_session", JSON.stringify(secureUserSession));
