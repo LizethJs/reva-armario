@@ -317,7 +317,7 @@ export default function AdminDashboardPage() {
                             onClick={async () => {
                               const inputPass = prompt("Ingrese la nueva contraseña (Debe tener mín. 8 caracteres, mayúscula, número y símbolo especial, ej: Admin123!):");
                               if (inputPass !== null) {
-                                const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!\%*?&]{8,}$/.test(inputPass);
+                                const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(inputPass);
                                 if (!isPasswordValid) {
                                   alert("⚠️ Error de seguridad: La contraseña es demasiado débil (ej. 123456). Requiere mínimo 8 caracteres, una mayúscula, un número y un símbolo especial.");
                                   return;
@@ -532,7 +532,7 @@ export default function AdminDashboardPage() {
                 <ShieldAlert className="w-4 h-4" /> Consola de Auditoría y Pruebas de Fallo (ISO 27001)
               </div>
               <p className="text-neutral-400">
-                Inyecta una incidencia real en el servidor para verificar que la bitácora de auditoría (`AuditLog`) registre y persista la traza forense directamente en la base de datos de Supabase.
+                Inyecta una incidencia real en el servidor para verificar que la bitácora de auditoría (<code className="text-amber-300">AuditLog</code>) registre y persista la traza forense directamente en la base de datos de Supabase.
               </p>
 
               <button
