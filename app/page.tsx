@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { VirtualTryOnCam } from './components/VirtualTryOnCam';
 import WardrobeManager from './components/WardrobeManager';
-import { Plus, LogOut, UserCheck, X, ShoppingBag, User as UserIcon, ExternalLink, ShieldAlert, Terminal, ShieldCheck } from 'lucide-react';
+import { Plus, LogOut, UserCheck, X, ShoppingBag, User as UserIcon, ExternalLink, ShieldAlert, Terminal, Globe } from 'lucide-react';
 
 export interface Garment {
   id: string;
@@ -17,6 +17,7 @@ export interface Garment {
   description?: string;
   vendorName?: string;
   vendorContact?: string;
+  designerPortfolioUrl?: string;
 }
 
 export interface WishlistItem extends Garment {
@@ -67,6 +68,7 @@ export default function Home() {
   const [newPrice, setNewPrice] = useState('$59.900 COP');
   const [newStoreUrl, setNewStoreUrl] = useState('https://co.shein.com');
   const [newDescription, setNewDescription] = useState('');
+  const [newDesignerUrl, setNewDesignerUrl] = useState(''); // Campo opcional enlace de diseñador / tienda propia
   const [newVendorName, setNewVendorName] = useState('');
   const [newVendorContact, setNewVendorContact] = useState('');
   const [uploadError, setUploadError] = useState('');
@@ -78,7 +80,6 @@ export default function Home() {
 
   useEffect(() => {
     // VALIDACIÓN ESTRICTA DE SEGURIDAD:
-    // Si no existe una sesión activa y verificada en localStorage, expulsa a /login inmediatamente.
     const sessionData = localStorage.getItem('user_session');
 
     if (!sessionData) {
@@ -106,7 +107,7 @@ export default function Home() {
     }
   }, []);
 
-  // REQUISITO 14: Validación con Consola de Auditoría Forense & Magic Bytes
+  // REQUISITO 14: Validación Antimalware con Consola Forense (Bloqueo de EXE, TXT y no imágenes)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     setUploadError('');
@@ -122,23 +123,23 @@ export default function Home() {
       setScanProgress(25);
 
       setTimeout(() => {
-        currentLogs.push(`[CHECK] Analizando integridad del contenedor: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
+        currentLogs.push(`[CHECK] Analizando contenedor: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
         setScanLogs([...currentLogs]);
         setScanProgress(50);
 
-        // Bloqueo por extensión obvia
-        if (['exe', 'bat', 'cmd', 'sh', 'msi', 'com'].includes(extension || '')) {
-          currentLogs.push(`[ALERTA] Extensión prohibida detectada: .${extension}`);
-          currentLogs.push(`[BLOQUEO] Carga abortada bajo directiva ISO/IEC 27001.`);
+        // 1. RESTRICCIÓN ESTRICTA: Bloqueo de archivos no permitidos (.txt, .exe, .bat, etc.)
+        if (['txt', 'exe', 'bat', 'cmd', 'sh', 'msi', 'com', 'doc', 'docx'].includes(extension || '')) {
+          currentLogs.push(`[ALERTA] Formato prohibido detectado: .${extension} (Solo se permiten imágenes válidas)`);
+          currentLogs.push(`[BLOQUEO] Carga abortada por política estricta de admisión ISO/IEC 27001.`);
           setScanLogs([...currentLogs]);
           setScanProgress(100);
-          setUploadError('⚠️ ALERTA DE SEGURIDAD: Formato ejecutable prohibido.');
+          setUploadError(`⚠️ ARCHIVO RECHAZADO: Los archivos .${extension} no están permitidos. Solo se aceptan imágenes.`);
           setIsScanning(false);
           e.target.value = '';
           return;
         }
 
-        // Lectura de cabeceras binarias (Magic Bytes)
+        // 2. LECTURA DE MAGIC BYTES PARA DETECTAR EXE DISFRAZADO
         const headerReader = new FileReader();
         headerReader.onloadend = (evt) => {
           if (evt.target?.readyState === FileReader.DONE) {
@@ -155,8 +156,8 @@ export default function Home() {
             setTimeout(() => {
               // Firma MZ (4D5A) de ejecutables Windows (.exe)
               if (header.startsWith('4D5A')) {
-                currentLogs.push(`[CRítico] Firma MZ (4D5A) identificada. ¡Payload ejecutable oculto!`);
-                currentLogs.push(`[ESTADO] Cuarentena activada. Archivo malicioso rechazado.`);
+                currentLogs.push(`[CRÍTICO] Firma MZ (4D5A) identificada. ¡Payload ejecutable oculto!`);
+                currentLogs.push(`[ESTADO] Cuarentena activada. Amenaza bloqueada con éxito.`);
                 setScanLogs([...currentLogs]);
                 setScanProgress(100);
                 setUploadError('🚨 AMENAZA BLOQUEADA: Ejecutable (.exe) camuflado detectado.');
@@ -166,13 +167,13 @@ export default function Home() {
                 return;
               }
 
-              // Archivo legítimo
-              currentLogs.push(`[OK] Verificación binaria superada con éxito. Archivo seguro.`);
+              // Archivo válido (Imagen legítima)
+              currentLogs.push(`[OK] Verificación binaria superada. Imagen válida aceptada.`);
               setScanLogs([...currentLogs]);
               setScanProgress(100);
               setIsScanning(false);
 
-              // Carga normal de imagen/archivo válido
+              // Carga de la imagen
               const reader = new FileReader();
               reader.onloadend = () => {
                 if (typeof reader.result === 'string') {
@@ -201,6 +202,17 @@ export default function Home() {
       return;
     }
 
+    // Validación de seguridad para el enlace opcional del diseñador
+    let sanitizedDesignerUrl = '';
+    if (newDesignerUrl.trim()) {
+      if (newDesignerUrl.startsWith('http://') || newDesignerUrl.startsWith('https://')) {
+        sanitizedDesignerUrl = newDesignerUrl.trim();
+      } else {
+        alert('⚠️ Error de seguridad: El enlace del diseñador debe comenzar con http:// o https://');
+        return;
+      }
+    }
+
     const newGarment: Garment = {
       id: Date.now().toString(),
       name: newName,
@@ -212,11 +224,13 @@ export default function Home() {
       storeUrl: newStoreUrl || 'https://co.shein.com',
       description: newDescription || 'Prenda comercial de tercero.',
       vendorName: currentUser?.role === 'SELLER' ? currentUser.name : 'Administrador RËVA',
+      designerPortfolioUrl: sanitizedDesignerUrl || undefined,
     };
 
     setWardrobe(prev => [newGarment, ...prev]);
     setNewName('');
     setNewSource('');
+    setNewDesignerUrl('');
     setShowAddModal(false);
   };
 
@@ -349,13 +363,13 @@ export default function Home() {
         </div>
       )}
 
-      {/* MODAL DE PUBLICAR PRENDA CON CONSOLA DE AUDITORÍA FORENSE */}
+      {/* MODAL DE PUBLICAR PRENDA CON ENLACE DE DISEÑADOR Y ESCANEO SSDLC */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-neutral-950/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="w-full max-w-lg bg-neutral-900 border border-neutral-800 p-6 rounded-3xl shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
               <h3 className="text-sm font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                <Plus className="w-4 h-4"/> Publicar Nueva Prenda (Escaneo SSDLC)
+                <Plus className="w-4 h-4"/> Publicar Nueva Prenda (Diseñador & Seguridad)
               </h3>
               <button onClick={() => setShowAddModal(false)} className="text-neutral-400 hover:text-white bg-neutral-800 p-1.5 rounded-xl cursor-pointer">
                 <X className="w-4 h-4"/>
@@ -390,10 +404,10 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="block text-neutral-400 mb-1">Archivo / Imagen (Validación Antimalware ISO 27001)</label>
+                <label className="block text-neutral-400 mb-1">Imagen de la Prenda (Solo Imágenes Válidas)</label>
                 <input
                   type="file"
-                  accept="image/*, .pdf"
+                  accept="image/*"
                   onChange={handleFileUpload}
                   disabled={isScanning}
                   className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-500 file:text-neutral-950 hover:file:bg-emerald-400 cursor-pointer disabled:opacity-50"
@@ -456,6 +470,20 @@ export default function Home() {
                 />
               </div>
 
+              {/* CAMPO OPCIONAL: ENLACE DE PÁGINA DEL DISEÑADOR */}
+              <div>
+                <label className="block text-neutral-400 mb-1 flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-amber-400" /> Enlace de tu Página o Portafolio de Diseñador <span className="text-neutral-500 font-normal">(Opcional)</span>
+                </label>
+                <input
+                  type="url"
+                  value={newDesignerUrl}
+                  onChange={(e) => setNewDesignerUrl(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:border-amber-400 font-mono text-[11px]"
+                  placeholder="https://tu-sitio-web-diseñador.com"
+                />
+              </div>
+
               <button
                 type="submit"
                 disabled={Boolean(uploadError) || isScanning || !newSource}
@@ -508,6 +536,18 @@ export default function Home() {
                         >
                           <span>Comprar en Tienda Externa</span>
                           <ExternalLink className="w-3.5 h-3.5"/>
+                        </a>
+                      )}
+
+                      {item.designerPortfolioUrl && (
+                        <a
+                          href={item.designerPortfolioUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full bg-neutral-900 hover:bg-neutral-800 text-amber-400 border border-amber-400/30 font-bold text-[11px] py-1.5 rounded-xl flex items-center justify-center gap-2 transition"
+                        >
+                          <span>Visitar Página del Diseñador</span>
+                          <Globe className="w-3 h-3"/>
                         </a>
                       )}
                     </div>
