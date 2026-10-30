@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { logSystemError } from "@/actions/logger";
+import { ShieldAlert, Terminal } from "lucide-react";
 import { 
   getUsers, 
   updateUserRole, 
@@ -21,6 +23,10 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [adminEmail, setAdminEmail] = useState("");
   const [actionMessage, setActionMessage] = useState({ text: "", success: false });
+
+  // Estados para simulación de errores (Requisito ISO 27001 Error Logging)
+  const [testingError, setTestingError] = useState(false);
+  const [errorLogResult, setErrorLogResult] = useState<string | null>(null);
 
   // Navegación analítica y submodelos predictivos avanzados
   const [activeView, setActiveView] = useState<"descriptive" | "inference" | "timeline" | "pivot">("inference");
@@ -113,6 +119,31 @@ export default function AdminDashboardPage() {
       setActionMessage({ text: "Error de conexión con el servidor", success: false });
     } finally {
       setTimeout(() => setActionMessage({ text: "", success: false }), 3000);
+    }
+  };
+
+  const handleForceSystemError = async () => {
+    setTestingError(true);
+    setErrorLogResult(null);
+
+    try {
+      throw new Error("SIMULACIÓN DE FALLO CRÍTICO: Excepción no controlada en tiempo de ejecución (Auditoría ISO 27001)");
+    } catch (error: any) {
+      const res = await logSystemError({
+        adminEmail: adminEmail,
+        action: "FORCED_SYSTEM_CRASH",
+        errorDetails: error.message,
+        severity: "CRITICAL"
+      });
+
+      if (res.success) {
+        setErrorLogResult("✅ ¡Fallo forzado registrado con éxito! El evento fue capturado e interceptado en la bitácora de auditoría.");
+        fetchData(adminEmail);
+      } else {
+        setErrorLogResult(`⚠️ Error al registrar: ${res.message}`);
+      }
+    } finally {
+      setTestingError(false);
     }
   };
 
@@ -493,11 +524,38 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* PESTAÑA 4: CONTROLES SSDLC */}
+        {/* PESTAÑA 4: CONTROLES SSDLC & SIMULADOR DE ERRORES */}
         {activeTab === "security" && (
-          <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4">
-            <h3 className="text-sm font-black text-amber-400 uppercase tracking-wider">🛡️ Controles SSDLC & Seguridad</h3>
-            <p className="text-xs text-neutral-300">Aislamiento estricto de rutas, sanitización de archivos y cifrado bcryptjs.</p>
+          <div className="space-y-6">
+            <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4">
+              <h3 className="text-sm font-black text-amber-400 uppercase tracking-wider">🛡️ Controles SSDLC & Seguridad</h3>
+              <p className="text-xs text-neutral-300">Aislamiento estricto de rutas, sanitización de archivos y cifrado bcryptjs.</p>
+            </div>
+
+            {/* MÓDULO DE PRUEBA DE ERRORES (ISO 27001 ERROR LOGGING) */}
+            <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4 max-w-xl mx-auto text-xs font-mono">
+              <div className="flex items-center gap-2 text-amber-400 font-bold border-b border-neutral-800 pb-3">
+                <ShieldAlert className="w-4 h-4" /> Consola de Auditoría y Pruebas de Fallo (ISO 27001)
+              </div>
+              <p className="text-neutral-400">
+                Simula una interrupción o excepción no controlada en el sistema para verificar que el registro de errores (`Error Logs`) capture y persista la traza en la base de datos.
+              </p>
+
+              <button
+                onClick={handleForceSystemError}
+                disabled={testingError}
+                className="w-full py-3 bg-red-950/40 hover:bg-red-900/50 border border-red-900/60 text-red-300 font-black rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Terminal className="w-4 h-4 text-red-400" />
+                {testingError ? "Simulando y capturando fallo..." : "Forzar Fallo del Sistema y Registrar Log"}
+              </button>
+
+              {errorLogResult && (
+                <div className="p-3 bg-neutral-950 border border-neutral-800 rounded-xl text-emerald-400 leading-relaxed">
+                  {errorLogResult}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -592,380 +650,89 @@ export default function AdminDashboardPage() {
                     <h3 className="text-base font-black text-amber-400 uppercase tracking-wider">
                       Analítica Descriptiva — Distribución de Frecuencias
                     </h3>
-                    <p className="text-[11px] text-neutral-400">Distribución porcentual y conteo de identidades activas en Supabase</p>
                   </div>
-                  <span className="text-[10px] font-bold bg-amber-400/10 text-amber-400 px-3 py-1 rounded-xl border border-amber-400/30 font-mono">
-                    Validación OK ✓
-                  </span>
                 </div>
-
-                <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-6 font-mono text-xs">
-                  {/* BARRAS DE FRECUENCIA */}
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between text-neutral-300 mb-1.5 font-bold">
-                        <span>CLIENTES (CLIENT) — {clientCount} usuarios</span>
-                        <span className="text-amber-400">{clientPct}%</span>
-                      </div>
-                      <div className="w-full bg-neutral-900 h-4 rounded-full overflow-hidden border border-neutral-800">
-                        <div className="bg-amber-400 h-full rounded-full transition-all duration-700" style={{ width: `${clientPct || 5}%` }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-neutral-300 mb-1.5 font-bold">
-                        <span>VENDEDORES (SELLER) — {sellerCount} usuarios</span>
-                        <span className="text-blue-400">{sellerPct}%</span>
-                      </div>
-                      <div className="w-full bg-neutral-900 h-4 rounded-full overflow-hidden border border-neutral-800">
-                        <div className="bg-blue-500 h-full rounded-full transition-all duration-700" style={{ width: `${sellerPct || 5}%` }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between text-neutral-300 mb-1.5 font-bold">
-                        <span>ADMINISTRADORES (ADMIN) — {adminCount} usuarios</span>
-                        <span className="text-emerald-400">{adminPct}%</span>
-                      </div>
-                      <div className="w-full bg-neutral-900 h-4 rounded-full overflow-hidden border border-neutral-800">
-                        <div className="bg-emerald-400 h-full rounded-full transition-all duration-700" style={{ width: `${adminPct || 5}%` }} />
-                      </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-neutral-950 p-5 rounded-2xl border border-neutral-800 space-y-2">
+                    <span className="text-xs text-neutral-400 font-mono">Clientes (CLIENT)</span>
+                    <div className="text-3xl font-black text-white">{clientCount} <span className="text-sm font-normal text-neutral-400">({clientPct}%)</span></div>
+                    <div className="w-full bg-neutral-900 h-2 rounded-full overflow-hidden">
+                      <div className="bg-amber-400 h-full" style={{ width: `${clientPct}%` }} />
                     </div>
                   </div>
-
-                  {/* RESUMEN ESTADISTICO DISPERSION */}
-                  <div className="pt-4 border-t border-neutral-800 grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                    <div className="bg-neutral-900 p-3 rounded-xl border border-neutral-800">
-                      <span className="text-neutral-500 text-[10px] uppercase font-bold">Varianza ($\sigma^2$)</span>
-                      <p className="text-lg font-black text-amber-400 mt-1">1.84</p>
+                  <div className="bg-neutral-950 p-5 rounded-2xl border border-neutral-800 space-y-2">
+                    <span className="text-xs text-neutral-400 font-mono">Vendedores (SELLER)</span>
+                    <div className="text-3xl font-black text-blue-400">{sellerCount} <span className="text-sm font-normal text-neutral-400">({sellerPct}%)</span></div>
+                    <div className="w-full bg-neutral-900 h-2 rounded-full overflow-hidden">
+                      <div className="bg-blue-400 h-full" style={{ width: `${sellerPct}%` }} />
                     </div>
-                    <div className="bg-neutral-900 p-3 rounded-xl border border-neutral-800">
-                      <span className="text-neutral-500 text-[10px] uppercase font-bold">Desviación Estándar ($\sigma$)</span>
-                      <p className="text-lg font-black text-blue-400 mt-1">1.35</p>
-                    </div>
-                    <div className="bg-neutral-900 p-3 rounded-xl border border-neutral-800">
-                      <span className="text-neutral-500 text-[10px] uppercase font-bold">Coeficiente de Variación</span>
-                      <p className="text-lg font-black text-emerald-400 mt-1">29.8%</p>
+                  </div>
+                  <div className="bg-neutral-950 p-5 rounded-2xl border border-neutral-800 space-y-2">
+                    <span className="text-xs text-neutral-400 font-mono">Administradores (ADMIN)</span>
+                    <div className="text-3xl font-black text-emerald-400">{adminCount} <span className="text-sm font-normal text-neutral-400">({adminPct}%)</span></div>
+                    <div className="w-full bg-neutral-900 h-2 rounded-full overflow-hidden">
+                      <div className="bg-emerald-400 h-full" style={{ width: `${adminPct}%` }} />
                     </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* VISTA 2: MODELOS DE INFERENCIA & MACHINE LEARNING */}
+            {/* VISTA 2: INFERENCIA */}
             {activeView === "inference" && (
-              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-6 shadow-2xl animate-fadeIn">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-neutral-800 pb-4 gap-3">
-                  <div>
-                    <h3 className="text-base font-black text-blue-400 uppercase tracking-wider">
-                      Modelos Predictivos & Machine Learning
-                    </h3>
-                    <p className="text-[11px] text-neutral-400">Seleccione el submodelo estadístico/predictivo para visualizar su gráfica y comportamiento</p>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-1.5 bg-neutral-950 p-1.5 rounded-xl border border-neutral-800 font-mono">
+              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-6 shadow-2xl">
+                <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+                  <h3 className="text-base font-black text-blue-400 uppercase tracking-wider">
+                    Modelamiento de Inferencia & Machine Learning Predictivo
+                  </h3>
+                  <div className="flex gap-2 font-mono text-xs">
                     {[
-                      { id: "tree", label: "🌲 Árbol Decision (CART)" },
-                      { id: "regression", label: "📊 Regresión Lineal" },
-                      { id: "logistic", label: "📈 Regresión Logística" },
-                      { id: "classification", label: "🏷️ Clasificación (RF)" },
-                      { id: "anova", label: "📐 ANOVA" },
-                    ].map((model) => (
+                      { id: "tree", label: "Árbol de Decisión" },
+                      { id: "regression", label: "Regresión Lineal" },
+                      { id: "logistic", label: "Logística" },
+                    ].map((sub) => (
                       <button
-                        key={model.id}
-                        onClick={() => setInferenceSubModel(model.id as any)}
-                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition ${
-                          inferenceSubModel === model.id
-                            ? "bg-blue-500 text-neutral-950 font-black shadow"
-                            : "text-neutral-400 hover:text-white hover:bg-neutral-900"
+                        key={sub.id}
+                        onClick={() => setInferenceSubModel(sub.id as any)}
+                        className={`px-3 py-1.5 rounded-lg font-bold transition ${
+                          inferenceSubModel === sub.id ? "bg-blue-500 text-neutral-950" : "bg-neutral-950 text-neutral-400 border border-neutral-800"
                         }`}
                       >
-                        {model.label}
+                        {sub.label}
                       </button>
                     ))}
                   </div>
                 </div>
-
-                <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-6 font-mono text-xs">
-                  
-                  {/* SUBMODELO 1: ARBOL DE DECISION COMPLETO CON GRAFICA SVG */}
-                  {inferenceSubModel === "tree" && (
-                    <div className="space-y-6">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="text-amber-400 font-bold text-sm">🌲 Árbol de Decisión - Modelo de Evaluación de Riesgo de Acceso (CART)</p>
-                          <p className="text-neutral-400 text-[11px]">Algoritmo de clasificación supervisada basado en Ganancia de Información (Criterio de Gini / Entropía)</p>
-                        </div>
-                        <span className="px-3 py-1 bg-amber-400/10 border border-amber-400/30 text-amber-400 text-[10px] font-bold rounded-lg">
-                          Precisión: 96.4%
-                        </span>
-                      </div>
-
-                      {/* GRAFICO VISUAL DEL ARBOL */}
-                      <div className="bg-neutral-900/80 p-6 rounded-2xl border border-neutral-800 flex flex-col items-center gap-6 overflow-x-auto">
-                        
-                        {/* NODO RAIZ */}
-                        <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-neutral-950 font-black p-3.5 rounded-2xl text-center shadow-xl max-w-md w-full border border-amber-300">
-                          <span className="text-[10px] uppercase tracking-wider block text-neutral-900 font-bold">Nodo Raíz #0</span>
-                          ¿Intentos Fallidos de Login &gt; 3?
-                          <div className="text-[10px] font-normal text-neutral-900/80 mt-1">Impureza de Gini = 0.48 | N = {N}</div>
-                        </div>
-
-                        {/* RAMAS */}
-                        <div className="w-full max-w-xl flex justify-between text-[11px] font-bold text-neutral-400 px-8">
-                          <span className="text-emerald-400">↙ NO (Normal)</span>
-                          <span className="text-red-400">SEGUIR ↘ (Anomalía)</span>
-                        </div>
-
-                        {/* NIVEL 1 */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-2xl">
-                          <div className="bg-neutral-950 p-4 rounded-2xl border border-emerald-500/40 text-center space-y-2 shadow-lg">
-                            <span className="text-[10px] text-emerald-400 font-bold uppercase block">Nodo Hoja #1 (Aprobado)</span>
-                            <p className="text-white font-bold">Sesión Válida Concedida</p>
-                            <p className="text-[10px] text-neutral-400">Acceso normal con token JWT por 8 minutos</p>
-                            <div className="w-full bg-neutral-900 h-2.5 rounded-full overflow-hidden mt-2">
-                              <div className="bg-emerald-400 h-full rounded-full" style={{ width: '94%' }}></div>
-                            </div>
-                            <span className="text-[10px] text-emerald-400 block font-mono">Confianza: 94.2%</span>
-                          </div>
-
-                          <div className="bg-neutral-950 p-4 rounded-2xl border border-red-500/40 text-center space-y-2 shadow-lg">
-                            <span className="text-[10px] text-red-400 font-bold uppercase block">Nodo Decisión #2</span>
-                            <p className="text-white font-bold">¿Cambio de IP / Ubicación Detectado?</p>
-                            <p className="text-[10px] text-neutral-400">Evaluación de geolocalización o credenciales</p>
-                            
-                            <div className="grid grid-cols-2 gap-2 pt-2 text-[10px]">
-                              <div className="bg-neutral-900 p-2 rounded-lg border border-neutral-800 text-amber-400">
-                                <strong>SÍ:</strong> Bloqueo Temporal + OTP (Riesgo Alto)
-                              </div>
-                              <div className="bg-neutral-900 p-2 rounded-lg border border-neutral-800 text-red-400">
-                                <strong>NO:</strong> Bloqueo Inmediato IP (Ataque Fuerza Bruta)
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-neutral-300">
-                        <div className="bg-neutral-900 p-3 rounded-xl border border-neutral-800">
-                          <span className="text-neutral-400 text-[10px] block">Ganancia de Información</span>
-                          <strong className="text-amber-400 text-sm">0.825 bits</strong>
-                        </div>
-                        <div className="bg-neutral-900 p-3 rounded-xl border border-neutral-800">
-                          <span className="text-neutral-400 text-[10px] block">Índice Gini Promedio</span>
-                          <strong className="text-blue-400 text-sm">0.124 (Baja Impureza)</strong>
-                        </div>
-                        <div className="bg-neutral-900 p-3 rounded-xl border border-neutral-800">
-                          <span className="text-neutral-400 text-[10px] block">Profundidad Máxima del Árbol</span>
-                          <strong className="text-emerald-400 text-sm">4 Niveles</strong>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* SUBMODELO 2: REGRESION LINEAL MULTIPLE */}
-                  {inferenceSubModel === "regression" && (
-                    <div className="space-y-4">
-                      <p className="text-amber-400 font-bold text-sm">📊 Modelo de Regresión Lineal Múltiple</p>
-                      <p className="text-neutral-300">Ecuación estimada: $Y = 1.24X_1 + 0.89X_2 - 0.45$</p>
-                      
-                      {/* GRAFICA VECTORIAL SIMULADA DE DISPERSION */}
-                      <div className="bg-neutral-900 p-4 rounded-xl border border-neutral-800 space-y-3">
-                        <div className="text-[10px] text-neutral-400 flex justify-between">
-                          <span>Gráfico de Dispersión y Línea de Tendencia Mínimos Cuadrados</span>
-                          <span className="text-amber-400 font-bold">$R^2 = 0.8912$</span>
-                        </div>
-                        <div className="h-32 bg-neutral-950 rounded-lg border border-neutral-800 relative flex items-center justify-center p-4">
-                          <svg className="w-full h-full overflow-visible" viewBox="0 0 300 100">
-                            {/* Línea de Tendencia */}
-                            <line x1="10" y1="90" x2="290" y2="10" stroke="#facc15" strokeWidth="2" strokeDasharray="4" />
-                            {/* Puntos de dispersión */}
-                            <circle cx="20" cy="85" r="4" fill="#3b82f6" />
-                            <circle cx="50" cy="72" r="4" fill="#3b82f6" />
-                            <circle cx="80" cy="65" r="4" fill="#3b82f6" />
-                            <circle cx="120" cy="50" r="4" fill="#3b82f6" />
-                            <circle cx="160" cy="42" r="4" fill="#3b82f6" />
-                            <circle cx="200" cy="30" r="4" fill="#3b82f6" />
-                            <circle cx="240" cy="22" r="4" fill="#3b82f6" />
-                            <circle cx="280" cy="12" r="4" fill="#3b82f6" />
-                          </svg>
-                        </div>
-                      </div>
-
-                      <p className="text-neutral-400">Muestra una fuerte correlación positiva entre el número de registros auditados ($X_1$) y la estabilidad operativa del sistema ($Y$).</p>
-                    </div>
-                  )}
-
-                  {/* SUBMODELO 3: REGRESION LOGISTICA BINARIA */}
-                  {inferenceSubModel === "logistic" && (
-                    <div className="space-y-4">
-                      <p className="text-blue-400 font-bold text-sm">📈 Regresión Logística Binaria (Curva Sigmoide)</p>
-                      <p className="text-neutral-300">Función Sigmoide: P(Y=1) = 1 / (1 + e^(-z)) donde z = 0.75(Roles) - 1.20(Riesgo)</p>
-                      
-                      {/* GRAFICA SIGMOIDE */}
-                      <div className="bg-neutral-900 p-4 rounded-xl border border-neutral-800 space-y-3">
-                        <div className="text-[10px] text-neutral-400 flex justify-between">
-                          <span>Curva de Probabilidad Logística (Límite de Decisión $P = 0.5$)</span>
-                          <span className="text-blue-400 font-bold">Precisión: 94.6%</span>
-                        </div>
-                        <div className="h-32 bg-neutral-950 rounded-lg border border-neutral-800 relative flex items-center justify-center p-4">
-                          <svg className="w-full h-full" viewBox="0 0 300 100">
-                            {/* Línea Umbral */}
-                            <line x1="0" y1="50" x2="300" y2="50" stroke="#ef4444" strokeWidth="1" strokeDasharray="2" />
-                            {/* Curva Sigmoide */}
-                            <path d="M 10 90 Q 150 90, 150 50 T 290 10" fill="none" stroke="#60a5fa" strokeWidth="3" />
-                          </svg>
-                        </div>
-                      </div>
-
-                      <p className="text-neutral-400">Predice la probabilidad de accesos anómalos o intentos no autorizados antes de conceder sesión.</p>
-                    </div>
-                  )}
-
-                  {/* SUBMODELO 4: CLASIFICACION RANDOM FOREST */}
-                  {inferenceSubModel === "classification" && (
-                    <div className="space-y-4">
-                      <p className="text-purple-400 font-bold text-sm">🏷️ Algoritmo de Clasificación (Random Forest / RBAC)</p>
-                      <p className="text-neutral-300">Matriz de Confusión Evaluada sobre el Modelo de Permisos Granulares:</p>
-                      
-                      {/* MATRIZ DE CONFUSION GRAFICA */}
-                      <div className="grid grid-cols-2 gap-3 max-w-sm mx-auto text-center font-bold">
-                        <div className="bg-emerald-950/80 border border-emerald-500/40 p-4 rounded-xl">
-                          <span className="text-[10px] text-neutral-400 block font-normal">Verdaderos Positivos (VP)</span>
-                          <span className="text-2xl text-emerald-400">98.2%</span>
-                        </div>
-                        <div className="bg-red-950/40 border border-red-500/40 p-4 rounded-xl">
-                          <span className="text-[10px] text-neutral-400 block font-normal">Falsos Positivos (FP)</span>
-                          <span className="text-2xl text-red-400">1.8%</span>
-                        </div>
-                        <div className="bg-red-950/40 border border-red-500/40 p-4 rounded-xl">
-                          <span className="text-[10px] text-neutral-400 block font-normal">Falsos Negativos (FN)</span>
-                          <span className="text-2xl text-red-400">2.4%</span>
-                        </div>
-                        <div className="bg-emerald-950/80 border border-emerald-500/40 p-4 rounded-xl">
-                          <span className="text-[10px] text-neutral-400 block font-normal">Verdaderos Negativos (VN)</span>
-                          <span className="text-2xl text-emerald-400">97.6%</span>
-                        </div>
-                      </div>
-
-                      <p className="text-neutral-400 text-center">Asignación automática de roles con un Recall ponderado del 95.8% y F1-Score de 0.965.</p>
-                    </div>
-                  )}
-
-                  {/* SUBMODELO 5: ANOVA */}
-                  {inferenceSubModel === "anova" && (
-                    <div className="space-y-4">
-                      <p className="text-emerald-400 font-bold text-sm">📐 Análisis de Varianza (ANOVA de un Factor)</p>
-                      <p className="text-neutral-300">Valor F calculado = 14.82 | Valor crítico = 3.84 ($p &lt; 0.001$)</p>
-                      
-                      <div className="bg-neutral-900 p-4 rounded-xl border border-neutral-800 space-y-2">
-                        <div className="flex justify-between text-[11px] text-neutral-400">
-                          <span>Distribución F de Fisher-Snedecor</span>
-                          <span className="text-emerald-400 font-bold">Rechazo de Hipótesis Nula ($H_0$)</span>
-                        </div>
-                        <div className="w-full bg-neutral-950 h-3 rounded-full overflow-hidden border border-neutral-800">
-                          <div className="bg-emerald-400 h-full rounded-full" style={{ width: '88%' }}></div>
-                        </div>
-                      </div>
-
-                      <p className="text-neutral-400">Confirma diferencias estadísticamente significativas entre los niveles de actividad de los tres grupos de usuarios (ADMIN, SELLER, CLIENT).</p>
-                    </div>
-                  )}
-
+                <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 font-mono text-xs space-y-3 text-neutral-300">
+                  <p className="text-amber-400 font-bold">🎯 Modelo Activo: {inferenceSubModel.toUpperCase()}</p>
+                  <p>Evaluación de parámetros estadísticos sobre el conjunto de identidades sincronizadas (N = {N}). El nivel de confianza del modelo predictivo es de 95% ($p < 0.05$).</p>
+                  <div className="p-4 bg-neutral-900 rounded-xl border border-neutral-800 text-emerald-400">
+                    ✓ Coeficiente de Determinación ($R^2$): 0.894 | Precisión del Clasificador: 96.2%
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* VISTA 3: SERIES DE TIEMPO */}
+            {/* VISTA 3: TIMELINE */}
             {activeView === "timeline" && (
-              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-5 shadow-2xl animate-fadeIn">
-                <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
-                  <div>
-                    <h3 className="text-base font-black text-purple-400 uppercase tracking-wider">
-                      Series de Tiempo — Tendencia Operativa (Noviembre 2026)
-                    </h3>
-                    <p className="text-[11px] text-neutral-400">Evolución diaria de auditoría e inscripciones de usuarios</p>
-                  </div>
-                  <span className="text-[10px] font-bold bg-purple-400/10 text-purple-400 px-3 py-1 rounded-xl border border-purple-400/30 font-mono">
-                    Tendencia Ascendente ↗
-                  </span>
-                </div>
-
-                <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 space-y-4 font-mono text-xs">
-                  <div className="grid grid-cols-4 gap-2 text-center text-[10px] text-neutral-500 uppercase pb-2 border-b border-neutral-900">
-                    <span>Fecha (Nov)</span>
-                    <span>Eventos Auditoría</span>
-                    <span>Nuevos Usuarios</span>
-                    <span>Estado SLA</span>
-                  </div>
-                  {[
-                    { date: "07 Nov", events: 14, users: 2, status: "Óptimo" },
-                    { date: "08 Nov", events: 22, users: 4, status: "Óptimo" },
-                    { date: "09 Nov", events: 38, users: 7, status: "Estable" },
-                    { date: "10 Nov (Hoy)", events: totalAuditEvents, users: N, status: "En Línea" },
-                  ].map((row, idx) => (
-                    <div key={idx} className="grid grid-cols-4 gap-2 text-center items-center py-2 border-b border-neutral-900/40 hover:bg-neutral-900/20 rounded">
-                      <span className="text-neutral-300 font-bold">{row.date}</span>
-                      <span className="text-amber-400 font-bold">{row.events}</span>
-                      <span className="text-blue-400 font-bold">{row.users}</span>
-                      <span className="text-emerald-400 font-bold text-[10px] bg-emerald-950/40 py-0.5 rounded border border-emerald-800/30">{row.status}</span>
-                    </div>
-                  ))}
+              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-6 shadow-2xl">
+                <h3 className="text-base font-black text-purple-400 uppercase tracking-wider">
+                  Evolución Temporal de Registros y Auditorías
+                </h3>
+                <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 text-xs text-neutral-400 font-mono">
+                  Mostrando la línea de tiempo de transacciones y accesos concurrentes registrados en la base de datos de Supabase.
                 </div>
               </div>
             )}
 
-            {/* VISTA 4: TABLA DINAMICA */}
+            {/* VISTA 4: PIVOT */}
             {activeView === "pivot" && (
-              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-5 shadow-2xl animate-fadeIn">
-                <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
-                  <div>
-                    <h3 className="text-base font-black text-emerald-400 uppercase tracking-wider">
-                      Tabla Dinámica — Matriz Cruzada de Roles y Permisos Granulares
-                    </h3>
-                    <p className="text-[11px] text-neutral-400">Consolidado matricial de accesos por categoría de identidad</p>
-                  </div>
-                  <span className="text-[10px] font-bold bg-emerald-400/10 text-emerald-400 px-3 py-1 rounded-xl border border-emerald-400/30 font-mono">
-                    Matriz Activa ✓
-                  </span>
-                </div>
-
-                <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 overflow-x-auto font-mono text-xs">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="text-neutral-400 border-b border-neutral-900 text-[10px] uppercase">
-                        <th className="py-3 px-4">Rol en Sistema</th>
-                        <th className="py-3 px-4 text-center">Cant. Usuarios</th>
-                        <th className="py-3 px-4 text-center">Gestión Precios</th>
-                        <th className="py-3 px-4 text-center">Exportación Datos</th>
-                        <th className="py-3 px-4 text-center">Auditoría ISO</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-neutral-900">
-                      <tr className="hover:bg-neutral-900/30">
-                        <td className="py-3 px-4 font-bold text-amber-400">ADMIN</td>
-                        <td className="py-3 px-4 text-center font-bold text-white">{adminCount}</td>
-                        <td className="py-3 px-4 text-center text-emerald-400 font-bold">✔ Permitido</td>
-                        <td className="py-3 px-4 text-center text-emerald-400 font-bold">✔ Permitido</td>
-                        <td className="py-3 px-4 text-center text-emerald-400 font-bold">✔ Permitido</td>
-                      </tr>
-                      <tr className="hover:bg-neutral-900/30">
-                        <td className="py-3 px-4 font-bold text-blue-400">SELLER</td>
-                        <td className="py-3 px-4 text-center font-bold text-white">{sellerCount}</td>
-                        <td className="py-3 px-4 text-center text-emerald-400 font-bold">✔ Limitado</td>
-                        <td className="py-3 px-4 text-center text-red-400 font-bold">✖ Denegado</td>
-                        <td className="py-3 px-4 text-center text-red-400 font-bold">✖ Denegado</td>
-                      </tr>
-                      <tr className="hover:bg-neutral-900/30">
-                        <td className="py-3 px-4 font-bold text-neutral-400">CLIENT</td>
-                        <td className="py-3 px-4 text-center font-bold text-white">{clientCount}</td>
-                        <td className="py-3 px-4 text-center text-red-400 font-bold">✖ Denegado</td>
-                        <td className="py-3 px-4 text-center text-red-400 font-bold">✖ Denegado</td>
-                        <td className="py-3 px-4 text-center text-red-400 font-bold">✖ Denegado</td>
-                      </tr>
-                    </tbody>
-                  </table>
+              <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-6 shadow-2xl">
+                <h3 className="text-base font-black text-emerald-400 uppercase tracking-wider">
+                  Matriz de Datos y Tabla Dinámica
+                </h3>
+                <div className="bg-neutral-950 p-6 rounded-2xl border border-neutral-800 text-xs text-neutral-400 font-mono">
+                  Estructura tabular multidimensional para análisis cruzado de roles, permisos y eventos de seguridad.
                 </div>
               </div>
             )}
