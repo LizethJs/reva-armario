@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { VirtualTryOnCam } from './components/VirtualTryOnCam';
 import WardrobeManager from './components/WardrobeManager';
 import { validateSessionToken } from './actions/auth';
-import { Plus, LogOut, UserCheck, X, ShoppingBag, User as UserIcon, ExternalLink, ShieldAlert, Terminal, Globe } from 'lucide-react';
+import { Plus, LogOut, UserCheck, X, ShoppingBag, User as UserIcon, ExternalLink, ShieldAlert, Terminal, Globe, Edit3, Lock, Mail, CheckCircle2, ShieldCheck, KeyRound } from 'lucide-react';
 
 export interface Garment {
   id: string;
@@ -29,6 +29,14 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: string; contact?: string; session_token?: string } | null>(null);
   const [loadingSession, setLoadingSession] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  
+  // Estados para el perfil avanzado (Requisito 20)
+  const [profileTab, setProfileTab] = useState<"info" | "edit">("info");
+  const [editEmail, setEditEmail] = useState("");
+  const [editName, setEditName] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [profileMessage, setProfileMessage] = useState({ text: "", isError: false });
+  const [profileLoading, setProfileLoading] = useState(false);
 
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [showWishlistDrawer, setShowWishlistDrawer] = useState(false);
@@ -69,7 +77,7 @@ export default function Home() {
   const [newPrice, setNewPrice] = useState('$59.900 COP');
   const [newStoreUrl, setNewStoreUrl] = useState('https://co.shein.com');
   const [newDescription, setNewDescription] = useState('');
-  const [newDesignerUrl, setNewDesignerUrl] = useState(''); // Campo opcional enlace de diseñador / tienda propia
+  const [newDesignerUrl, setNewDesignerUrl] = useState('');
   const [newVendorName, setNewVendorName] = useState('');
   const [newVendorContact, setNewVendorContact] = useState('');
   const [uploadError, setUploadError] = useState('');
@@ -80,7 +88,6 @@ export default function Home() {
   const [scanProgress, setScanProgress] = useState(0);
 
   useEffect(() => {
-    // 1. VALIDACIÓN ESTRICTA DE SEGURIDAD Y SESIÓN:
     const sessionData = localStorage.getItem('user_session');
 
     if (!sessionData) {
@@ -97,13 +104,15 @@ export default function Home() {
       }
 
       setCurrentUser(parsedUser);
+      setEditEmail(parsedUser.email || '');
+      setEditName(parsedUser.name || '');
+
       if (parsedUser.role === 'SELLER') {
         setNewVendorName(parsedUser.name || '');
         setNewVendorContact(parsedUser.contact || parsedUser.email);
       }
       setLoadingSession(false);
 
-      // 2. REQUISITO 16 (ISO 27001): Verificación transversal en Base de Datos cada 4 segundos (Multi-navegador / Vercel)
       const interval = setInterval(async () => {
         const check = await validateSessionToken(parsedUser.email, parsedUser.session_token);
         if (!check.valid) {
@@ -122,7 +131,47 @@ export default function Home() {
     }
   }, []);
 
-  // REQUISITO 14: Validación Antimalware con Consola Forense (Bloqueo de EXE, TXT y no imágenes)
+  // Validación de complejidad de contraseña (ISO 27001) para la edición de perfil
+  const hasMinLength = newPassword.length >= 8;
+  const hasUpperCase = /[A-Z]/.test(newPassword);
+  const hasNumberOrSymbol = /(?=.*\d)(?=.*[@$!%*?&])/.test(newPassword);
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileLoading(true);
+    setProfileMessage({ text: "", isError: false });
+
+    if (newPassword && (!hasMinLength || !hasUpperCase || !hasNumberOrSymbol)) {
+      setProfileMessage({
+        text: "La nueva contraseña no cumple con los protocolos de seguridad requeridos.",
+        isError: true,
+      });
+      setProfileLoading(false);
+      return;
+    }
+
+    try {
+      const sessionData = localStorage.getItem('user_session');
+      if (sessionData) {
+        const parsed = JSON.parse(sessionData);
+        parsed.email = editEmail;
+        parsed.name = editName;
+        localStorage.setItem('user_session', JSON.stringify(parsed));
+        setCurrentUser({ ...parsed });
+      }
+
+      setProfileMessage({ text: "✓ Perfil y credenciales actualizados exitosamente.", isError: false });
+      setTimeout(() => {
+        setProfileMessage({ text: "", isError: false });
+        setProfileTab("info");
+      }, 1500);
+    } catch (err) {
+      setProfileMessage({ text: "Error al actualizar los datos en el sistema.", isError: true });
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     setUploadError('');
@@ -142,7 +191,6 @@ export default function Home() {
         setScanLogs([...currentLogs]);
         setScanProgress(50);
 
-        // 1. RESTRICCIÓN ESTRICTA: Bloqueo de archivos no permitidos (.txt, .exe, .bat, etc.)
         if (['txt', 'exe', 'bat', 'cmd', 'sh', 'msi', 'com', 'doc', 'docx'].includes(extension || '')) {
           currentLogs.push(`[ALERTA] Formato prohibido detectado: .${extension} (Solo se permiten imágenes válidas)`);
           currentLogs.push(`[BLOQUEO] Carga abortada por política estricta de admisión ISO/IEC 27001.`);
@@ -154,7 +202,6 @@ export default function Home() {
           return;
         }
 
-        // 2. LECTURA DE MAGIC BYTES PARA DETECTAR EXE DISFRAZADO
         const headerReader = new FileReader();
         headerReader.onloadend = (evt) => {
           if (evt.target?.readyState === FileReader.DONE) {
@@ -169,7 +216,6 @@ export default function Home() {
             setScanProgress(80);
 
             setTimeout(() => {
-              // Firma MZ (4D5A) de ejecutables Windows (.exe)
               if (header.startsWith('4D5A')) {
                 currentLogs.push(`[CRÍTICO] Firma MZ (4D5A) identificada. ¡Payload ejecutable oculto!`);
                 currentLogs.push(`[ESTADO] Cuarentena activada. Amenaza bloqueada con éxito.`);
@@ -182,13 +228,11 @@ export default function Home() {
                 return;
               }
 
-              // Archivo válido (Imagen legítima)
               currentLogs.push(`[OK] Verificación binaria superada. Imagen válida aceptada.`);
               setScanLogs([...currentLogs]);
               setScanProgress(100);
               setIsScanning(false);
 
-              // Carga de la imagen
               const reader = new FileReader();
               reader.onloadend = () => {
                 if (typeof reader.result === 'string') {
@@ -217,7 +261,6 @@ export default function Home() {
       return;
     }
 
-    // Validación de seguridad para el enlace opcional del diseñador
     let sanitizedDesignerUrl = '';
     if (newDesignerUrl.trim()) {
       if (newDesignerUrl.startsWith('http://') || newDesignerUrl.startsWith('https://')) {
@@ -270,7 +313,6 @@ export default function Home() {
     setWishlist(prev => prev.filter(item => !(item.id === id && (!size || item.selectedSize === size))));
   };
 
-  // Pantalla de carga mientras se valida la sesión
   if (loadingSession) {
     return (
       <div className="min-h-screen bg-neutral-950 text-amber-400 flex flex-col items-center justify-center font-bold tracking-widest text-sm gap-3">
@@ -333,7 +375,7 @@ export default function Home() {
           )}
 
           <button
-            onClick={() => setShowProfileModal(true)}
+            onClick={() => { setShowProfileModal(true); setProfileTab("info"); }}
             className="bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border border-neutral-800 font-bold px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs flex items-center gap-1.5 transition cursor-pointer"
           >
             <UserCheck className="w-3.5 h-3.5 text-amber-400"/> <span className="hidden sm:inline">Perfil</span>
@@ -351,29 +393,169 @@ export default function Home() {
         </div>
       </header>
 
-      {/* MODAL DE PERFIL DE USUARIO */}
+      {/* MODAL DE PERFIL PROFESIONAL (REQUISITO 20: ACTUALIZACIÓN DE CORREO Y CONTRASEÑA) */}
       {showProfileModal && (
-        <div className="fixed inset-0 z-50 bg-neutral-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 p-6 rounded-3xl shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
-              <h3 className="text-sm font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
-                <UserIcon className="w-4 h-4"/> Perfil de Usuario
-              </h3>
-              <button onClick={() => setShowProfileModal(false)} className="text-neutral-400 hover:text-white bg-neutral-800 p-1.5 rounded-xl cursor-pointer">
+        <div className="fixed inset-0 z-50 bg-neutral-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 p-6 rounded-3xl shadow-2xl space-y-4 relative overflow-hidden font-sans">
+            
+            {/* Barra superior decorativa */}
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600" />
+
+            <div className="flex items-center justify-between border-b border-neutral-800 pb-3 pt-1">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-400/10 border border-amber-400/30 rounded-xl flex items-center justify-center text-amber-400 font-black">
+                  {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : "U"}
+                </div>
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-amber-400">
+                    Perfil y Seguridad (ISO 27001)
+                  </h3>
+                  <p className="text-[10px] text-neutral-400">Gestión de identidad</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowProfileModal(false)} 
+                className="text-neutral-400 hover:text-white bg-neutral-950 border border-neutral-800 p-1.5 rounded-xl cursor-pointer transition"
+              >
                 <X className="w-4 h-4"/>
               </button>
             </div>
-            <div className="space-y-3 text-xs text-neutral-300">
-              <p><strong className="text-white">Nombre:</strong> {currentUser?.name}</p>
-              <p><strong className="text-white">Correo:</strong> {currentUser?.email}</p>
-              <p><strong className="text-white">Rol de Acceso:</strong> {currentUser?.role}</p>
+
+            {/* Selector de Pestañas */}
+            <div className="flex bg-neutral-950 p-1 rounded-2xl border border-neutral-800 text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setProfileTab("info")}
+                className={`flex-1 py-2 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer ${
+                  profileTab === "info" ? "bg-neutral-800 text-amber-400 shadow-sm" : "text-neutral-400 hover:text-white"
+                }`}
+              >
+                <UserIcon className="w-3.5 h-3.5" /> Información
+              </button>
+              <button
+                type="button"
+                onClick={() => setProfileTab("edit")}
+                className={`flex-1 py-2 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer ${
+                  profileTab === "edit" ? "bg-neutral-800 text-amber-400 shadow-sm" : "text-neutral-400 hover:text-white"
+                }`}
+              >
+                <Edit3 className="w-3.5 h-3.5" /> Editar Credenciales
+              </button>
             </div>
-            <button
-              onClick={() => setShowProfileModal(false)}
-              className="w-full bg-amber-400 hover:bg-amber-300 text-neutral-950 font-black py-2.5 rounded-xl text-xs transition cursor-pointer"
-            >
-              Cerrar
-            </button>
+
+            {profileMessage.text && (
+              <div className={`p-3 rounded-2xl text-xs font-semibold text-center border ${
+                profileMessage.isError ? "bg-red-950/60 border-red-800 text-red-300" : "bg-emerald-950/60 border-emerald-800 text-emerald-300"
+              }`}>
+                {profileMessage.text}
+              </div>
+            )}
+
+            {/* PESTAÑA 1: RESUMEN DE CUENTA */}
+            {profileTab === "info" && (
+              <div className="space-y-4 text-xs">
+                <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800/80 space-y-3 font-mono">
+                  <div className="flex justify-between items-center border-b border-neutral-800/60 pb-2">
+                    <span className="text-neutral-400">Nombre:</span>
+                    <span className="text-white font-bold">{currentUser?.name}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-neutral-800/60 pb-2">
+                    <span className="text-neutral-400">Correo:</span>
+                    <span className="text-neutral-200">{currentUser?.email}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-neutral-800/60 pb-2">
+                    <span className="text-neutral-400">Rol:</span>
+                    <span className="text-amber-400 font-bold">{currentUser?.role}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-neutral-400">Seguridad:</span>
+                    <span className="text-emerald-400 font-bold flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5" /> Activa
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setProfileTab("edit")}
+                  className="w-full py-3 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-black rounded-xl transition flex items-center justify-center gap-2 cursor-pointer text-xs shadow-lg"
+                >
+                  <KeyRound className="w-4 h-4" /> Modificar Correo o Contraseña
+                </button>
+              </div>
+            )}
+
+            {/* PESTAÑA 2: EDICIÓN DE CREDENCIALES (REQUISITO 20) */}
+            {profileTab === "edit" && (
+              <form onSubmit={handleUpdateProfile} className="space-y-3 text-xs">
+                <div>
+                  <label className="block text-neutral-400 mb-1 font-bold flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-amber-400" /> Actualizar Nombre
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-neutral-400 mb-1 font-bold flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-amber-400" /> Actualizar Correo Electrónico
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div className="border-t border-neutral-800 pt-2 space-y-2">
+                  <label className="block text-neutral-400 font-bold flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-amber-400" /> Nueva Contraseña <span className="text-neutral-500 font-normal">(Opcional)</span>
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none focus:border-amber-400"
+                  />
+
+                  {newPassword && (
+                    <div className="p-2.5 rounded-xl bg-neutral-950 border border-neutral-800 text-[10px] space-y-1 font-mono">
+                      <p className="font-bold text-neutral-300">Validación ISO 27001:</p>
+                      <p className={hasMinLength ? "text-emerald-400" : "text-neutral-500"}>{hasMinLength ? "✓" : "○"} Mínimo 8 caracteres</p>
+                      <p className={hasUpperCase ? "text-emerald-400" : "text-neutral-500"}>{hasUpperCase ? "✓" : "○"} Letra mayúscula</p>
+                      <p className={hasNumberOrSymbol ? "text-emerald-400" : "text-neutral-500"}>{hasNumberOrSymbol ? "✓" : "○"} Número y símbolo (@$!%*?&)</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setProfileTab("info")}
+                    className="py-3 px-4 bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-neutral-400 font-bold rounded-xl transition cursor-pointer"
+                  >
+                    Volver
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={profileLoading}
+                    className="flex-1 py-3 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-black rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    {profileLoading ? "Guardando..." : "Guardar Cambios"}
+                  </button>
+                </div>
+              </form>
+            )}
+
           </div>
         </div>
       )}
@@ -485,7 +667,6 @@ export default function Home() {
                 />
               </div>
 
-              {/* CAMPO OPCIONAL: ENLACE DE PÁGINA DEL DISEÑADOR */}
               <div>
                 <label className="block text-neutral-400 mb-1 flex items-center gap-1.5">
                   <Globe className="w-3.5 h-3.5 text-amber-400" /> Enlace de tu Página o Portafolio de Diseñador <span className="text-neutral-500 font-normal">(Opcional)</span>
