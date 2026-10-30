@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { logSystemError } from "@/actions/logger";
+import { triggerRealSystemError } from "../actions/test-error";
 import { ShieldAlert, Terminal } from "lucide-react";
 import { 
   getUsers, 
@@ -24,7 +24,7 @@ export default function AdminDashboardPage() {
   const [adminEmail, setAdminEmail] = useState("");
   const [actionMessage, setActionMessage] = useState({ text: "", success: false });
 
-  // Estados para simulación de errores (Requisito ISO 27001 Error Logging)
+  // Estados para simulación de errores en vivo (ISO/IEC 27001 Error Logging)
   const [testingError, setTestingError] = useState(false);
   const [errorLogResult, setErrorLogResult] = useState<string | null>(null);
 
@@ -122,26 +122,20 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleForceSystemError = async () => {
+  const handleRealErrorTest = async () => {
     setTestingError(true);
     setErrorLogResult(null);
 
     try {
-      throw new Error("SIMULACIÓN DE FALLO CRÍTICO: Excepción no controlada en tiempo de ejecución (Auditoría ISO 27001)");
-    } catch (error: any) {
-      const res = await logSystemError({
-        adminEmail: adminEmail,
-        action: "FORCED_SYSTEM_CRASH",
-        errorDetails: error.message,
-        severity: "CRITICAL"
-      });
-
+      const res = await triggerRealSystemError(adminEmail);
       if (res.success) {
-        setErrorLogResult("✅ ¡Fallo forzado registrado con éxito! El evento fue capturado e interceptado en la bitácora de auditoría.");
+        setErrorLogResult("✅ ¡Fallo real inyectado y registrado con éxito! El evento fue interceptado y guardado en la tabla AuditLog de Supabase.");
         fetchData(adminEmail);
       } else {
-        setErrorLogResult(`⚠️ Error al registrar: ${res.message}`);
+        setErrorLogResult(`⚠️ Error: ${res.message}`);
       }
+    } catch (err: any) {
+      setErrorLogResult(`⚠️ Error en servidor: ${err.message}`);
     } finally {
       setTestingError(false);
     }
@@ -532,22 +526,22 @@ export default function AdminDashboardPage() {
               <p className="text-xs text-neutral-300">Aislamiento estricto de rutas, sanitización de archivos y cifrado bcryptjs.</p>
             </div>
 
-            {/* MÓDULO DE PRUEBA DE ERRORES (ISO 27001 ERROR LOGGING) */}
+            {/* MÓDULO DE PRUEBA DE ERRORES REALES (ISO 27001 ERROR LOGGING) */}
             <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-3xl space-y-4 max-w-xl mx-auto text-xs font-mono">
               <div className="flex items-center gap-2 text-amber-400 font-bold border-b border-neutral-800 pb-3">
                 <ShieldAlert className="w-4 h-4" /> Consola de Auditoría y Pruebas de Fallo (ISO 27001)
               </div>
               <p className="text-neutral-400">
-                Simula una interrupción o excepción no controlada en el sistema para verificar que el registro de errores (`Error Logs`) capture y persista la traza en la base de datos.
+                Inyecta una incidencia real en el servidor para verificar que la bitácora de auditoría (`AuditLog`) registre y persista la traza forense directamente en la base de datos de Supabase.
               </p>
 
               <button
-                onClick={handleForceSystemError}
+                onClick={handleRealErrorTest}
                 disabled={testingError}
                 className="w-full py-3 bg-red-950/40 hover:bg-red-900/50 border border-red-900/60 text-red-300 font-black rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
               >
                 <Terminal className="w-4 h-4 text-red-400" />
-                {testingError ? "Simulando y capturando fallo..." : "Forzar Fallo del Sistema y Registrar Log"}
+                {testingError ? "Ejecutando e insertando fallo real..." : "Forzar Fallo Real del Sistema y Registrar Log"}
               </button>
 
               {errorLogResult && (
