@@ -383,3 +383,89 @@ export async function resetPasswordWithOtp(data: { email: string; otp: string; n
     return { success: false, message: "Error al actualizar la contraseña." };
   }
 }
+
+// REQUISITO 20: ACTUALIZACIÓN DE CREDENCIALES Y PERFIL DE USUARIO EN LA BASE DE DATOS
+export async function updateUserCredentials(data: {
+  currentEmail: string;
+  newEmail: string;
+  newName: string;
+  newPassword?: string;
+}) {
+  try {
+    const sanitizedCurrentEmail = data.currentEmail.toLowerCase().trim();
+    const sanitizedNewEmail = data.newEmail.toLowerCase().trim();
+    const sanitizedNewName = data.newName.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    // 1. Buscar al usuario actual
+    const user = await prisma.user.findUnique({
+      where: { email: sanitizedCurrentEmail },
+    });
+
+    if (!user) {
+      return { success: false, message: "⚠️ Usuario no encontrado en el sistema." };
+    }
+
+    // 2. Si intenta cambiar el correo, verificar que el nuevo correo no esté registrado por otra persona
+    if (sanitizedNewEmail !== sanitizedCurrentEmail) {
+      const existingUser = await prisma.user.findUnique({
+        where: { email: sanitizedNewEmail },
+      });
+
+      if (existingUser) {
+        return { 
+          success: false, 
+          message: "⚠️ El correo ingresado ya pertenece a otra cuenta registrada." 
+        };
+      }
+    }
+
+    // 3. Preparar los datos a actualizar
+    const updateData: any = {
+      email: sanitizedNewEmail,
+      name: sanitizedNewName,
+    };
+
+    // 4. Si proporcionó una nueva contraseña, encriptarla con bcrypt
+    if (data.newPassword && data.newPassword.trim() !== "") {
+      const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!\%*?&]{8,}$/.test(data.newPassword);
+      if (!isPasswordValid) {
+        return { 
+          success: false, 
+          message: "⚠️ La nueva contraseña no cumple con las políticas de complejidad ISO 27001." 
+        };
+      }
+
+      const hashedPassword = await bcrypt.hash(data.newPassword, 10);
+      updateData.password = hashedPassword;
+    }
+
+    // 5. Guardar en la base de datos
+    const updatedUser = await prisma.user.update({
+      where: { email: sanitizedCurrentEmail },
+      data: updateData,
+    });
+
+    return {
+      success: true,
+      message: "✓ Credenciales actualizadas exitosamente en la base de datos.",
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        role: updatedUser.role,
+      },
+    };
+  } catch (error: any) {
+    console.error("Error al actualizar credenciales:", error);
+    if (error.code === "P2002") {
+      return { 
+        success: false, 
+        message: "⚠️ El correo ingresado ya está registrado por otro usuario." 
+      };
+    }
+    return { 
+      success: false, 
+      message: `Error al actualizar la información: ${error.message || "Compruebe la conexión a la base de datos."}` 
+    };
+  }
+}

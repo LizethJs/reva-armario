@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { VirtualTryOnCam } from './components/VirtualTryOnCam';
 import WardrobeManager from './components/WardrobeManager';
-import { validateSessionToken } from './actions/auth';
+import { validateSessionToken, updateUserCredentials } from './actions/auth';
 import { Plus, LogOut, UserCheck, X, ShoppingBag, User as UserIcon, ExternalLink, ShieldAlert, Terminal, Globe, Edit3, Lock, Mail, CheckCircle2, ShieldCheck, KeyRound } from 'lucide-react';
 
 export interface Garment {
@@ -30,7 +30,7 @@ export default function Home() {
   const [loadingSession, setLoadingSession] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
   
-  // Estados para el perfil avanzado (Requisito 20)
+  // Estados para el perfil avanzado (Requisito 20 real en Base de Datos)
   const [profileTab, setProfileTab] = useState<"info" | "edit">("info");
   const [editEmail, setEditEmail] = useState("");
   const [editName, setEditName] = useState("");
@@ -136,6 +136,7 @@ export default function Home() {
   const hasUpperCase = /[A-Z]/.test(newPassword);
   const hasNumberOrSymbol = /(?=.*\d)(?=.*[@$!%*?&])/.test(newPassword);
 
+  // ACTUALIZACIÓN REAL EN BASE DE DATOS (REQUISITO 20)
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileLoading(true);
@@ -143,7 +144,7 @@ export default function Home() {
 
     if (newPassword && (!hasMinLength || !hasUpperCase || !hasNumberOrSymbol)) {
       setProfileMessage({
-        text: "La nueva contraseña no cumple con los protocolos de seguridad requeridos.",
+        text: "⚠️ La nueva contraseña no cumple con los protocolos de complejidad requeridos.",
         isError: true,
       });
       setProfileLoading(false);
@@ -151,22 +152,49 @@ export default function Home() {
     }
 
     try {
-      const sessionData = localStorage.getItem('user_session');
-      if (sessionData) {
-        const parsed = JSON.parse(sessionData);
-        parsed.email = editEmail;
-        parsed.name = editName;
-        localStorage.setItem('user_session', JSON.stringify(parsed));
-        setCurrentUser({ ...parsed });
+      if (!currentUser?.email) {
+        setProfileMessage({ text: "Error de sesión: No se identificó al usuario.", isError: true });
+        setProfileLoading(false);
+        return;
       }
 
-      setProfileMessage({ text: "✓ Perfil y credenciales actualizados exitosamente.", isError: false });
-      setTimeout(() => {
-        setProfileMessage({ text: "", isError: false });
-        setProfileTab("info");
-      }, 1500);
+      const res = await updateUserCredentials({
+        currentEmail: currentUser.email,
+        newEmail: editEmail,
+        newName: editName,
+        newPassword: newPassword.trim() !== "" ? newPassword : undefined,
+      });
+
+      if (res && res.success) {
+        const sessionData = localStorage.getItem('user_session');
+        if (sessionData) {
+          const parsed = JSON.parse(sessionData);
+          parsed.email = editEmail.toLowerCase();
+          parsed.name = editName;
+          localStorage.setItem('user_session', JSON.stringify(parsed));
+        }
+
+        setCurrentUser((prev: any) => ({
+          ...prev,
+          email: editEmail.toLowerCase(),
+          name: editName,
+        }));
+
+        setNewPassword("");
+        setProfileMessage({ text: res.message, isError: false });
+
+        setTimeout(() => {
+          setProfileMessage({ text: "", isError: false });
+          setProfileTab("info");
+        }, 1800);
+      } else {
+        setProfileMessage({
+          text: res?.message || "No se pudo actualizar la información en el servidor.",
+          isError: true,
+        });
+      }
     } catch (err) {
-      setProfileMessage({ text: "Error al actualizar los datos en el sistema.", isError: true });
+      setProfileMessage({ text: "Error de conexión con la base de datos.", isError: true });
     } finally {
       setProfileLoading(false);
     }
@@ -393,12 +421,11 @@ export default function Home() {
         </div>
       </header>
 
-      {/* MODAL DE PERFIL PROFESIONAL (REQUISITO 20: ACTUALIZACIÓN DE CORREO Y CONTRASEÑA) */}
+      {/* MODAL DE PERFIL PROFESIONAL (REQUISITO 20) */}
       {showProfileModal && (
         <div className="fixed inset-0 z-50 bg-neutral-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
           <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 p-6 rounded-3xl shadow-2xl space-y-4 relative overflow-hidden font-sans">
             
-            {/* Barra superior decorativa */}
             <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600" />
 
             <div className="flex items-center justify-between border-b border-neutral-800 pb-3 pt-1">
@@ -421,7 +448,6 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Selector de Pestañas */}
             <div className="flex bg-neutral-950 p-1 rounded-2xl border border-neutral-800 text-xs font-bold">
               <button
                 type="button"
@@ -451,7 +477,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* PESTAÑA 1: RESUMEN DE CUENTA */}
             {profileTab === "info" && (
               <div className="space-y-4 text-xs">
                 <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800/80 space-y-3 font-mono">
@@ -485,7 +510,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* PESTAÑA 2: EDICIÓN DE CREDENCIALES (REQUISITO 20) */}
             {profileTab === "edit" && (
               <form onSubmit={handleUpdateProfile} className="space-y-3 text-xs">
                 <div>
@@ -550,7 +574,7 @@ export default function Home() {
                     className="flex-1 py-3 bg-amber-400 hover:bg-amber-300 text-neutral-950 font-black rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-lg"
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    {profileLoading ? "Guardando..." : "Guardar Cambios"}
+                    {profileLoading ? "Actualizando..." : "Guardar Cambios"}
                   </button>
                 </div>
               </form>
