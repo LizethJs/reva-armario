@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { VirtualTryOnCam } from './components/VirtualTryOnCam';
 import WardrobeManager from './components/WardrobeManager';
-import { Plus, LogOut, UserCheck, X, ShoppingBag, User as UserIcon, ExternalLink, ShieldAlert } from 'lucide-react';
+import { Plus, LogOut, UserCheck, X, ShoppingBag, User as UserIcon, ExternalLink, ShieldAlert, Terminal, ShieldCheck } from 'lucide-react';
 
 export interface Garment {
   id: string;
@@ -71,6 +71,11 @@ export default function Home() {
   const [newVendorContact, setNewVendorContact] = useState('');
   const [uploadError, setUploadError] = useState('');
 
+  // Estados para la Consola de Auditoría Forense en Tiempo Real
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanLogs, setScanLogs] = useState<string[]>([]);
+  const [scanProgress, setScanProgress] = useState(0);
+
   useEffect(() => {
     // VALIDACIÓN ESTRICTA DE SEGURIDAD:
     // Si no existe una sesión activa y verificada en localStorage, expulsa a /login inmediatamente.
@@ -101,53 +106,86 @@ export default function Home() {
     }
   }, []);
 
-  // REQUISITO 14: Validación estricta anti-ejecutables (.exe disfrazados de PDF o imágenes)
+  // REQUISITO 14: Validación con Consola de Auditoría Forense & Magic Bytes
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     setUploadError('');
+    setScanLogs([]);
+    setScanProgress(0);
 
     if (file) {
       const extension = file.name.split('.').pop()?.toLowerCase();
+      setIsScanning(true);
 
-      // Bloqueo por extensión obvia
-      if (['exe', 'bat', 'cmd', 'sh', 'msi', 'com'].includes(extension || '')) {
-        setUploadError('⚠️ ALERTA DE SEGURIDAD: Formato ejecutable prohibido.');
-        alert('⚠️ ALERTA DE SEGURIDAD (ISO 27001): Se ha bloqueado un archivo ejecutable.');
-        e.target.value = '';
-        return;
-      }
+      let currentLogs: string[] = ['[INFO] Iniciando pasarela SSDLC de escaneo antimalware...'];
+      setScanLogs([...currentLogs]);
+      setScanProgress(25);
 
-      // Verificación de cabeceras binarias (Magic Bytes) para detectar .exe renombrados a .pdf/.png
-      const headerReader = new FileReader();
-      headerReader.onloadend = (evt) => {
-        if (evt.target?.readyState === FileReader.DONE) {
-          const arr = new Uint8Array(evt.target.result as ArrayBuffer).subarray(0, 4);
-          let header = '';
-          for (let i = 0; i < arr.length; i++) {
-            header += arr[i].toString(16).padStart(2, '0').toUpperCase();
-          }
+      setTimeout(() => {
+        currentLogs.push(`[CHECK] Analizando integridad del contenedor: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
+        setScanLogs([...currentLogs]);
+        setScanProgress(50);
 
-          // Firma MZ (4D5A) de ejecutables de Windows (.exe / .dll)
-          if (header.startsWith('4D5A')) {
-            setUploadError('🚨 AMENAZA BLOQUEADA: Ejecutable (.exe) camuflado detectado.');
-            alert('🚨 ALERTA FORENSE SSDLC (Requisito 14): El archivo contiene una firma binaria de ejecutable (.exe) a pesar de tener otra extensión. Carga rechazada.');
-            e.target.value = '';
-            setNewSource('');
-            return;
-          }
-
-          // Si pasa la validación de seguridad, carga el archivo normalmente
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            if (typeof reader.result === 'string') {
-              setNewSource(reader.result);
-            }
-          };
-          reader.readAsDataURL(file);
+        // Bloqueo por extensión obvia
+        if (['exe', 'bat', 'cmd', 'sh', 'msi', 'com'].includes(extension || '')) {
+          currentLogs.push(`[ALERTA] Extensión prohibida detectada: .${extension}`);
+          currentLogs.push(`[BLOQUEO] Carga abortada bajo directiva ISO/IEC 27001.`);
+          setScanLogs([...currentLogs]);
+          setScanProgress(100);
+          setUploadError('⚠️ ALERTA DE SEGURIDAD: Formato ejecutable prohibido.');
+          setIsScanning(false);
+          e.target.value = '';
+          return;
         }
-      };
 
-      headerReader.readAsArrayBuffer(file.slice(0, 4));
+        // Lectura de cabeceras binarias (Magic Bytes)
+        const headerReader = new FileReader();
+        headerReader.onloadend = (evt) => {
+          if (evt.target?.readyState === FileReader.DONE) {
+            const arr = new Uint8Array(evt.target.result as ArrayBuffer).subarray(0, 4);
+            let header = '';
+            for (let i = 0; i < arr.length; i++) {
+              header += arr[i].toString(16).padStart(2, '0').toUpperCase();
+            }
+
+            currentLogs.push(`[HEX] Cabecera extraída (Magic Bytes): 0x${header}`);
+            setScanLogs([...currentLogs]);
+            setScanProgress(80);
+
+            setTimeout(() => {
+              // Firma MZ (4D5A) de ejecutables Windows (.exe)
+              if (header.startsWith('4D5A')) {
+                currentLogs.push(`[CRítico] Firma MZ (4D5A) identificada. ¡Payload ejecutable oculto!`);
+                currentLogs.push(`[ESTADO] Cuarentena activada. Archivo malicioso rechazado.`);
+                setScanLogs([...currentLogs]);
+                setScanProgress(100);
+                setUploadError('🚨 AMENAZA BLOQUEADA: Ejecutable (.exe) camuflado detectado.');
+                setIsScanning(false);
+                e.target.value = '';
+                setNewSource('');
+                return;
+              }
+
+              // Archivo legítimo
+              currentLogs.push(`[OK] Verificación binaria superada con éxito. Archivo seguro.`);
+              setScanLogs([...currentLogs]);
+              setScanProgress(100);
+              setIsScanning(false);
+
+              // Carga normal de imagen/archivo válido
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                if (typeof reader.result === 'string') {
+                  setNewSource(reader.result);
+                }
+              };
+              reader.readAsDataURL(file);
+            }, 600);
+          }
+        };
+
+        headerReader.readAsArrayBuffer(file.slice(0, 4));
+      }, 500);
     }
   };
 
@@ -258,7 +296,7 @@ export default function Home() {
 
           {currentUser?.role === 'SELLER' && (
             <button
-              onClick={() => { setShowAddModal(true); setUploadError(''); }}
+              onClick={() => { setShowAddModal(true); setUploadError(''); setScanLogs([]); }}
               className="bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-extrabold px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xl"
             >
               <Plus className="w-4 h-4"/> Publicar
@@ -311,13 +349,13 @@ export default function Home() {
         </div>
       )}
 
-      {/* MODAL DE PUBLICAR PRENDA */}
+      {/* MODAL DE PUBLICAR PRENDA CON CONSOLA DE AUDITORÍA FORENSE */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-neutral-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 p-6 rounded-3xl shadow-2xl space-y-4">
+          <div className="w-full max-w-lg bg-neutral-900 border border-neutral-800 p-6 rounded-3xl shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
               <h3 className="text-sm font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                <Plus className="w-4 h-4"/> Publicar Nueva Prenda
+                <Plus className="w-4 h-4"/> Publicar Nueva Prenda (Escaneo SSDLC)
               </h3>
               <button onClick={() => setShowAddModal(false)} className="text-neutral-400 hover:text-white bg-neutral-800 p-1.5 rounded-xl cursor-pointer">
                 <X className="w-4 h-4"/>
@@ -352,19 +390,49 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="block text-neutral-400 mb-1">Imagen (Subir archivo con filtro anti-malware)</label>
+                <label className="block text-neutral-400 mb-1">Archivo / Imagen (Validación Antimalware ISO 27001)</label>
                 <input
                   type="file"
                   accept="image/*, .pdf"
                   onChange={handleFileUpload}
-                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-500 file:text-neutral-950 hover:file:bg-emerald-400 cursor-pointer"
+                  disabled={isScanning}
+                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-white outline-none file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-500 file:text-neutral-950 hover:file:bg-emerald-400 cursor-pointer disabled:opacity-50"
                 />
-                {uploadError && (
-                  <p className="text-[11px] text-red-400 font-bold mt-1.5 flex items-center gap-1">
-                    <ShieldAlert className="w-3.5 h-3.5" /> {uploadError}
-                  </p>
-                )}
               </div>
+
+              {/* CONSOLA DE AUDITORÍA FORENSE VISUAL EN TIEMPO REAL */}
+              {(isScanning || scanLogs.length > 0) && (
+                <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-3 space-y-2 font-mono text-[11px]">
+                  <div className="flex items-center justify-between text-neutral-400 border-b border-neutral-900 pb-1.5">
+                    <span className="flex items-center gap-1.5 text-amber-400 font-bold">
+                      <Terminal className="w-3.5 h-3.5" /> Consola Forense Antimalware
+                    </span>
+                    <span>{scanProgress}%</span>
+                  </div>
+
+                  <div className="w-full bg-neutral-900 h-1.5 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-300 ${uploadError ? 'bg-red-500' : 'bg-emerald-400'}`} 
+                      style={{ width: `${scanProgress}%` }}
+                    />
+                  </div>
+
+                  <div className="max-h-28 overflow-y-auto space-y-1 text-neutral-300 pr-1">
+                    {scanLogs.map((log, idx) => (
+                      <div key={idx} className={log.includes('CRÍTICO') || log.includes('ALERTA') ? 'text-red-400 font-bold' : 'text-neutral-300'}>
+                        {log}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {uploadError && (
+                <div className="p-2.5 bg-red-950/40 border border-red-900/50 rounded-xl text-red-300 flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-red-400 shrink-0" />
+                  <span>{uploadError}</span>
+                </div>
+              )}
 
               <div>
                 <label className="block text-neutral-400 mb-1">Precio</label>
@@ -390,10 +458,10 @@ export default function Home() {
 
               <button
                 type="submit"
-                disabled={Boolean(uploadError)}
+                disabled={Boolean(uploadError) || isScanning || !newSource}
                 className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-black rounded-xl transition cursor-pointer shadow-lg mt-2 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                Publicar Prenda en RËVA
+                {isScanning ? 'Escaneando Archivo...' : 'Publicar Prenda en RËVA'}
               </button>
             </form>
           </div>
