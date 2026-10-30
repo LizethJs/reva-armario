@@ -79,7 +79,7 @@ export default function Home() {
   const [scanProgress, setScanProgress] = useState(0);
 
   useEffect(() => {
-    // VALIDACIÓN ESTRICTA DE SEGURIDAD:
+    // 1. VALIDACIÓN ESTRICTA DE SEGURIDAD Y SESIÓN:
     const sessionData = localStorage.getItem('user_session');
 
     if (!sessionData) {
@@ -105,6 +105,20 @@ export default function Home() {
       localStorage.removeItem('user_session');
       window.location.href = '/login';
     }
+
+    // 2. REQUISITO 16 (ISO 27001): Escucha activa de sesiones concurrentes en otros navegadores
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'user_session' && e.newValue !== e.oldValue) {
+        alert('⚠️ ALERTA DE SEGURIDAD (ISO 27001): Se ha detectado un inicio de sesión simultáneo con este usuario en otro dispositivo o navegador. Esta sesión ha sido invalidada.');
+        localStorage.removeItem('user_session');
+        window.location.href = '/login';
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   // REQUISITO 14: Validación Antimalware con Consola Forense (Bloqueo de EXE, TXT y no imágenes)

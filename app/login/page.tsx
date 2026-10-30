@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useState } from "react";
 import { loginUser, forgotPassword, resetPasswordWithOtp, resendOtp } from "../actions/auth";
@@ -47,13 +47,19 @@ export default function LoginPage() {
       const res = await loginUser(formData);
 
       if (res && res.success && res.user) {
-        localStorage.setItem("user_session", JSON.stringify(res.user));
+        // REQUISITO 16 (ISO 27001): Inyección de un token de sesión único para control de concurrencia
+        const secureUserSession = {
+          ...res.user,
+          session_token: Date.now().toString() + Math.random().toString(36).substring(2)
+        };
+
+        localStorage.setItem("user_session", JSON.stringify(secureUserSession));
         
         // Redirección estricta según el rol de la base de datos
         if (res.user.role === "ADMIN") {
           window.location.href = "/admin";
         } else if (res.user.role === "SELLER") {
-          window.location.href = "/"; // <--- Corregido a la raíz para evitar el error 404
+          window.location.href = "/";
         } else {
           window.location.href = res.redirectTo || "/";
         }
