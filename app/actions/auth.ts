@@ -289,8 +289,13 @@ export async function loginUser(data: { email: string; password: string }) {
       targetRedirect = "/";
     }
 
-    // REQUISITO 16 (ISO 27001): Generación de Firma de Sesión Única Transversal para cualquier Rol (ADMIN, SELLER, CLIENT)
+    // REQUISITO 16 (ISO 27001): Generación de Token de Sesión Único y guardado en Base de Datos
     const currentSessionToken = `SESS_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { currentSessionToken: currentSessionToken } as any,
+    });
 
     return {
       success: true,
@@ -300,12 +305,30 @@ export async function loginUser(data: { email: string; password: string }) {
         email: user.email,
         role: userRole,
         sessionExpiresAt: sessionExpiresAt,
-        session_token: currentSessionToken, // Token dinámico para expulsión por sesión simultánea
+        session_token: currentSessionToken,
       },
       message: "¡Bienvenido!",
     };
   } catch (error: any) {
     return { success: false, message: `Error de servidor: ${error.message || "Verifica la base de datos."}` };
+  }
+}
+
+// NUEVA FUNCIÓN: Validación transversal del token de sesión en Base de Datos para multi-navegador (ISO 27001)
+export async function validateSessionToken(email: string, clientToken: string) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() },
+      select: { currentSessionToken: true }
+    });
+
+    if (!user || !user.currentSessionToken || user.currentSessionToken !== clientToken) {
+      return { valid: false };
+    }
+
+    return { valid: true };
+  } catch (error) {
+    return { valid: true }; // Ante fallo de red temporal, permitimos continuar
   }
 }
 

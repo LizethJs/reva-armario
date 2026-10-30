@@ -14,16 +14,17 @@ enum Role {
 }
 
 model User {
-  id               String    @id @default(cuid())
-  name             String?
-  email            String    @unique
-  password         String
-  role             Role      @default(CLIENT)
-  verificationCode String?
-  otpExpiresAt     DateTime?
-  isVerified       Boolean   @default(false)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                  String    @id @default(cuid())
+  name                String?
+  email               String    @unique
+  password            String
+  role                Role      @default(CLIENT)
+  verificationCode    String?
+  otpExpiresAt        DateTime?
+  isVerified          Boolean   @default(false)
+  currentSessionToken String?   // <--- REQUISITO 16: Token único para control de sesiones simultáneas multi-navegador
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   garments        Garment[]
   auditLogs       AuditLog[]       @relation("AdminActions")
@@ -32,11 +33,11 @@ model User {
 }
 
 model Garment {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   name          String
-  category      String   // 'tops', 'bottoms', 'shoes', 'outerwear'
+  category      String    // 'tops', 'bottoms', 'shoes', 'outerwear'
   vibe          String?
-  url           String   @db.Text // Vital para base64 o URLs de imágenes
+  url           String    @db.Text // Vital para base64 o URLs de imágenes
   price         String?
   storeUrl      String?
   description   String?
@@ -44,7 +45,7 @@ model Garment {
   vendorContact String?
 
   userId String?
-  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

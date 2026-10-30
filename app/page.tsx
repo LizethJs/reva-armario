@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { VirtualTryOnCam } from './components/VirtualTryOnCam';
 import WardrobeManager from './components/WardrobeManager';
+import { validateSessionToken } from './actions/auth';
 import { Plus, LogOut, UserCheck, X, ShoppingBag, User as UserIcon, ExternalLink, ShieldAlert, Terminal, Globe } from 'lucide-react';
 
 export interface Garment {
@@ -25,7 +26,7 @@ export interface WishlistItem extends Garment {
 }
 
 export default function Home() {
-  const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: string; contact?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: string; contact?: string; session_token?: string } | null>(null);
   const [loadingSession, setLoadingSession] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
@@ -89,7 +90,7 @@ export default function Home() {
 
     try {
       const parsedUser = JSON.parse(sessionData);
-      if (!parsedUser || !parsedUser.email) {
+      if (!parsedUser || !parsedUser.email || !parsedUser.session_token) {
         localStorage.removeItem('user_session');
         window.location.href = '/login';
         return;
@@ -101,24 +102,24 @@ export default function Home() {
         setNewVendorContact(parsedUser.contact || parsedUser.email);
       }
       setLoadingSession(false);
+
+      // 2. REQUISITO 16 (ISO 27001): Verificación transversal en Base de Datos cada 4 segundos (Multi-navegador / Vercel)
+      const interval = setInterval(async () => {
+        const check = await validateSessionToken(parsedUser.email, parsedUser.session_token);
+        if (!check.valid) {
+          clearInterval(interval);
+          alert('⚠️ ALERTA DE SEGURIDAD (ISO 27001): Se ha iniciado sesión con esta cuenta en otro navegador o dispositivo. Su sesión ha sido invalidada.');
+          localStorage.removeItem('user_session');
+          window.location.href = '/login';
+        }
+      }, 4000);
+
+      return () => clearInterval(interval);
+
     } catch (e) {
       localStorage.removeItem('user_session');
       window.location.href = '/login';
     }
-
-    // 2. REQUISITO 16 (ISO 27001): Escucha activa de sesiones concurrentes en otros navegadores
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'user_session' && e.newValue !== e.oldValue) {
-        alert('⚠️ ALERTA DE SEGURIDAD (ISO 27001): Se ha detectado un inicio de sesión simultáneo con este usuario en otro dispositivo o navegador. Esta sesión ha sido invalidada.');
-        localStorage.removeItem('user_session');
-        window.location.href = '/login';
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
   }, []);
 
   // REQUISITO 14: Validación Antimalware con Consola Forense (Bloqueo de EXE, TXT y no imágenes)
