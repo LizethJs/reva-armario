@@ -32,7 +32,7 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
     }
   }, [selectedGarment]);
 
-  // Función mejorada para quitar el fondo blanco, gris o texturizado de la prenda
+  // Función inteligente: Detecta el color de las esquinas de la foto subida y elimina ese fondo dinámicamente
   const handleCleanBackground = async () => {
     if (!selectedGarment) return;
     setIsCleaning(true);
@@ -57,18 +57,45 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
         ctx.drawImage(img, 0, 0);
         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imgData.data;
+        const width = canvas.width;
+        const height = canvas.height;
 
-        // Recorremos los píxeles con un umbral amplio para eliminar blancos, grises y texturas de fondo
+        // Tomamos muestras de color de las 4 esquinas de la imagen para deducir el color de fondo exacto de la foto
+        const samplePoints = [
+          { x: 5, y: 5 },                    // Esquina superior izquierda
+          { x: width - 5, y: 5 },              // Esquina superior derecha
+          { x: 5, y: height - 5 },             // Esquina inferior izquierda
+          { x: width - 5, y: height - 5 }      // Esquina inferior derecha
+        ];
+
+        let bgR = 0, bgG = 0, bgB = 0;
+        samplePoints.forEach(pt => {
+          const idx = (pt.y * width + pt.x) * 4;
+          bgR += data[idx];
+          bgG += data[idx + 1];
+          bgB += data[idx + 2];
+        });
+
+        // Promedio del color del fondo detectado en las esquinas de esta foto específica
+        bgR = Math.round(bgR / samplePoints.length);
+        bgG = Math.round(bgG / samplePoints.length);
+        bgB = Math.round(bgB / samplePoints.length);
+
+        // Tolerancia dinámica para eliminar colores similares al fondo detectado sin afectar la prenda
+        const tolerance = 45;
+
         for (let i = 0; i < data.length; i += 4) {
           const r = data[i];
           const g = data[i + 1];
           const b = data[i + 2];
 
-          const brightness = (r + g + b) / 3;
-          
-          // Si el brillo es alto (grises claros, blancos o texturas de fondo)
-          if (brightness > 200 && Math.abs(r - g) < 20 && Math.abs(g - b) < 20) {
-            data[i + 3] = 0; // Transparencia total
+          // Si el color del píxel es cercano al fondo detectado en las esquinas de la foto
+          if (
+            Math.abs(r - bgR) < tolerance &&
+            Math.abs(g - bgG) < tolerance &&
+            Math.abs(b - bgB) < tolerance
+          ) {
+            data[i + 3] = 0; // Vuelve transparente el fondo de la foto subida
           }
         }
 
@@ -210,15 +237,15 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Botón de Limpieza Mágica de Fondo */}
+          {/* Botón de Limpieza Mágica Dinámica de Fondo */}
           <button 
             onClick={handleCleanBackground}
             disabled={isCleaning}
             className="bg-neutral-800 hover:bg-neutral-700 text-amber-400 border border-amber-500/30 px-4 py-2.5 rounded-2xl text-xs font-extrabold flex items-center gap-2 transition cursor-pointer shadow-md disabled:opacity-50"
-            title="Quitar fondo blanco de la imagen"
+            title="Quitar fondo de la foto automáticamente"
           >
             <Wand2 className={`w-4 h-4 ${isCleaning ? 'animate-spin' : ''}`} /> 
-            {isCleaning ? 'Limpiando...' : 'Quitar Fondo'}
+            {isCleaning ? 'Analizando...' : 'Quitar Fondo'}
           </button>
 
           {/* Selector de Talla (S, M, L, XL) */}
