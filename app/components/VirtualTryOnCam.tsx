@@ -32,7 +32,7 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
     }
   }, [selectedGarment]);
 
-  // Función integrada para quitar el fondo blanco/claro directamente aquí
+  // Función mejorada para quitar el fondo blanco, gris o texturizado de la prenda
   const handleCleanBackground = async () => {
     if (!selectedGarment) return;
     setIsCleaning(true);
@@ -58,15 +58,17 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
         const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imgData.data;
 
-        // Recorremos los píxeles para volver transparentes los tonos blancos o claros del fondo
+        // Recorremos los píxeles con un umbral amplio para eliminar blancos, grises y texturas de fondo
         for (let i = 0; i < data.length; i += 4) {
           const r = data[i];
           const g = data[i + 1];
           const b = data[i + 2];
 
-          // Umbral de color blanco de fondo
-          if (r > 235 && g > 235 && b > 235) {
-            data[i + 3] = 0; // Canal alfa a 0 (transparente)
+          const brightness = (r + g + b) / 3;
+          
+          // Si el brillo es alto (grises claros, blancos o texturas de fondo)
+          if (brightness > 200 && Math.abs(r - g) < 20 && Math.abs(g - b) < 20) {
+            data[i + 3] = 0; // Transparencia total
           }
         }
 
@@ -76,7 +78,7 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
       };
 
       img.onerror = (error) => {
-        console.error("Error al cargar la imagen para limpiar fondo:", error);
+        console.error("Error al cargar la imagen:", error);
         setIsCleaning(false);
       };
     } catch (err) {
