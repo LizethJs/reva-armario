@@ -75,8 +75,8 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
         setIsCleaning(false);
       };
 
-      img.onerror = () => {
-        console.error("Error al cargar la imagen para limpiar fondo");
+      img.onerror = (error) => {
+        console.error("Error al cargar la imagen para limpiar fondo:", error);
         setIsCleaning(false);
       };
     } catch (err) {
@@ -208,7 +208,7 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Botón de Limpieza Mágica de Fondo Integrado */}
+          {/* Botón de Limpieza Mágica de Fondo */}
           <button 
             onClick={handleCleanBackground}
             disabled={isCleaning}
