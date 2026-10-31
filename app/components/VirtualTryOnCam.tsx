@@ -3,7 +3,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Garment } from '../page';
 import { Camera, CameraOff, Sparkles, RefreshCw, Ruler, Move, Wand2 } from 'lucide-react';
-import { cleanImageBackground } from '../utils/imageCleaner';
 
 interface VirtualTryOnCamProps {
   wardrobe: Garment[];
@@ -33,16 +32,55 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
     }
   }, [selectedGarment]);
 
-  // Función para ejecutar la limpieza por botón (Quitar Fondo)
+  // Función integrada para quitar el fondo blanco/claro directamente aquí
   const handleCleanBackground = async () => {
     if (!selectedGarment) return;
     setIsCleaning(true);
+
     try {
-      const cleaned = await cleanImageBackground(selectedGarment.url);
-      setProcessedGarmentUrl(cleaned);
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = selectedGarment.url;
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        if (!ctx) {
+          setIsCleaning(false);
+          return;
+        }
+
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+
+        ctx.drawImage(img, 0, 0);
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imgData.data;
+
+        // Recorremos los píxeles para volver transparentes los tonos blancos o claros del fondo
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+
+          // Umbral de color blanco de fondo
+          if (r > 235 && g > 235 && b > 235) {
+            data[i + 3] = 0; // Canal alfa a 0 (transparente)
+          }
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+        setProcessedGarmentUrl(canvas.toDataURL('image/png'));
+        setIsCleaning(false);
+      };
+
+      img.onerror = () => {
+        console.error("Error al cargar la imagen para limpiar fondo");
+        setIsCleaning(false);
+      };
     } catch (err) {
       console.error("Error al limpiar fondo:", err);
-    } finally {
       setIsCleaning(false);
     }
   };
@@ -170,12 +208,12 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Botón de Limpieza Mágica de Fondo */}
+          {/* Botón de Limpieza Mágica de Fondo Integrado */}
           <button 
             onClick={handleCleanBackground}
             disabled={isCleaning}
             className="bg-neutral-800 hover:bg-neutral-700 text-amber-400 border border-amber-500/30 px-4 py-2.5 rounded-2xl text-xs font-extrabold flex items-center gap-2 transition cursor-pointer shadow-md disabled:opacity-50"
-            title="Quitar fondo blanco o de tienda de la imagen"
+            title="Quitar fondo blanco de la imagen"
           >
             <Wand2 className={`w-4 h-4 ${isCleaning ? 'animate-spin' : ''}`} /> 
             {isCleaning ? 'Limpiando...' : 'Quitar Fondo'}
