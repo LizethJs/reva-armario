@@ -1,64 +1,236 @@
 import React, { useState } from 'react';
-import { Heart, Trash2, Scissors } from 'lucide-react';
+import { Upload, Check, ChevronLeft, Sparkles } from 'lucide-react';
+import { removeBackground } from '@imgly/background-removal';
 import { Garment } from '../page';
+import { createGarment } from '@/actions/garments';
 
 interface Props {
-  wardrobe: Garment[];
-  onOpenDetail: (garment: Garment) => void;
-  onToggleFavorite: (id: string) => void;
-  onAddNewClick: () => void;
+  onSave: (newGarment: Garment) => void;
+  onBack: () => void;
 }
 
-export default function WardrobeGrid({ wardrobe, onOpenDetail, onToggleFavorite, onAddNewClick }: Props) {
-  const [filterCategory, setFilterCategory] = useState<string>('all');
+export default function UploadView({ onSave, onBack }: Props) {
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [processingStatus, setProcessingStatus] = useState<string>('');
+  
+  const [garmentName, setGarmentName] = useState<string>('');
+  const [garmentPrice, setGarmentPrice] = useState<string>('');
+  const [garmentColor, setGarmentColor] = useState<string>('#1c1c1c');
+  const [selectedCategory, setSelectedCategory] = useState<string>('tops');
+  const [localNotification, setLocalNotification] = useState<string | null>(null);
 
-  const filteredWardrobe = filterCategory === 'all' 
-    ? wardrobe 
-    : wardrobe.filter(item => item.category === filterCategory);
+  const triggerLocalNotification = (msg: string) => {
+    setLocalNotification(msg);
+    setTimeout(() => setLocalNotification(null), 3500);
+  };
+
+  const processImageToTransparent = async (input: File | string) => {
+    try {
+      setIsProcessing(true);
+      setProcessingStatus('IA analizando silueta y aislando fondo...');
+
+      let targetSource: File | Blob = input as File;
+      if (typeof input === 'string') {
+        const response = await fetch(input);
+        const blob = await response.blob();
+        targetSource = blob;
+      }
+
+      const resultBlob = await removeBackground(targetSource, {
+        progress: (key, current, total) => {
+          const pct = Math.round((current / total) * 100);
+          setProcessingStatus(`Procesando IA: ${pct}%`);
+        },
+      });
+
+      setSelectedImage(URL.createObjectURL(resultBlob));
+    } catch (err) {
+      triggerLocalNotification('No se pudo procesar la imagen.');
+    } finally {
+      setIsProcessing(false);
+      setProcessingStatus('');
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fileName = file.name.toLowerCase();
+
+    // 1. Bloqueo estricto por extensión y tipo MIME no permitido
+    if (
+      fileName.endsWith('.exe') || 
+      fileName.endsWith('.pdf') || 
+      fileName.endsWith('.txt') || 
+      fileName.endsWith('.bat') ||
+      file.type === 'application/pdf' ||
+      file.type === 'text/plain' ||
+      file.type === 'application/x-msdownload'
+    ) {
+      triggerLocalNotification('⚠️ [BLOQUEO ISO 27001]: Archivo malicioso o formato prohibido detectado. Solo se permiten imágenes de prendas.');
+      e.target.value = ''; // Resetea el input para limpiar el archivo
+      return;
+    }
+
+    // 2. Validación por lector síncrono de cabecera (Magic Numbers)
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const buffer = event.target?.result as ArrayBuffer;
+      if (!buffer) return;
+
+      const header = new Uint8Array(buffer).subarray(0, 4);
+      
+      // Firmas binarias exactas permitidas (JPEG, PNG, WEBP)
+      const isJPEG = header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF;
+      const isPNG = header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47;
+      const isWEBP = header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46;
+
+      if (!isJPEG && !isPNG && !isWEBP) {
+        triggerLocalNotification('⚠️ [ALERTA ANTIMALWARE]: Cabecera binaria no corresponde a una imagen válida. Carga bloqueada.');
+        e.target.value = ''; // Limpia el input
+        return;
+      }
+
+      // Si pasa todas las validaciones de seguridad, procede con la IA
+      await processImageToTransparent(file);
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleSaveClick = async () => {
+    if (!selectedImage) return;
+
+    if (!garmentName.trim() || !garmentPrice.trim()) {
+      triggerLocalNotification('⚠ Debes completar obligatoriamente el Nombre y el Precio.');
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      setProcessingStatus('Guardando en Supabase...');
+
+      const formData = new FormData();
+      formData.append('name', garmentName.trim());
+      formData.append('category', selectedCategory);
+      formData.append('url', selectedImage);
+      formData.append('price', garmentPrice.trim());
+      formData.append('description', 'Prenda subida y procesada con IA.');
+      formData.append('vendorName', 'Colección Personal');
+
+      const result: any = await createGarment(formData as any);
+
+      if (!result.success) {
+        triggerLocalNotification(result.error || 'Error al guardar en la base de datos.');
+        setIsProcessing(false);
+        return;
+      }
+
+      const newGarment: Garment = {
+        id: result.garment?.id || Date.now().toString(),
+        url: selectedImage,
+        category: selectedCategory,
+        name: garmentName.trim(),
+        brand: 'Colección Personal',
+        price: garmentPrice.trim(),
+        description: 'Prenda subida y procesada con IA.',
+        isAvailableInCountry: true,
+        storeUrl: 'https://www.google.com',
+        colorHex: garmentColor
+      } as any;
+
+      onSave(newGarment);
+    } catch (error) {
+      console.error('Error al guardar prenda:', error);
+      triggerLocalNotification('Error de conexión al guardar la prenda.');
+    } finally {
+      setIsProcessing(false);
+      setProcessingStatus('');
+    }
+  };
 
   return (
-    <div className="w-full max-w-5xl relative z-10">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
-          {['all', 'tops', 'bottoms', 'shoes', 'accessories'].map((cat) => (
-            <button key={cat} onClick={() => setFilterCategory(cat)} className={`px-4 py-2 rounded-xl text-xs font-medium capitalize transition cursor-pointer ${filterCategory === cat ? 'bg-neutral-100 text-neutral-950 font-bold shadow-md' : 'bg-neutral-900/80 text-neutral-400 border border-neutral-800 hover:text-white'}`}>
-              {cat === 'all' ? 'Todas las prendas' : cat}
-            </button>
-          ))}
+    <div className="w-full max-w-xl flex flex-col items-center relative z-10">
+      
+      {localNotification && (
+        <div className="fixed top-20 z-50 bg-neutral-900/90 backdrop-blur-xl border border-amber-300/40 text-amber-200 px-4 py-2 rounded-xl text-xs shadow-xl">
+          {localNotification}
         </div>
+      )}
 
-        <button onClick={onAddNewClick} className="w-full sm:w-auto bg-amber-300 hover:bg-amber-400 text-neutral-950 px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-amber-300/10 cursor-pointer">
-          <Scissors className="w-4 h-4" /> Añadir Prenda con IA
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
-        {filteredWardrobe.map((item: any) => (
-          <div 
-            key={item.id} 
-            onClick={() => onOpenDetail(item)} 
-            className="relative bg-neutral-900/40 hover:bg-neutral-900 border border-neutral-800/80 rounded-3xl p-5 flex flex-col items-center justify-between group transition duration-300 shadow-xl cursor-pointer hover:border-amber-300/40 hover:-translate-y-1"
-          >
-            <button onClick={(e) => { e.stopPropagation(); onToggleFavorite(item.id); }} className={`absolute top-3 right-3 p-2 rounded-full transition z-20 cursor-pointer ${item.isFavorite ? 'text-red-400 bg-red-500/10' : 'text-neutral-500 hover:text-red-400 bg-neutral-950/60'}`}>
-              <Heart className={`w-4 h-4 ${item.isFavorite ? 'fill-red-400' : ''}`} />
-            </button>
-
-            <div className="h-44 w-full flex items-center justify-center relative z-10 py-2">
-              <img src={item.url} alt={item.name} className="max-h-full max-w-full object-contain filter drop-shadow-[0_15px_20px_rgba(0,0,0,0.8)] group-hover:scale-105 transition-transform duration-300" />
+      {isProcessing && (
+          <div className="fixed inset-0 bg-neutral-950/90 backdrop-blur-md z-50 flex flex-col items-center justify-center gap-5">
+            <div className="relative">
+                <div className="w-16 h-16 rounded-full border-2 border-amber-300/20 border-t-amber-300 animate-spin" />
+                <Sparkles className="w-6 h-6 text-amber-300 absolute inset-0 m-auto animate-pulse" />
             </div>
-
-            <div className="w-full mt-3 pt-3 border-t border-neutral-800/60 z-10 flex justify-between items-center">
-              <div className="overflow-hidden">
-                <p className="text-xs font-semibold text-neutral-200 truncate max-w-[110px]">{item.name}</p>
-                <span className="text-[11px] font-extrabold text-amber-300">{item.price || '$35.00'}</span>
-              </div>
-              <button className="text-neutral-500 hover:text-red-400 p-1.5 rounded-lg transition cursor-pointer opacity-0 group-hover:opacity-100">
-                <Trash2 className="w-4 h-4" />
-              </button>
+            <div className="text-center">
+                <p className="text-sm font-semibold text-white tracking-wide">Procesando con IA de Alta Precisión</p>
+                <p className="text-xs text-neutral-400 mt-1">{processingStatus}</p>
             </div>
           </div>
-        ))}
-      </div>
+      )}
+      
+       <div className="w-full flex justify-between items-center mb-6">
+        <button onClick={onBack} className="p-2.5 bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 rounded-full transition flex items-center justify-center cursor-pointer">
+          <ChevronLeft className="w-5 h-5 text-neutral-300" />
+        </button>
+         <h2 className="text-base font-semibold text-neutral-200 tracking-wide">Aislamiento Automático de Fondo por IA</h2>
+         <div></div>
+       </div>
+      
+      {!selectedImage ? (
+        <label className="border-2 border-dashed border-neutral-800 hover:border-amber-300/60 transition rounded-3xl p-12 flex flex-col items-center justify-center cursor-pointer bg-neutral-900/30 backdrop-blur-md w-full group shadow-2xl">
+          <div className="p-4 bg-neutral-900 rounded-2xl mb-3 group-hover:scale-110 transition border border-neutral-800 shadow-inner">
+            <Upload className="w-6 h-6 text-amber-300" />
+          </div>
+          <span className="text-sm font-medium text-neutral-200">Sube o arrastra la foto de tu prenda</span>
+          <span className="text-xs text-amber-400/80 mt-1 font-medium">Nombre y Precio obligatorios para guardar *</span>
+          <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+        </label>
+      ) : (
+        <div className="w-full bg-neutral-900/80 backdrop-blur-xl rounded-3xl border border-neutral-800 p-6 flex flex-col items-center shadow-2xl relative">
+          <div className="w-full flex flex-col items-center z-10">
+            <div className="h-56 w-full flex items-center justify-center mb-6 bg-neutral-950/80 rounded-2xl p-4 border border-neutral-800/80 relative shadow-inner">
+              <img src={selectedImage} alt="Prenda lista" className="max-h-full max-w-full object-contain filter drop-shadow-[0_20px_20px_rgba(0,0,0,0.9)] relative z-10" />
+            </div>
+
+            <div className="w-full space-y-3.5 bg-neutral-950 p-4 rounded-2xl border border-neutral-800 text-xs">
+              <div>
+                <label className="text-neutral-400 block mb-1 font-medium">Nombre de la prenda <span className="text-amber-400">*Requerido</span></label>
+                <input type="text" placeholder="Ej. Sudadera Oversize Minimal" value={garmentName} onChange={(e) => setGarmentName(e.target.value)} className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-amber-300" />
+              </div>
+              <div>
+                <label className="text-neutral-400 block mb-1 font-medium">Precio estimado <span className="text-amber-400">*Requerido</span></label>
+                <input type="text" placeholder="Ej. $49.99 USD" value={garmentPrice} onChange={(e) => setGarmentPrice(e.target.value)} className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-amber-300" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-neutral-400 block mb-1 font-medium">Categoría</label>
+                  <select value={selectedCategory} onChange={(e: any) => setSelectedCategory(e.target.value)} className="w-full bg-neutral-900 border border-neutral-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-amber-300">
+                    <option value="tops">Parte Superior</option>
+                    <option value="bottoms">Parte Inferior</option>
+                    <option value="shoes">Calzado</option>
+                    <option value="accessories">Accesorios</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-neutral-400 block mb-1 font-medium">Color de acento</label>
+                  <input type="color" value={garmentColor} onChange={(e) => setGarmentColor(e.target.value)} className="w-full h-10 bg-neutral-900 border border-neutral-800 rounded-xl px-2 py-1 cursor-pointer" />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button onClick={() => setSelectedImage(null)} className="flex-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 py-3 rounded-xl font-medium transition border border-neutral-800 cursor-pointer">Reintentar</button>
+                <button onClick={handleSaveClick} className="flex-1 bg-amber-300 hover:bg-amber-400 text-neutral-950 py-3 rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-lg cursor-pointer">
+                  <Check className="w-4 h-4" /> Guardar en Armario
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
