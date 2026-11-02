@@ -57,23 +57,20 @@ export default function UploadView({ onSave, onBack }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validación estricta por tipo MIME y extensión para evitar PDFs falsos o ejecutables
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
     const fileName = file.name.toLowerCase();
 
+    // Bloqueo inmediato si la extensión por nombre es .exe, .pdf, .txt o .bat
     if (
-      !validTypes.includes(file.type) || 
-      fileName.endsWith('.pdf') || 
       fileName.endsWith('.exe') || 
+      fileName.endsWith('.pdf') || 
       fileName.endsWith('.txt') || 
       fileName.endsWith('.bat')
     ) {
-      triggerLocalNotification('⚠️ [BLOQUEO ISO 27001]: Solo se permiten imágenes válidas de prendas (PNG/JPG). Archivo rechazado.');
-      e.target.value = ''; // Limpia el input inmediatamente
+      triggerLocalNotification('⚠️ [BLOQUEO ISO 27001]: Formato prohibido detectado. Solo se permiten imágenes.');
+      e.target.value = '';
       return;
     }
 
-    // Si pasa la validación, leemos los bytes para asegurar que sea una imagen real por Magic Numbers
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
@@ -81,20 +78,22 @@ export default function UploadView({ onSave, onBack }: Props) {
         if (!buffer) return;
 
         const header = new Uint8Array(buffer).subarray(0, 4);
+        
+        // Firmas reales de imágenes permitidas (JPEG, PNG, WEBP)
         const isJPEG = header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF;
         const isPNG = header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47;
         const isWEBP = header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46;
 
+        // Si es un archivo falso (como un txt renombrado o PDF falso), los bytes no coincidirán con una imagen
         if (!isJPEG && !isPNG && !isWEBP) {
-          triggerLocalNotification('⚠️ [ALERTA ANTIMALWARE]: Cabecera binaria no corresponde a una imagen válida.');
+          triggerLocalNotification('⚠️ [ALERTA ANTIMALWARE]: Cabecera binaria inválida. Archivo falso bloqueado.');
           e.target.value = '';
           return;
         }
 
-        // Si es una imagen legítima, procesamos con normalidad
         await processImageToTransparent(file);
       } catch (err) {
-        triggerLocalNotification('Error al validar la estructura del archivo.');
+        triggerLocalNotification('Error al procesar la seguridad del archivo.');
         e.target.value = '';
       }
     };
