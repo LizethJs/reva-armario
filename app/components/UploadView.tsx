@@ -59,43 +59,37 @@ export default function UploadView({ onSave, onBack }: Props) {
 
     const fileName = file.name.toLowerCase();
 
-    // Bloqueo inmediato si la extensión por nombre es .exe, .pdf, .txt o .bat
+    // INTERCEPCIÓN ESTRICTA: Bloqueo inmediato para .pdf, .exe, .txt o .bat antes de la consola forense
     if (
-      fileName.endsWith('.exe') || 
       fileName.endsWith('.pdf') || 
+      fileName.endsWith('.exe') || 
       fileName.endsWith('.txt') || 
       fileName.endsWith('.bat')
     ) {
-      triggerLocalNotification('⚠️ [BLOQUEO ISO 27001]: Formato prohibido detectado. Solo se permiten imágenes.');
-      e.target.value = '';
+      triggerLocalNotification('⚠️ [BLOQUEO ISO 27001]: Los archivos PDF y ejecutables no están permitidos. Solo se aceptan imágenes.');
+      e.target.value = ''; // Limpia el input por completo
       return;
     }
 
+    // Validación secundaria por Magic Numbers para imágenes reales (JPEG, PNG, WEBP)
     const reader = new FileReader();
     reader.onload = async (event) => {
-      try {
-        const buffer = event.target?.result as ArrayBuffer;
-        if (!buffer) return;
+      const buffer = event.target?.result as ArrayBuffer;
+      if (!buffer) return;
 
-        const header = new Uint8Array(buffer).subarray(0, 4);
-        
-        // Firmas reales de imágenes permitidas (JPEG, PNG, WEBP)
-        const isJPEG = header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF;
-        const isPNG = header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47;
-        const isWEBP = header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46;
+      const header = new Uint8Array(buffer).subarray(0, 4);
+      
+      const isJPEG = header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF;
+      const isPNG = header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47;
+      const isWEBP = header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46;
 
-        // Si es un archivo falso (como un txt renombrado o PDF falso), los bytes no coincidirán con una imagen
-        if (!isJPEG && !isPNG && !isWEBP) {
-          triggerLocalNotification('⚠️ [ALERTA ANTIMALWARE]: Cabecera binaria inválida. Archivo falso bloqueado.');
-          e.target.value = '';
-          return;
-        }
-
-        await processImageToTransparent(file);
-      } catch (err) {
-        triggerLocalNotification('Error al procesar la seguridad del archivo.');
+      if (!isJPEG && !isPNG && !isWEBP) {
+        triggerLocalNotification('⚠️ [ALERTA ANTIMALWARE]: Cabecera binaria no corresponde a una imagen válida.');
         e.target.value = '';
+        return;
       }
+
+      await processImageToTransparent(file);
     };
     reader.readAsArrayBuffer(file);
   };
