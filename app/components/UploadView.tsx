@@ -56,7 +56,30 @@ export default function UploadView({ onSave, onBack }: Props) {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    await processImageToTransparent(file);
+
+    try {
+      // 1. REQUISITO 15: Validación estricta por Bytes (Magic Numbers) en el Frontend
+      // Esto bloquea de inmediato ejecutables, documentos de texto, o PDFs falsos renombrados.
+      const buffer = await file.arrayBuffer();
+      const header = new Uint8Array(buffer).subarray(0, 4);
+
+      // Firmas binarias reales permitidas (JPEG, PNG, WEBP)
+      const isJPEG = header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF;
+      const isPNG = header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47;
+      const isWEBP = header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46;
+
+      if (!isJPEG && !isPNG && !isWEBP) {
+        triggerLocalNotification('⚠️ ARCHIVO RECHAZADO: Formato no válido (bloqueado por análisis binario ISO/IEC 27001).');
+        e.target.value = ''; // Limpia el input para evitar que quede cargado
+        return;
+      }
+
+      // Si pasa la validación binaria de imagen real, continúa con el proceso normal
+      await processImageToTransparent(file);
+    } catch (error) {
+      console.error('Error al validar archivo:', error);
+      triggerLocalNotification('Error al validar la seguridad del archivo.');
+    }
   };
 
   const handleSaveClick = async () => {
@@ -79,7 +102,6 @@ export default function UploadView({ onSave, onBack }: Props) {
       formData.append('description', 'Prenda subida y procesada con IA.');
       formData.append('vendorName', 'Colección Personal');
 
-      // Se usa tipado explícito como 'any' para evitar conflictos de TypeScript en la Server Action
       const result: any = await createGarment(formData as any);
 
       if (!result.success) {
