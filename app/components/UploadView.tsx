@@ -53,33 +53,52 @@ export default function UploadView({ onSave, onBack }: Props) {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    try {
-      // 1. REQUISITO 15: Validación estricta por Bytes (Magic Numbers) en el Frontend
-      // Esto bloquea de inmediato ejecutables, documentos de texto, o PDFs falsos renombrados.
-      const buffer = await file.arrayBuffer();
-      const header = new Uint8Array(buffer).subarray(0, 4);
+    // Validación estricta por tipo MIME y extensión para evitar PDFs falsos o ejecutables
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    const fileName = file.name.toLowerCase();
 
-      // Firmas binarias reales permitidas (JPEG, PNG, WEBP)
-      const isJPEG = header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF;
-      const isPNG = header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47;
-      const isWEBP = header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46;
-
-      if (!isJPEG && !isPNG && !isWEBP) {
-        triggerLocalNotification('⚠️ ARCHIVO RECHAZADO: Formato no válido (bloqueado por análisis binario ISO/IEC 27001).');
-        e.target.value = ''; // Limpia el input para evitar que quede cargado
-        return;
-      }
-
-      // Si pasa la validación binaria de imagen real, continúa con el proceso normal
-      await processImageToTransparent(file);
-    } catch (error) {
-      console.error('Error al validar archivo:', error);
-      triggerLocalNotification('Error al validar la seguridad del archivo.');
+    if (
+      !validTypes.includes(file.type) || 
+      fileName.endsWith('.pdf') || 
+      fileName.endsWith('.exe') || 
+      fileName.endsWith('.txt') || 
+      fileName.endsWith('.bat')
+    ) {
+      triggerLocalNotification('⚠️ [BLOQUEO ISO 27001]: Solo se permiten imágenes válidas de prendas (PNG/JPG). Archivo rechazado.');
+      e.target.value = ''; // Limpia el input inmediatamente
+      return;
     }
+
+    // Si pasa la validación, leemos los bytes para asegurar que sea una imagen real por Magic Numbers
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const buffer = event.target?.result as ArrayBuffer;
+        if (!buffer) return;
+
+        const header = new Uint8Array(buffer).subarray(0, 4);
+        const isJPEG = header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF;
+        const isPNG = header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47;
+        const isWEBP = header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46;
+
+        if (!isJPEG && !isPNG && !isWEBP) {
+          triggerLocalNotification('⚠️ [ALERTA ANTIMALWARE]: Cabecera binaria no corresponde a una imagen válida.');
+          e.target.value = '';
+          return;
+        }
+
+        // Si es una imagen legítima, procesamos con normalidad
+        await processImageToTransparent(file);
+      } catch (err) {
+        triggerLocalNotification('Error al validar la estructura del archivo.');
+        e.target.value = '';
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const handleSaveClick = async () => {
