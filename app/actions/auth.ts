@@ -10,6 +10,10 @@ const MAX_ATTEMPTS = 5;
 const BLOCK_DURATION_MS = 15 * 60 * 1000; 
 const OTP_EXPIRATION_MINUTES = 5; 
 
+// EXPRESIÓN REGULAR MEJORADA: Valida mínimo 8 caracteres, 1 mayúscula, 1 número, 1 carácter especial
+// Y RECHAZA explícitamente secuencias numéricas del tipo 123456...
+const PASSWORD_REGEX = /^(?!.*123456)(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!\%*?&]{8,}$/;
+
 interface RateLimitRecord {
   attempts: number;
   blockedUntil: number | null;
@@ -108,13 +112,15 @@ export async function registerUser(data: {
     const isNameValid = /^[a-zA-AáéíóúÁÉÍÓÚñÑ\s]{3,50}$/.test(sanitizedName);
     const isPhoneValid = /^[3][0-9]{9}$/.test(sanitizedPhone);
     const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitizedEmail);
-    const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!\%*?&]{8,}$/.test(data.password);
+    
+    // REQUISITO 12 y 13: Se valida la contraseña bloqueando secuencias tipo 123456...
+    const isPasswordValid = PASSWORD_REGEX.test(data.password);
 
     if (!isNameValid || !isPhoneValid || !isEmailValid || !isPasswordValid) {
       return {
         success: false,
         redirectToOtp: false,
-        message: "Los datos enviados no cumplen con los estándares de seguridad requeridos.",
+        message: "Los datos enviados no cumplen con los estándares de seguridad requeridos (contraseñas seguras sin secuencias numéricas).",
       };
     }
 
@@ -367,9 +373,9 @@ export async function resetPasswordWithOtp(data: { email: string; otp: string; n
       return { success: false, message: "El código OTP es incorrecto." };
     }
 
-    const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!\%*?&]{8,}$/.test(data.newPassword);
+    const isPasswordValid = PASSWORD_REGEX.test(data.newPassword);
     if (!isPasswordValid) {
-      return { success: false, message: "La nueva contraseña debe cumplir con los requisitos de seguridad." };
+      return { success: false, message: "La nueva contraseña debe cumplir con los requisitos de seguridad (sin secuencias numéricas)." };
     }
 
     const hashedPassword = await bcrypt.hash(data.newPassword, 10);
@@ -427,11 +433,11 @@ export async function updateUserCredentials(data: {
 
     // 4. Si proporcionó una nueva contraseña, encriptarla con bcrypt
     if (data.newPassword && data.newPassword.trim() !== "") {
-      const isPasswordValid = /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!\%*?&]{8,}$/.test(data.newPassword);
+      const isPasswordValid = PASSWORD_REGEX.test(data.newPassword);
       if (!isPasswordValid) {
         return { 
           success: false, 
-          message: "⚠️ La nueva contraseña no cumple con las políticas de complejidad ISO 27001." 
+          message: "⚠️ La nueva contraseña no cumple con las políticas de complejidad ISO 27001 (se prohíben secuencias numéricas)." 
         };
       }
 
