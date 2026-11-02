@@ -476,33 +476,39 @@ export async function updateUserCredentials(data: {
   }
 }
 
-// REQUISITO 15: VALIDACIÓN ESTRICTA DE ARCHIVOS POR BYTES (MAGIC NUMBERS) PARA BLOQUEAR PDF FALSOS / EJECUTABLES RENOMBRADOS
+// REQUISITO 15: VALIDACIÓN ESTRICTA DE ARCHIVOS (Solo permite imágenes válidas, bloqueando .exe, .pdf falsos y otros formatos)
 export async function uploadFileAction(formData: FormData) {
   try {
-    const file = formData.get("file") as File;
+    const file = formData.get("file") || formData.get("image");
     
-    if (!file) {
-      return { success: false, message: "⚠️ No se encontró ningún archivo para subir." };
+    if (!file || !(file instanceof File)) {
+      return { success: false, message: "⚠️ No se encontró ningún archivo válido para subir." };
     }
 
-    // 1. Validar el tipo MIME reportado por el navegador
-    if (file.type !== "application/pdf") {
-      return { success: false, message: "⚠️ Formato no válido. Solo se permiten archivos PDF reales." };
+    const fileName = file.name.toLowerCase();
+    if (fileName.endsWith('.exe') || fileName.endsWith('.pdf') || fileName.endsWith('.txt') || fileName.endsWith('.bat')) {
+      return { 
+        success: false, 
+        message: "⚠️ [BLOQUEO ISO/IEC 27001]: Formato prohibido detectado. Solo se permiten imágenes de prendas válidas (PNG/JPG)." 
+      };
     }
 
-    // 2. Validación profunda por Bytes (Magic Numbers) para evitar falsificación de extensión (.exe, .txt o scripts renombrados a .pdf)
+    // Validación profunda por Bytes (Magic Numbers) para verificar que sea una imagen real y rechazar PDFs falsos o ejecutables
     const bytes = await file.arrayBuffer();
     const header = new Uint8Array(bytes).subarray(0, 4);
     
-    // Los archivos PDF reales siempre empiezan exactamente con la firma de bytes: %PDF (en hexadecimal: 0x25, 0x50, 0x44, 0x46)
-    const isRealPDF = header[0] === 0x25 && header[1] === 0x50 && header[2] === 0x44 && header[3] === 0x46;
+    const isJPEG = header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF;
+    const isPNG = header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47;
+    const isWEBP = header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46;
 
-    if (!isRealPDF) {
-      return { success: false, message: "⚠️ Seguridad: El archivo fue alterado o no corresponde a un PDF legítimo (bloqueado por análisis de bytes)." };
+    if (!isJPEG && !isPNG && !isWEBP) {
+      return { 
+        success: false, 
+        message: "⚠️ [ALERTA ANTIMALWARE]: El archivo contiene una cabecera binaria no permitida (bloqueado PDF falso / ejecutable). Solo se aceptan imágenes." 
+      };
     }
 
-    // Si pasa todas las validaciones de seguridad, procede a guardarlo con normalidad...
-    return { success: true, message: "✓ Archivo validado y subido correctamente." };
+    return { success: true, message: "✓ Imagen de prenda validada correctamente por la pasarela SSDLC." };
     
   } catch (error: any) {
     return { success: false, message: `Error al procesar el archivo: ${error.message}` };
