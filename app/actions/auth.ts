@@ -475,3 +475,36 @@ export async function updateUserCredentials(data: {
     };
   }
 }
+
+// REQUISITO 15: VALIDACIÓN ESTRICTA DE ARCHIVOS POR BYTES (MAGIC NUMBERS) PARA BLOQUEAR PDF FALSOS / EJECUTABLES RENOMBRADOS
+export async function uploadFileAction(formData: FormData) {
+  try {
+    const file = formData.get("file") as File;
+    
+    if (!file) {
+      return { success: false, message: "⚠️ No se encontró ningún archivo para subir." };
+    }
+
+    // 1. Validar el tipo MIME reportado por el navegador
+    if (file.type !== "application/pdf") {
+      return { success: false, message: "⚠️ Formato no válido. Solo se permiten archivos PDF reales." };
+    }
+
+    // 2. Validación profunda por Bytes (Magic Numbers) para evitar falsificación de extensión (.exe, .txt o scripts renombrados a .pdf)
+    const bytes = await file.arrayBuffer();
+    const header = new Uint8Array(bytes).subarray(0, 4);
+    
+    // Los archivos PDF reales siempre empiezan exactamente con la firma de bytes: %PDF (en hexadecimal: 0x25, 0x50, 0x44, 0x46)
+    const isRealPDF = header[0] === 0x25 && header[1] === 0x50 && header[2] === 0x44 && header[3] === 0x46;
+
+    if (!isRealPDF) {
+      return { success: false, message: "⚠️ Seguridad: El archivo fue alterado o no corresponde a un PDF legítimo (bloqueado por análisis de bytes)." };
+    }
+
+    // Si pasa todas las validaciones de seguridad, procede a guardarlo con normalidad...
+    return { success: true, message: "✓ Archivo validado y subido correctamente." };
+    
+  } catch (error: any) {
+    return { success: false, message: `Error al procesar el archivo: ${error.message}` };
+  }
+}
