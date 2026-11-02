@@ -22,6 +22,9 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
   const [processedGarmentUrl, setProcessedGarmentUrl] = useState<string>('');
   const [isCleaning, setIsCleaning] = useState(false);
   
+  // Selector de tipo de fondo para la foto (Fondo liso/blanco vs Fondo complejo/exterior)
+  const [bgMode, setBgMode] = useState<'solid' | 'complex'>('solid');
+  
   // Seguimiento dinámico del torso
   const [torsoPosition, setTorsoPosition] = useState({ top: 62, left: 50 });
 
@@ -32,7 +35,7 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
     }
   }, [selectedGarment]);
 
-  // Función segura y precisa para quitar el fondo sin afectar la prenda
+  // Función de limpieza inteligente adaptativa según el tipo de foto
   const handleCleanBackground = async () => {
     if (!selectedGarment) return;
     setIsCleaning(true);
@@ -60,33 +63,45 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
         const imgData = ctx.getImageData(0, 0, width, height);
         const data = imgData.data;
 
-        // Tomamos el color de referencia exactamente de las esquinas superiores e inferiores
-        const corners = [
-          { r: data[0], g: data[1], b: data[2] },                          // Sup-Izq
-          { r: data[(width - 1) * 4], g: data[(width - 1) * 4 + 1], b: data[(width - 1) * 4 + 2] }, // Sup-Der
-          { r: data[((height - 1) * width) * 4], g: data[((height - 1) * width) * 4 + 1], b: data[((height - 1) * width) * 4 + 2] }, // Inf-Izq
-          { r: data[((height * width) - 1) * 4], g: data[((height * width) - 1) * 4 + 1], b: data[((height * width) - 1) * 4 + 2] } // Inf-Der
-        ];
+        if (bgMode === 'solid') {
+          // MODO 1: Fondo Sólido / Blanco / Tienda (Umbral de luminosidad alto)
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const brightness = (r + g + b) / 3;
 
-        const refR = Math.round((corners[0].r + corners[1].r + corners[2].r + corners[3].r) / 4);
-        const refG = Math.round((corners[0].g + corners[1].g + corners[2].g + corners[3].g) / 4);
-        const refB = Math.round((corners[0].b + corners[1].b + corners[2].b + corners[3].b) / 4);
+            if (brightness > 215 && Math.abs(r - g) < 15 && Math.abs(g - b) < 15) {
+              data[i + 3] = 0; // Transparente
+            }
+          }
+        } else {
+          // MODO 2: Fondo Complejo / Exterior / Vestidos (Basado en color de esquinas con tolerancia precisa)
+          const corners = [
+            { r: data[0], g: data[1], b: data[2] },
+            { r: data[(width - 1) * 4], g: data[(width - 1) * 4 + 1], b: data[(width - 1) * 4 + 2] },
+            { r: data[((height - 1) * width) * 4], g: data[((height - 1) * width) * 4 + 1], b: data[((height - 1) * width) * 4 + 2] },
+            { r: data[((height * width) - 1) * 4], g: data[((height * width) - 1) * 4 + 1], b: data[((height * width) - 1) * 4 + 2] }
+          ];
 
-        // Umbral controlado para limpiar únicamente los píxeles que coincidan con el fondo de las esquinas
-        const threshold = 35;
+          const refR = Math.round((corners[0].r + corners[1].r + corners[2].r + corners[3].r) / 4);
+          const refG = Math.round((corners[0].g + corners[1].g + corners[2].g + corners[3].g) / 4);
+          const refB = Math.round((corners[0].b + corners[1].b + corners[2].b + corners[3].b) / 4);
 
-        for (let i = 0; i < data.length; i += 4) {
-          const r = data[i];
-          const g = data[i + 1];
-          const b = data[i + 2];
+          const tolerance = 40; // Tolerancia estricta para no comerse la prenda
 
-          // Si el píxel es idéntico al fondo de las esquinas dentro de la tolerancia estricta
-          if (
-            Math.abs(r - refR) < threshold &&
-            Math.abs(g - refG) < threshold &&
-            Math.abs(b - refB) < threshold
-          ) {
-            data[i + 3] = 0; // Transparencia
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+
+            if (
+              Math.abs(r - refR) < tolerance &&
+              Math.abs(g - refG) < tolerance &&
+              Math.abs(b - refB) < tolerance
+            ) {
+              data[i + 3] = 0;
+            }
           }
         }
 
@@ -228,12 +243,28 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Botón de Limpieza Segura */}
+          {/* Selector del tipo de fondo de la foto */}
+          <div className="flex items-center bg-neutral-950 border border-neutral-800 rounded-2xl p-1 text-xs">
+            <span className="px-2 text-neutral-400 font-bold">Tipo:</span>
+            <button
+              onClick={() => setBgMode('solid')}
+              className={`px-2.5 py-1 rounded-xl font-bold transition cursor-pointer ${bgMode === 'solid' ? 'bg-amber-400 text-neutral-950' : 'text-neutral-400'}`}
+            >
+              Fondo Blanco
+            </button>
+            <button
+              onClick={() => setBgMode('complex')}
+              className={`px-2.5 py-1 rounded-xl font-bold transition cursor-pointer ${bgMode === 'complex' ? 'bg-amber-400 text-neutral-950' : 'text-neutral-400'}`}
+            >
+              Fondo Exterior/Vestido
+            </button>
+          </div>
+
+          {/* Botón de Limpieza */}
           <button 
             onClick={handleCleanBackground}
             disabled={isCleaning}
             className="bg-neutral-800 hover:bg-neutral-700 text-amber-400 border border-amber-500/30 px-4 py-2.5 rounded-2xl text-xs font-extrabold flex items-center gap-2 transition cursor-pointer shadow-md disabled:opacity-50"
-            title="Quitar fondo de la foto automáticamente"
           >
             <Wand2 className={`w-4 h-4 ${isCleaning ? 'animate-spin' : ''}`} /> 
             {isCleaning ? 'Procesando...' : 'Quitar Fondo'}
