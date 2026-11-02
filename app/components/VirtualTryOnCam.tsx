@@ -32,7 +32,7 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
     }
   }, [selectedGarment]);
 
-  // Limpieza por Algoritmo de Inundación (Flood Fill - Varita Mágica desde los bordes)
+  // Función segura y precisa para quitar el fondo sin afectar la prenda
   const handleCleanBackground = async () => {
     if (!selectedGarment) return;
     setIsCleaning(true);
@@ -60,63 +60,33 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
         const imgData = ctx.getImageData(0, 0, width, height);
         const data = imgData.data;
 
-        // Matriz de visitados
-        const visited = new Uint8Array(width * height);
-        const queue: number[] = [];
+        // Tomamos el color de referencia exactamente de las esquinas superiores e inferiores
+        const corners = [
+          { r: data[0], g: data[1], b: data[2] },                          // Sup-Izq
+          { r: data[(width - 1) * 4], g: data[(width - 1) * 4 + 1], b: data[(width - 1) * 4 + 2] }, // Sup-Der
+          { r: data[((height - 1) * width) * 4], g: data[((height - 1) * width) * 4 + 1], b: data[((height - 1) * width) * 4 + 2] }, // Inf-Izq
+          { r: data[((height * width) - 1) * 4], g: data[((height * width) - 1) * 4 + 1], b: data[((height * width) - 1) * 4 + 2] } // Inf-Der
+        ];
 
-        // Agregar todos los píxeles del borde exterior a la cola de procesamiento
-        for (let x = 0; x < width; x++) {
-          queue.push(x, 0);                  // Borde superior
-          queue.push(x, height - 1);          // Borde inferior
-        }
-        for (let y = 0; y < height; y++) {
-          queue.push(0, y);                  // Borde izquierdo
-          queue.push(width - 1, y);          // Borde derecho
-        }
+        const refR = Math.round((corners[0].r + corners[1].r + corners[2].r + corners[3].r) / 4);
+        const refG = Math.round((corners[0].g + corners[1].g + corners[2].g + corners[3].g) / 4);
+        const refB = Math.round((corners[0].b + corners[1].b + corners[2].b + corners[3].b) / 4);
 
-        const tolerance = 65; // Tolerancia de similitud de color de fondo
+        // Umbral controlado para limpiar únicamente los píxeles que coincidan con el fondo de las esquinas
+        const threshold = 35;
 
-        let head = 0;
-        while (head < queue.length) {
-          const x = queue[head++];
-          const y = queue[head++];
-          const idx = y * width + x;
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
 
-          if (visited[idx]) continue;
-          visited[idx] = 1;
-
-          const pIdx = idx * 4;
-          const r = data[pIdx];
-          const g = data[pIdx + 1];
-          const b = data[pIdx + 2];
-
-          // Marcamos el píxel del fondo como transparente
-          data[pIdx + 3] = 0;
-
-          // Vecinos (arriba, abajo, izquierda, derecha)
-          const neighbors = [
-            { nx: x + 1, ny: y },
-            { nx: x - 1, ny: y },
-            { nx: x, ny: y + 1 },
-            { nx: x, ny: y - 1 }
-          ];
-
-          for (const { nx, ny } of neighbors) {
-            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-              const nIdx = ny * width + nx;
-              if (!visited[nIdx]) {
-                const nPIdx = nIdx * 4;
-                const nr = data[nPIdx];
-                const ng = data[nPIdx + 1];
-                const nb = data[nPIdx + 2];
-
-                // Si el color del vecino es similar al píxel actual del fondo, expandimos
-                const diff = Math.abs(r - nr) + Math.abs(g - ng) + Math.abs(b - nb);
-                if (diff < tolerance) {
-                  queue.push(nx, ny);
-                }
-              }
-            }
+          // Si el píxel es idéntico al fondo de las esquinas dentro de la tolerancia estricta
+          if (
+            Math.abs(r - refR) < threshold &&
+            Math.abs(g - refG) < threshold &&
+            Math.abs(b - refB) < threshold
+          ) {
+            data[i + 3] = 0; // Transparencia
           }
         }
 
@@ -258,7 +228,7 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Botón de Limpieza Mágica por Inundación */}
+          {/* Botón de Limpieza Segura */}
           <button 
             onClick={handleCleanBackground}
             disabled={isCleaning}
