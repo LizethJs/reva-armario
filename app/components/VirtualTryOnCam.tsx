@@ -32,7 +32,7 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
     }
   }, [selectedGarment]);
 
-  // Función inteligente: Detecta el color de las esquinas de la foto subida y elimina ese fondo dinámicamente
+  // Limpieza por Algoritmo de Inundación (Flood Fill - Varita Mágica desde los bordes)
   const handleCleanBackground = async () => {
     if (!selectedGarment) return;
     setIsCleaning(true);
@@ -51,51 +51,72 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
           return;
         }
 
-        canvas.width = img.naturalWidth || img.width;
-        canvas.height = img.naturalHeight || img.height;
+        const width = img.naturalWidth || img.width;
+        const height = img.naturalHeight || img.height;
+        canvas.width = width;
+        canvas.height = height;
 
         ctx.drawImage(img, 0, 0);
-        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const imgData = ctx.getImageData(0, 0, width, height);
         const data = imgData.data;
-        const width = canvas.width;
-        const height = canvas.height;
 
-        // Tomamos muestras de color de las 4 esquinas de la imagen para deducir el color de fondo exacto de la foto
-        const samplePoints = [
-          { x: 5, y: 5 },                    // Esquina superior izquierda
-          { x: width - 5, y: 5 },              // Esquina superior derecha
-          { x: 5, y: height - 5 },             // Esquina inferior izquierda
-          { x: width - 5, y: height - 5 }      // Esquina inferior derecha
-        ];
+        // Matriz de visitados
+        const visited = new Uint8Array(width * height);
+        const queue: number[] = [];
 
-        let bgR = 0, bgG = 0, bgB = 0;
-        samplePoints.forEach(pt => {
-          const idx = (pt.y * width + pt.x) * 4;
-          bgR += data[idx];
-          bgG += data[idx + 1];
-          bgB += data[idx + 2];
-        });
+        // Agregar todos los píxeles del borde exterior a la cola de procesamiento
+        for (let x = 0; x < width; x++) {
+          queue.push(x, 0);                  // Borde superior
+          queue.push(x, height - 1);          // Borde inferior
+        }
+        for (let y = 0; y < height; y++) {
+          queue.push(0, y);                  // Borde izquierdo
+          queue.push(width - 1, y);          // Borde derecho
+        }
 
-        // Promedio del color del fondo detectado en las esquinas de esta foto específica
-        bgR = Math.round(bgR / samplePoints.length);
-        bgG = Math.round(bgG / samplePoints.length);
-        bgB = Math.round(bgB / samplePoints.length);
+        const tolerance = 65; // Tolerancia de similitud de color de fondo
 
-        // Tolerancia dinámica para eliminar colores similares al fondo detectado sin afectar la prenda
-        const tolerance = 45;
+        let head = 0;
+        while (head < queue.length) {
+          const x = queue[head++];
+          const y = queue[head++];
+          const idx = y * width + x;
 
-        for (let i = 0; i < data.length; i += 4) {
-          const r = data[i];
-          const g = data[i + 1];
-          const b = data[i + 2];
+          if (visited[idx]) continue;
+          visited[idx] = 1;
 
-          // Si el color del píxel es cercano al fondo detectado en las esquinas de la foto
-          if (
-            Math.abs(r - bgR) < tolerance &&
-            Math.abs(g - bgG) < tolerance &&
-            Math.abs(b - bgB) < tolerance
-          ) {
-            data[i + 3] = 0; // Vuelve transparente el fondo de la foto subida
+          const pIdx = idx * 4;
+          const r = data[pIdx];
+          const g = data[pIdx + 1];
+          const b = data[pIdx + 2];
+
+          // Marcamos el píxel del fondo como transparente
+          data[pIdx + 3] = 0;
+
+          // Vecinos (arriba, abajo, izquierda, derecha)
+          const neighbors = [
+            { nx: x + 1, ny: y },
+            { nx: x - 1, ny: y },
+            { nx: x, ny: y + 1 },
+            { nx: x, ny: y - 1 }
+          ];
+
+          for (const { nx, ny } of neighbors) {
+            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+              const nIdx = ny * width + nx;
+              if (!visited[nIdx]) {
+                const nPIdx = nIdx * 4;
+                const nr = data[nPIdx];
+                const ng = data[nPIdx + 1];
+                const nb = data[nPIdx + 2];
+
+                // Si el color del vecino es similar al píxel actual del fondo, expandimos
+                const diff = Math.abs(r - nr) + Math.abs(g - ng) + Math.abs(b - nb);
+                if (diff < tolerance) {
+                  queue.push(nx, ny);
+                }
+              }
+            }
           }
         }
 
@@ -237,7 +258,7 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Botón de Limpieza Mágica Dinámica de Fondo */}
+          {/* Botón de Limpieza Mágica por Inundación */}
           <button 
             onClick={handleCleanBackground}
             disabled={isCleaning}
@@ -245,7 +266,7 @@ export function VirtualTryOnCam({ wardrobe, onAddToCart }: VirtualTryOnCamProps)
             title="Quitar fondo de la foto automáticamente"
           >
             <Wand2 className={`w-4 h-4 ${isCleaning ? 'animate-spin' : ''}`} /> 
-            {isCleaning ? 'Analizando...' : 'Quitar Fondo'}
+            {isCleaning ? 'Procesando...' : 'Quitar Fondo'}
           </button>
 
           {/* Selector de Talla (S, M, L, XL) */}
