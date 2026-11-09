@@ -59,19 +59,20 @@ export default function UploadView({ onSave, onBack }: Props) {
 
     const fileName = file.name.toLowerCase();
 
-    // INTERCEPCIÓN ESTRICTA: Bloqueo inmediato para .pdf, .exe, .txt o .bat antes de la consola forense
+    // BLOQUEO ABSOLUTO Y DIRECTO: Si el archivo es .pdf, .exe, .txt o .bat se rechaza de inmediato
     if (
       fileName.endsWith('.pdf') || 
       fileName.endsWith('.exe') || 
       fileName.endsWith('.txt') || 
-      fileName.endsWith('.bat')
+      fileName.endsWith('.bat') ||
+      file.type === 'application/pdf'
     ) {
-      triggerLocalNotification('⚠️ [BLOQUEO ISO 27001]: Los archivos PDF y ejecutables no están permitidos. Solo se aceptan imágenes.');
+      triggerLocalNotification('⚠️ [BLOQUEO ISO 27001]: Archivo PDF o ejecutable detectado. Solo se permiten imágenes.');
       e.target.value = ''; // Limpia el input por completo
       return;
     }
 
-    // Validación secundaria por Magic Numbers para imágenes reales (JPEG, PNG, WEBP)
+    // Validación profunda por Magic Numbers para asegurar que sea una imagen real (JPEG, PNG, WEBP)
     const reader = new FileReader();
     reader.onload = async (event) => {
       const buffer = event.target?.result as ArrayBuffer;
@@ -84,7 +85,7 @@ export default function UploadView({ onSave, onBack }: Props) {
       const isWEBP = header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46;
 
       if (!isJPEG && !isPNG && !isWEBP) {
-        triggerLocalNotification('⚠️ [ALERTA ANTIMALWARE]: Cabecera binaria no corresponde a una imagen válida.');
+        triggerLocalNotification('⚠️ [ALERTA ANTIMALWARE]: Cabecera binaria inválida. Carga bloqueada.');
         e.target.value = '';
         return;
       }
