@@ -30,7 +30,6 @@ export default function Home() {
   const [loadingSession, setLoadingSession] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
   
-  // Estados para el perfil avanzado (Requisito 20 real en Base de Datos)
   const [profileTab, setProfileTab] = useState<"info" | "edit">("info");
   const [editEmail, setEditEmail] = useState("");
   const [editName, setEditName] = useState("");
@@ -41,7 +40,6 @@ export default function Home() {
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [showWishlistDrawer, setShowWishlistDrawer] = useState(false);
 
-  // Armario digital inicial con datos de demostración
   const [wardrobe, setWardrobe] = useState<Garment[]>([
     {
       id: '1',
@@ -82,7 +80,6 @@ export default function Home() {
   const [newVendorContact, setNewVendorContact] = useState('');
   const [uploadError, setUploadError] = useState('');
 
-  // Estados para la Consola de Auditoría Forense en Tiempo Real
   const [isScanning, setIsScanning] = useState(false);
   const [scanLogs, setScanLogs] = useState<string[]>([]);
   const [scanProgress, setScanProgress] = useState(0);
@@ -131,12 +128,10 @@ export default function Home() {
     }
   }, []);
 
-  // Validación de complejidad de contraseña (ISO 27001) para la edición de perfil
   const hasMinLength = newPassword.length >= 8;
   const hasUpperCase = /[A-Z]/.test(newPassword);
   const hasNumberOrSymbol = /(?=.*\d)(?=.*[@$!%*?&])/.test(newPassword);
 
-  // ACTUALIZACIÓN REAL EN BASE DE DATOS (REQUISITO 20)
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileLoading(true);
@@ -219,7 +214,8 @@ export default function Home() {
         setScanLogs([...currentLogs]);
         setScanProgress(50);
 
-        if (['txt', 'exe', 'bat', 'cmd', 'sh', 'msi', 'com', 'doc', 'docx'].includes(extension || '')) {
+        // 🔒 BLOQUEO ESTRICTO INCLUYENDO PDF Y ARCHIVOS NO DESEADOS
+        if (['pdf', 'txt', 'exe', 'bat', 'cmd', 'sh', 'msi', 'com', 'doc', 'docx'].includes(extension || '')) {
           currentLogs.push(`[ALERTA] Formato prohibido detectado: .${extension} (Solo se permiten imágenes válidas)`);
           currentLogs.push(`[BLOQUEO] Carga abortada por política estricta de admisión ISO/IEC 27001.`);
           setScanLogs([...currentLogs]);
@@ -642,19 +638,21 @@ export default function Home() {
                     <span className="flex items-center gap-1.5 text-amber-400 font-bold">
                       <Terminal className="w-3.5 h-3.5" /> Consola Forense Antimalware
                     </span>
-                    <span>{scanProgress}%</span>
+                    <span className={uploadError ? "text-red-400 font-bold" : "text-emerald-400"}>
+                      {uploadError ? "BLOQUEADO" : `${scanProgress}%`}
+                    </span>
                   </div>
 
                   <div className="w-full bg-neutral-900 h-1.5 rounded-full overflow-hidden">
                     <div 
-                      className={`h-full transition-all duration-300 ${uploadError ? 'bg-red-500' : 'bg-emerald-400'}`} 
+                      className={`h-full transition-all duration-300 ${uploadError ? 'bg-red-500 animate-pulse' : 'bg-emerald-400'}`} 
                       style={{ width: `${scanProgress}%` }}
                     />
                   </div>
 
                   <div className="max-h-28 overflow-y-auto space-y-1 text-neutral-300 pr-1">
                     {scanLogs.map((log, idx) => (
-                      <div key={idx} className={log.includes('CRÍTICO') || log.includes('ALERTA') ? 'text-red-400 font-bold' : 'text-neutral-300'}>
+                      <div key={idx} className={log.includes('CRÍTICO') || log.includes('ALERTA') || log.includes('BLOQUEO') ? 'text-red-400 font-bold' : 'text-neutral-300'}>
                         {log}
                       </div>
                     ))}

@@ -39,7 +39,7 @@ export async function getGarmentsByUser(userId: string) {
   }
 }
 
-// 3. Guardar una nueva prenda de forma permanente con validación de enlaces de terceros y seguridad SSDLC
+// 3. Guardar una nueva prenda de forma permanente con validación SSDLC y enlaces de terceros
 export async function createGarment(data: {
   name: string;
   category: 'tops' | 'bottoms' | 'shoes' | 'outerwear' | string;
