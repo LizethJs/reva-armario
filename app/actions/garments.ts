@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 
-// 1. Obtener todas las prendas guardadas en la base de datos
+// 1. Obtener todas las prendas guardadas en la base de datos de Supabase
 export async function getGarments() {
   try {
     const garments = await prisma.garment.findMany({
@@ -39,7 +39,7 @@ export async function getGarmentsByUser(userId: string) {
   }
 }
 
-// 3. Guardar una nueva prenda de forma permanente con validación SSDLC y enlaces de terceros
+// 3. Guardar una nueva prenda de forma permanente en Supabase con validación SSDLC
 export async function createGarment(data: {
   name: string;
   category: 'tops' | 'bottoms' | 'shoes' | 'outerwear' | string;
@@ -71,12 +71,11 @@ export async function createGarment(data: {
       };
     }
 
-    // 🔒 Validación SSDLC de seguridad: Sanitizar y verificar URL de enlaces de terceros
     let cleanStoreUrl = data.storeUrl?.trim() || '';
     if (cleanStoreUrl && !cleanStoreUrl.startsWith('http://') && !cleanStoreUrl.startsWith('https://')) {
       return { 
         success: false, 
-        error: 'El enlace de terceros (sitio web/tienda) debe ser una URL válida que comience con http:// o https://' 
+        error: 'El enlace de terceros debe ser una URL válida que comience con http:// o https://' 
       };
     }
 

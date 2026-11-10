@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { VirtualTryOnCam } from './components/VirtualTryOnCam';
 import WardrobeManager from './components/WardrobeManager';
 import { validateSessionToken, updateUserCredentials } from './actions/auth';
+import { getGarments, createGarment, deleteGarment } from './actions/garments';
 import { Plus, LogOut, UserCheck, X, ShoppingBag, User as UserIcon, ExternalLink, ShieldAlert, Terminal, Globe, Edit3, Lock, Mail, CheckCircle2, ShieldCheck, KeyRound } from 'lucide-react';
 
 export interface Garment {
@@ -26,7 +27,7 @@ export interface WishlistItem extends Garment {
 }
 
 export default function Home() {
-  const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: string; contact?: string; session_token?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id?: string; name: string; email: string; role: string; contact?: string; session_token?: string } | null>(null);
   const [loadingSession, setLoadingSession] = useState(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
   
@@ -40,32 +41,7 @@ export default function Home() {
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [showWishlistDrawer, setShowWishlistDrawer] = useState(false);
 
-  const [wardrobe, setWardrobe] = useState<Garment[]>([
-    {
-      id: '1',
-      name: 'Vestido Midi Satinado Asimétrico',
-      category: 'tops',
-      vibe: 'Elegante / Nocturno',
-      url: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&q=80&w=800',
-      price: '$89.900 COP',
-      storeUrl: 'https://co.shein.com',
-      description: 'Vestido de tirantes con acabado satinado de alta calidad.',
-      vendorName: 'Boutique Urbana Co',
-      favorite: false
-    },
-    {
-      id: '2',
-      name: 'Chaqueta Oversized Efecto Cuero',
-      category: 'outerwear',
-      vibe: 'Streetwear / Grunge',
-      url: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&q=80&w=800',
-      price: '$149.900 COP',
-      storeUrl: 'https://www.zara.com/co/',
-      description: 'Chaqueta estilo biker amplia en cuerina premium.',
-      vendorName: 'Global Trends Store',
-      favorite: true
-    }
-  ]);
+  const [wardrobe, setWardrobe] = useState<Garment[]>([]);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [newName, setNewName] = useState('');
@@ -83,6 +59,27 @@ export default function Home() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanLogs, setScanLogs] = useState<string[]>([]);
   const [scanProgress, setScanProgress] = useState(0);
+
+  // Función para sincronizar y cargar prendas desde Supabase
+  const fetchWardrobeFromDB = async () => {
+    const res = await getGarments();
+    if (res.success && res.garments) {
+      const formatted: Garment[] = res.garments.map((g: any) => ({
+        id: g.id,
+        name: g.name,
+        category: g.category as any,
+        vibe: g.vibe || 'Casual',
+        url: g.url,
+        price: g.price || '$50.000 COP',
+        storeUrl: g.storeUrl || '',
+        description: g.description || '',
+        vendorName: g.vendorName || 'Administrador',
+        vendorContact: g.vendorContact || '',
+        favorite: false,
+      }));
+      setWardrobe(formatted);
+    }
+  };
 
   useEffect(() => {
     const sessionData = localStorage.getItem('user_session');
@@ -109,6 +106,7 @@ export default function Home() {
         setNewVendorContact(parsedUser.contact || parsedUser.email);
       }
       setLoadingSession(false);
+      fetchWardrobeFromDB();
 
       const interval = setInterval(async () => {
         const check = await validateSessionToken(parsedUser.email, parsedUser.session_token);
@@ -214,7 +212,6 @@ export default function Home() {
         setScanLogs([...currentLogs]);
         setScanProgress(50);
 
-        // 🔒 BLOQUEO ESTRICTO INCLUYENDO PDF Y ARCHIVOS NO DESEADOS
         if (['pdf', 'txt', 'exe', 'bat', 'cmd', 'sh', 'msi', 'com', 'doc', 'docx'].includes(extension || '')) {
           currentLogs.push(`[ALERTA] Formato prohibido detectado: .${extension} (Solo se permiten imágenes válidas)`);
           currentLogs.push(`[BLOQUEO] Carga abortada por política estricta de admisión ISO/IEC 27001.`);
@@ -295,25 +292,29 @@ export default function Home() {
       }
     }
 
-    const newGarment: Garment = {
-      id: Date.now().toString(),
+    // Guardar en la base de datos de Supabase a través del servidor
+    const res = await createGarment({
       name: newName,
       category: newCategory,
       vibe: newVibe,
       url: newSource,
-      favorite: false,
       price: newPrice || '$50.000 COP',
-      storeUrl: newStoreUrl || 'https://co.shein.com',
-      description: newDescription || 'Prenda comercial de tercero.',
+      storeUrl: newStoreUrl || '',
+      description: newDescription || '',
       vendorName: currentUser?.role === 'SELLER' ? currentUser.name : 'Administrador RËVA',
-      designerPortfolioUrl: sanitizedDesignerUrl || undefined,
-    };
+      vendorContact: currentUser?.contact || currentUser?.email || '',
+      userId: currentUser?.id,
+    });
 
-    setWardrobe(prev => [newGarment, ...prev]);
-    setNewName('');
-    setNewSource('');
-    setNewDesignerUrl('');
-    setShowAddModal(false);
+    if (res.success && res.garment) {
+      await fetchWardrobeFromDB();
+      setNewName('');
+      setNewSource('');
+      setNewDesignerUrl('');
+      setShowAddModal(false);
+    } else {
+      alert(res.error || 'Error al guardar la prenda en la base de datos.');
+    }
   };
 
   const handleToggleFavorite = (id: string) => {
@@ -321,7 +322,12 @@ export default function Home() {
   };
 
   const handleRemoveGarment = async (id: string) => {
-    setWardrobe(prev => prev.filter(item => item.id !== id));
+    const res = await deleteGarment(id);
+    if (res.success) {
+      setWardrobe(prev => prev.filter(item => item.id !== id));
+    } else {
+      alert('No se pudo eliminar la prenda del servidor.');
+    }
   };
 
   const handleAddToCart = (garment: Garment, size: 'S' | 'M' | 'L' | 'XL' = 'M') => {
@@ -417,7 +423,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* MODAL DE PERFIL PROFESIONAL (REQUISITO 20) */}
+      {/* MODAL DE PERFIL PROFESIONAL */}
       {showProfileModal && (
         <div className="fixed inset-0 z-50 bg-neutral-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
           <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 p-6 rounded-3xl shadow-2xl space-y-4 relative overflow-hidden font-sans">
@@ -580,7 +586,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* MODAL DE PUBLICAR PRENDA CON ENLACE DE DISEÑADOR Y ESCANEO SSDLC */}
+      {/* MODAL DE PUBLICAR PRENDA */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-neutral-950/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="w-full max-w-lg bg-neutral-900 border border-neutral-800 p-6 rounded-3xl shadow-2xl space-y-4">
@@ -631,7 +637,7 @@ export default function Home() {
                 />
               </div>
 
-              {/* CONSOLA DE AUDITORÍA FORENSE VISUAL EN TIEMPO REAL */}
+              {/* CONSOLA DE AUDITORÍA FORENSE */}
               {(isScanning || scanLogs.length > 0) && (
                 <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-3 space-y-2 font-mono text-[11px]">
                   <div className="flex items-center justify-between text-neutral-400 border-b border-neutral-900 pb-1.5">
