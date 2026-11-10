@@ -39,7 +39,7 @@ export async function getGarmentsByUser(userId: string) {
   }
 }
 
-// 3. Guardar una nueva prenda de forma permanente con validación de enlaces de terceros
+// 3. Guardar una nueva prenda de forma permanente con validación de enlaces de terceros y seguridad SSDLC
 export async function createGarment(data: {
   name: string;
   category: 'tops' | 'bottoms' | 'shoes' | 'outerwear' | string;
@@ -53,6 +53,24 @@ export async function createGarment(data: {
   userId?: string;
 }) {
   try {
+    // 🔒 Validación SSDLC de seguridad: Bloqueo estricto contra archivos maliciosos (PDF, EXE, etc.)
+    const checkUrl = (data.url || '').toLowerCase();
+    const checkName = (data.name || '').toLowerCase();
+
+    if (
+      checkUrl.includes('.pdf') || 
+      checkUrl.includes('.exe') || 
+      checkUrl.includes('.txt') || 
+      checkUrl.includes('.bat') ||
+      checkName.includes('.pdf') ||
+      checkName.includes('.exe')
+    ) {
+      return { 
+        success: false, 
+        error: '⚠️ [BLOQUEO ISO 27001]: Intento de carga maliciosa detectado y bloqueado en el servidor.' 
+      };
+    }
+
     // 🔒 Validación SSDLC de seguridad: Sanitizar y verificar URL de enlaces de terceros
     let cleanStoreUrl = data.storeUrl?.trim() || '';
     if (cleanStoreUrl && !cleanStoreUrl.startsWith('http://') && !cleanStoreUrl.startsWith('https://')) {
