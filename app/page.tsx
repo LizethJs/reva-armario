@@ -41,10 +41,70 @@ export default function Home() {
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [showWishlistDrawer, setShowWishlistDrawer] = useState(false);
 
-  // Catálogo inicial con más de 25 prendas de inspiración urbana, Koaj y tendencias globales
+  // Catálogo completo con prendas de fondo transparente (PNG) ideales para la prueba de cámara
   const [wardrobe, setWardrobe] = useState<Garment[]>([
     {
       id: '1',
+      name: 'Chaqueta Denim Koaj Streetwear (PNG)',
+      category: 'outerwear',
+      vibe: 'Urban / Oversized',
+      url: 'https://pngimg.com/d/jacket_PNG8050.png',
+      price: '$129.900 COP',
+      storeUrl: 'https://www.koaj.co',
+      description: 'Chaqueta de jean estilo urbano optimizada para seguimiento de cámara.',
+      vendorName: 'Koaj Official',
+      favorite: true
+    },
+    {
+      id: '2',
+      name: 'Camiseta Negra Básica Fit (PNG)',
+      category: 'tops',
+      vibe: 'Casual / Minimalist',
+      url: 'https://pngimg.com/d/tshirt_PNG5454.png',
+      price: '$45.900 COP',
+      storeUrl: 'https://www.koaj.co',
+      description: 'Camiseta de algodón negro con transparencia para superposición.',
+      vendorName: 'Koaj Official',
+      favorite: false
+    },
+    {
+      id: '3',
+      name: 'Hoodie Deportivo Grafito (PNG)',
+      category: 'tops',
+      vibe: 'Sporty / Chill',
+      url: 'https://pngimg.com/d/hoodie_PNG44.png',
+      price: '$99.900 COP',
+      storeUrl: 'https://www.koaj.co',
+      description: 'Hoodie con capota y silueta amplia para seguimiento de torso.',
+      vendorName: 'Koaj Official',
+      favorite: false
+    },
+    {
+      id: '4',
+      name: 'Chaqueta Biker Efecto Cuero (PNG)',
+      category: 'outerwear',
+      vibe: 'Rocker / Grunge',
+      url: 'https://pngimg.com/d/leather_jacket_PNG41.png',
+      price: '$179.900 COP',
+      storeUrl: 'https://www.zara.com/co/',
+      description: 'Chaqueta de piel sintética con cremalleras laterales.',
+      vendorName: 'Global Trends Store',
+      favorite: false
+    },
+    {
+      id: '5',
+      name: 'Camiseta Blanca Graphic Print (PNG)',
+      category: 'tops',
+      vibe: 'Street / Y2K',
+      url: 'https://pngimg.com/d/tshirt_PNG5450.png',
+      price: '$39.900 COP',
+      storeUrl: 'https://www.koaj.co',
+      description: 'Camiseta blanca estampada con corte oversize.',
+      vendorName: 'Koaj Official',
+      favorite: false
+    },
+    {
+      id: '6',
       name: 'Vestido Midi Satinado Asimétrico',
       category: 'tops',
       vibe: 'Elegante / Nocturno',
@@ -56,31 +116,7 @@ export default function Home() {
       favorite: false
     },
     {
-      id: '2',
-      name: 'Chaqueta Oversized Efecto Cuero',
-      category: 'outerwear',
-      vibe: 'Streetwear / Grunge',
-      url: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&q=80&w=800',
-      price: '$149.900 COP',
-      storeUrl: 'https://www.zara.com/co/',
-      description: 'Chaqueta estilo biker amplia en cuerina premium.',
-      vendorName: 'Global Trends Store',
-      favorite: true
-    },
-    {
-      id: '3',
-      name: 'Hoodie Oversized Minimalista',
-      category: 'tops',
-      vibe: 'Urban / Casual',
-      url: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&q=80&w=800',
-      price: '$99.900 COP',
-      storeUrl: 'https://www.koaj.co',
-      description: 'Saco con capucha perchado de alta comodidad.',
-      vendorName: 'Koaj Official',
-      favorite: false
-    },
-    {
-      id: '4',
+      id: '7',
       name: 'Jeans Relaxed Fit Tiro Alto',
       category: 'bottoms',
       vibe: 'Streetwear / Vintage',
@@ -92,7 +128,7 @@ export default function Home() {
       favorite: false
     },
     {
-      id: '5',
+      id: '8',
       name: 'Sneakers Chunky Platform',
       category: 'shoes',
       vibe: 'Sporty / Trendy',
@@ -104,32 +140,8 @@ export default function Home() {
       favorite: false
     },
     {
-      id: '6',
-      name: 'Gabardina clásica larga',
-      category: 'outerwear',
-      vibe: 'Formal / Chic',
-      url: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=800',
-      price: '$210.000 COP',
-      storeUrl: 'https://www.zara.com/co/',
-      description: 'Abrigo largo con solapa y cinturón ajustable.',
-      vendorName: 'Global Trends Store',
-      favorite: false
-    },
-    {
-      id: '7',
-      name: 'Camiseta Básica Algodón Premium',
-      category: 'tops',
-      vibe: 'Casual / Basic',
-      url: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&q=80&w=800',
-      price: '$39.900 COP',
-      storeUrl: 'https://www.koaj.co',
-      description: 'Camiseta cuello redondo 100% algodón peinado.',
-      vendorName: 'Koaj Official',
-      favorite: false
-    },
-    {
-      id: '8',
-      name: 'Pantalón Cargo utilitario',
+      id: '9',
+      name: 'Pantalón Cargo Utilitario',
       category: 'bottoms',
       vibe: 'Utility / Streetwear',
       url: 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&q=80&w=800',
@@ -140,207 +152,15 @@ export default function Home() {
       favorite: false
     },
     {
-      id: '9',
+      id: '10',
       name: 'Botines Chelsea de Cuero',
       category: 'shoes',
       vibe: 'Rocker / Elegante',
       url: 'https://images.unsplash.com/photo-1608256246200-53e635b5b65f?auto=format&fit=crop&q=80&w=800',
       price: '$199.900 COP',
       storeUrl: 'https://www.bata.com.co',
-      description: 'Botines de cuero con elásticos laterales y suela tractora.',
+      description: 'Botines de cuero con elásticos laterales.',
       vendorName: 'Calzado & Estilo',
-      favorite: false
-    },
-    {
-      id: '10',
-      name: 'Blazer Oversized de Sastrería',
-      category: 'outerwear',
-      vibe: 'Smart Casual / Office',
-      url: 'https://images.unsplash.com/photo-1534126511673-b6899657816a?auto=format&fit=crop&q=80&w=800',
-      price: '$179.900 COP',
-      storeUrl: 'https://www.zara.com/co/',
-      description: 'Chaqueta sastre estructurada con hombreras.',
-      vendorName: 'Boutique Urbana Co',
-      favorite: false
-    },
-    {
-      id: '11',
-      name: 'Top Corset Estructurado',
-      category: 'tops',
-      vibe: 'Glam / Party',
-      url: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&q=80&w=800',
-      price: '$69.900 COP',
-      storeUrl: 'https://co.shein.com',
-      description: 'Top corto con varillas y soporte interno.',
-      vendorName: 'Global Trends Store',
-      favorite: false
-    },
-    {
-      id: '12',
-      name: 'Falda Denim Plizada Mini',
-      category: 'bottoms',
-      vibe: 'Y2K / Casual',
-      url: 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?auto=format&fit=crop&q=80&w=800',
-      price: '$79.900 COP',
-      storeUrl: 'https://www.koaj.co',
-      description: 'Falda corta en mezclilla con diseño plisado.',
-      vendorName: 'Koaj Official',
-      favorite: false
-    },
-    {
-      id: '13',
-      name: 'Tenis Urbanos Retro White',
-      category: 'shoes',
-      vibe: 'Classic / Street',
-      url: 'https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&q=80&w=800',
-      price: '$159.900 COP',
-      storeUrl: 'https://www.adidas.co',
-      description: 'Zapatillas de cuero sintético blanco con detalles de color.',
-      vendorName: 'Urban Shoes Bogotá',
-      favorite: false
-    },
-    {
-      id: '14',
-      name: 'Chaqueta Puffer Acolchada',
-      category: 'outerwear',
-      vibe: 'Winter / Warm',
-      url: 'https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&q=80&w=800',
-      price: '$189.900 COP',
-      storeUrl: 'https://www.koaj.co',
-      description: 'Chaqueta térmica con relleno sintético y cuello alto.',
-      vendorName: 'Koaj Official',
-      favorite: false
-    },
-    {
-      id: '15',
-      name: 'Camisa Oversized de Lino',
-      category: 'tops',
-      vibe: 'Bохy / Summer',
-      url: 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&q=80&w=800',
-      price: '$85.000 COP',
-      storeUrl: 'https://www.zara.com/co/',
-      description: 'Camisa fresca de manga larga en mezcla de lino.',
-      vendorName: 'Boutique Urbana Co',
-      favorite: false
-    },
-    {
-      id: '16',
-      name: 'Pantalón Jogger Fleece Confort',
-      category: 'bottoms',
-      vibe: 'Sportwear / Loungewear',
-      url: 'https://images.unsplash.com/photo-1552902865-b72c031ac5ea?auto=format&fit=crop&q=80&w=800',
-      price: '$89.900 COP',
-      storeUrl: 'https://www.koaj.co',
-      description: 'Jogger perchado con cordón ajustable en cintura.',
-      vendorName: 'Koaj Official',
-      favorite: false
-    },
-    {
-      id: '17',
-      name: 'Mocasines de Suela Track',
-      category: 'shoes',
-      vibe: 'Preppy / Bold',
-      url: 'https://images.unsplash.com/photo-1533867617858-e7d97906a56b?auto=format&fit=crop&q=80&w=800',
-      price: '$169.900 COP',
-      storeUrl: 'https://www.bata.com.co',
-      description: 'Mocasines de charol con suela chunky dentada.',
-      vendorName: 'Calzado & Estilo',
-      favorite: false
-    },
-    {
-      id: '18',
-      name: 'Cardigan Oversized Tejido',
-      category: 'outerwear',
-      vibe: 'Cozy / Vintage',
-      url: 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?auto=format&fit=crop&q=80&w=800',
-      price: '$139.900 COP',
-      storeUrl: 'https://www.koaj.co',
-      description: 'Suéter abierto tejido con botones frontales.',
-      vendorName: 'Koaj Official',
-      favorite: false
-    },
-    {
-      id: '19',
-      name: 'Blusa Crop Top Asimétrica',
-      category: 'tops',
-      vibe: 'Modern / Club',
-      url: 'https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&q=80&w=800',
-      price: '$55.000 COP',
-      storeUrl: 'https://co.shein.com',
-      description: 'Blusa de un solo hombro con diseño moderno.',
-      vendorName: 'Global Trends Store',
-      favorite: false
-    },
-    {
-      id: '20',
-      name: 'Short Denim Tiro Alto Rota',
-      category: 'bottoms',
-      vibe: 'Summer / Beach',
-      url: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?auto=format&fit=crop&q=80&w=800',
-      price: '$69.900 COP',
-      storeUrl: 'https://www.koaj.co',
-      description: 'Short en mezclilla con rotos sutiles en los bordes.',
-      vendorName: 'Koaj Official',
-      favorite: false
-    },
-    {
-      id: '21',
-      name: 'Botas de caña alta estilo Cowboy',
-      category: 'shoes',
-      vibe: 'Western / Festival',
-      url: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&q=80&w=800',
-      price: '$249.900 COP',
-      storeUrl: 'https://www.zara.com/co/',
-      description: 'Botas texanas bordadas con tacón cubano.',
-      vendorName: 'Calzado & Estilo',
-      favorite: false
-    },
-    {
-      id: '22',
-      name: 'Chaqueta Denim Oversized Bordada',
-      category: 'outerwear',
-      vibe: 'Artistic / Streetwear',
-      url: 'https://images.unsplash.com/photo-1576995853123-5a10305d93c0?auto=format&fit=crop&q=80&w=800',
-      price: '$169.900 COP',
-      storeUrl: 'https://www.koaj.co',
-      description: 'Chaqueta de mezclilla amplia con parches decorativos.',
-      vendorName: 'Koaj Official',
-      favorite: false
-    },
-    {
-      id: '23',
-      name: 'Body Sculpting de Cuello Alto',
-      category: 'tops',
-      vibe: 'Minimal / Sleek',
-      url: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=800',
-      price: '$65.000 COP',
-      storeUrl: 'https://co.shein.com',
-      description: 'Body ajustado de tacto suave y alta elasticidad.',
-      vendorName: 'Global Trends Store',
-      favorite: false
-    },
-    {
-      id: '24',
-      name: 'Pantalón Sastre Pinzas Wide Leg',
-      category: 'bottoms',
-      vibe: 'Elegant / Sophisticated',
-      url: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&q=80&w=800',
-      price: '$149.900 COP',
-      storeUrl: 'https://www.zara.com/co/',
-      description: 'Pantalón formal de pierna ancha con pliegues.',
-      vendorName: 'Boutique Urbana Co',
-      favorite: false
-    },
-    {
-      id: '25',
-      name: 'Zapatillas Running Urbanas Air',
-      category: 'shoes',
-      vibe: 'Athleisure / Comfort',
-      url: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&q=80&w=800',
-      price: '$199.900 COP',
-      storeUrl: 'https://www.nike.com/co/',
-      description: 'Tenis deportivos con malla transpirable.',
-      vendorName: 'Urban Shoes Bogotá',
       favorite: false
     }
   ]);
@@ -362,7 +182,6 @@ export default function Home() {
   const [scanLogs, setScanLogs] = useState<string[]>([]);
   const [scanProgress, setScanProgress] = useState(0);
 
-  // Cargar prendas de Supabase y combinarlas con el catálogo predeterminado
   const fetchWardrobeFromDB = async () => {
     const res = await getGarments();
     if (res.success && res.garments && res.garments.length > 0) {
@@ -414,7 +233,7 @@ export default function Home() {
         const check = await validateSessionToken(parsedUser.email, parsedUser.session_token);
         if (!check.valid) {
           clearInterval(interval);
-          alert('⚠️ ALERTA DE SEGURIDAD (ISO 27001): Se ha iniciado sesión con esta cuenta en otro navegador o dispositivo.');
+          alert('⚠️ ALERTA DE SEGURIDAD (ISO 27001): Se ha iniciado sesión con esta cuenta en otro navegador.');
           localStorage.removeItem('user_session');
           window.location.href = '/login';
         }
@@ -438,14 +257,14 @@ export default function Home() {
     setProfileMessage({ text: "", isError: false });
 
     if (newPassword && (!hasMinLength || !hasUpperCase || !hasNumberOrSymbol)) {
-      setProfileMessage({ text: "⚠️ La contraseña no cumple con los protocolos de complejidad requeridos.", isError: true });
+      setProfileMessage({ text: "⚠️ La contraseña no cumple los requisitos ISO 27001.", isError: true });
       setProfileLoading(false);
       return;
     }
 
     try {
       if (!currentUser?.email) {
-        setProfileMessage({ text: "Error de sesión: No se identificó al usuario.", isError: true });
+        setProfileMessage({ text: "Error de sesión: Usuario no identificado.", isError: true });
         setProfileLoading(false);
         return;
       }
@@ -475,10 +294,10 @@ export default function Home() {
           setProfileTab("info");
         }, 1800);
       } else {
-        setProfileMessage({ text: res?.message || "No se pudo actualizar la información.", isError: true });
+        setProfileMessage({ text: res?.message || "No se pudo actualizar.", isError: true });
       }
     } catch (err) {
-      setProfileMessage({ text: "Error de conexión con la base de datos.", isError: true });
+      setProfileMessage({ text: "Error de conexión.", isError: true });
     } finally {
       setProfileLoading(false);
     }
@@ -499,13 +318,13 @@ export default function Home() {
       setScanProgress(25);
 
       setTimeout(() => {
-        currentLogs.push(`[CHECK] Analizando archivo: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
+        currentLogs.push(`[CHECK] Analizando contenedor: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
         setScanLogs([...currentLogs]);
         setScanProgress(50);
 
         if (['pdf', 'txt', 'exe', 'bat', 'cmd', 'sh', 'msi', 'com', 'doc', 'docx'].includes(extension || '')) {
           currentLogs.push(`[ALERTA] Formato prohibido detectado: .${extension}`);
-          currentLogs.push(`[BLOQUEO] Carga abortada por política estricta ISO/IEC 27001.`);
+          currentLogs.push(`[BLOQUEO] Carga abortada por política ISO/IEC 27001.`);
           setScanLogs([...currentLogs]);
           setScanProgress(100);
           setUploadError(`⚠️ ARCHIVO RECHAZADO: Los archivos .${extension} no están permitidos.`);
@@ -603,7 +422,7 @@ export default function Home() {
       setNewDesignerUrl('');
       setShowAddModal(false);
     } else {
-      alert(res.error || 'Error al guardar la prenda en la base de datos.');
+      alert(res.error || 'Error al guardar en la base de datos.');
     }
   };
 
@@ -616,7 +435,7 @@ export default function Home() {
     if (res.success) {
       setWardrobe(prev => prev.filter(item => item.id !== id));
     } else {
-      alert('No se pudo eliminar la prenda del servidor.');
+      alert('No se pudo eliminar la prenda.');
     }
   };
 
@@ -917,7 +736,7 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="block text-neutral-400 mb-1">Imagen de la Prenda (Solo Imágenes Válidas)</label>
+                <label className="block text-neutral-400 mb-1">Imagen de la Prenda (PNG transparente para probar en cámara)</label>
                 <input
                   type="file"
                   accept="image/*"
