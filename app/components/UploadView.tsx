@@ -22,7 +22,7 @@ export default function UploadView({ onSave, onBack }: Props) {
 
   const triggerLocalNotification = (msg: string) => {
     setLocalNotification(msg);
-    setTimeout(() => setLocalNotification(null), 3500);
+    setTimeout(() => setLocalNotification(null), 4000);
   };
 
   const processImageToTransparent = async (input: File | string) => {
@@ -58,22 +58,24 @@ export default function UploadView({ onSave, onBack }: Props) {
     if (!file) return;
 
     const fileName = file.name.toLowerCase();
+    const fileType = file.type.toLowerCase();
 
-    // BLOQUEO ESTRICTO IGUAL QUE EL .EXE: Si contiene .pdf o tipos prohibidos, se rechaza de raíz
+    // BLOQUEO BLINDADO OBLIGATORIO: CUALQUIER intento con PDF, EXE, TXT o BAT se frena aquí mismo
     if (
-      fileName.includes('.pdf') || 
-      fileName.endsWith('.exe') || 
-      fileName.endsWith('.txt') || 
-      fileName.endsWith('.bat') ||
-      file.type === 'application/pdf' ||
-      file.type === 'text/plain'
+      fileName.includes('.pdf') ||
+      fileName.includes('.exe') ||
+      fileName.includes('.txt') ||
+      fileName.includes('.bat') ||
+      fileType.includes('pdf') ||
+      fileType.includes('text') ||
+      fileType.includes('application')
     ) {
-      triggerLocalNotification('⚠️ [BLOQUEO ISO 27001]: Archivo PDF o ejecutable bloqueado por política de seguridad.');
-      e.target.value = ''; // Limpia el input para que no se cargue
-      return;
+      triggerLocalNotification('⚠️ [BLOQUEO ISO 27001]: Archivo no autorizado detectado. Solo se permiten imágenes (PNG/JPG).');
+      e.target.value = ''; // Resetea el input para limpiar el archivo malicioso
+      return; // Detiene completamente la ejecución
     }
 
-    // Validación profunda por Magic Numbers para asegurar que los bytes sean una imagen real (JPEG, PNG, WEBP)
+    // Validación por Magic Numbers para asegurar que los bytes correspondan a una imagen real
     const reader = new FileReader();
     reader.onload = async (event) => {
       const buffer = event.target?.result as ArrayBuffer;
@@ -86,7 +88,7 @@ export default function UploadView({ onSave, onBack }: Props) {
       const isWEBP = header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46;
 
       if (!isJPEG && !isPNG && !isWEBP) {
-        triggerLocalNotification('⚠️ [ALERTA ANTIMALWARE]: Cabecera binaria inválida. Archivo falso bloqueado.');
+        triggerLocalNotification('⚠️ [ALERTA ANTIMALWARE]: Cabecera binaria inválida. Archivo bloqueado por seguridad.');
         e.target.value = '';
         return;
       }
@@ -184,7 +186,7 @@ export default function UploadView({ onSave, onBack }: Props) {
           </div>
           <span className="text-sm font-medium text-neutral-200">Sube o arrastra la foto de tu prenda</span>
           <span className="text-xs text-amber-400/80 mt-1 font-medium">Nombre y Precio obligatorios para guardar *</span>
-          <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+          <input type="file" accept="image/png, image/jpeg, image/webp" onChange={handleFileUpload} className="hidden" />
         </label>
       ) : (
         <div className="w-full bg-neutral-900/80 backdrop-blur-xl rounded-3xl border border-neutral-800 p-6 flex flex-col items-center shadow-2xl relative">
