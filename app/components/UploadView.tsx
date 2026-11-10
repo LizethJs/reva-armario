@@ -35,7 +35,7 @@ export default function UploadView({ onSave, onBack }: Props) {
 
     const fileName = file.name.toLowerCase();
 
-    // BLOQUEO ESTRICTO Y VISIBLE PARA PDF Y EJECUTABLES
+    // INTERCEPCIÓN TOTAL Y DIRECTA PARA .PDF, .EXE, .TXT O .BAT
     if (
       fileName.endsWith('.pdf') || 
       fileName.includes('.pdf') || 
@@ -43,15 +43,15 @@ export default function UploadView({ onSave, onBack }: Props) {
       fileName.endsWith('.txt') || 
       fileName.endsWith('.bat')
     ) {
+      const extension = fileName.split('.').pop() || 'archivo';
       setIsMaliciousBlocked(true);
       setConsoleLogs([
         '[INFO] Iniciando pasarela SSDLC de escaneo antimalware...',
         `[CHECK] Analizando contenedor: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
-        '[HEX] Cabecera extraída (Magic Bytes): 0x25504446 (Firma de documento no permitida)',
-        '[ALERTA] ¡Intento de subida de archivo malicioso o PDF detectado!',
-        '[ERROR] Bloqueo ISO 27001 activado. Carga rechazada por seguridad.'
+        `[ALERTA] Formato prohibido detectado: .${extension} (Solo se permiten imágenes válidas)`,
+        '[BLOQUEO] Carga abortada por política estricta de admisión ISO/IEC 27001.'
       ]);
-      triggerLocalNotification('⚠️ [BLOQUEO ISO 27001]: Archivo PDF o ejecutable bloqueado.');
+      triggerLocalNotification(`⚠️ ARCHIVO RECHAZADO: Los archivos .${extension} no están permitidos. Solo se aceptan imágenes.`);
       e.target.value = '';
       return;
     }
@@ -73,16 +73,15 @@ export default function UploadView({ onSave, onBack }: Props) {
         setIsMaliciousBlocked(true);
         setConsoleLogs([
           '[INFO] Iniciando pasarela SSDLC de escaneo antimalware...',
-          `[CHECK] Analizando contenedor: ${file.name}`,
-          '[HEX] Cabecera extraída (Magic Bytes inválidos)',
-          '[ERROR] Verificación binaria fallida. Archivo falso bloqueado.'
+          `[CHECK] Analizando contenedor: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`,
+          '[ALERTA] Cabecera binaria no corresponde a una imagen válida.',
+          '[BLOQUEO] Carga abortada por política estricta de admisión ISO/IEC 27001.'
         ]);
         triggerLocalNotification('⚠️ [ALERTA ANTIMALWARE]: Cabecera binaria inválida.');
         e.target.value = '';
         return;
       }
 
-      // Si pasa la validación, procesa la imagen con IA
       processValidImage(file);
     };
     reader.readAsArrayBuffer(file);
@@ -197,7 +196,7 @@ export default function UploadView({ onSave, onBack }: Props) {
             <input type="file" onChange={handleFileUpload} className="hidden" />
           </label>
 
-          {/* Consola Forense Antimalware dinámica y visual */}
+          {/* Consola Forense Antimalware idéntica a la del .exe */}
           {consoleLogs.length > 0 && (
             <div className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl p-4 font-mono text-xs shadow-xl">
               <div className="flex justify-between items-center mb-2 border-b border-neutral-800 pb-2">
@@ -205,7 +204,7 @@ export default function UploadView({ onSave, onBack }: Props) {
                   <AlertTriangle className="w-4 h-4 text-rose-500" /> Consola Forense Antimalware
                 </span>
                 <span className={isMaliciousBlocked ? "text-rose-500 font-bold" : "text-emerald-400"}>
-                  {isMaliciousBlocked ? "BLOQUEADO" : "100%"}
+                  {isMaliciousBlocked ? "100%" : "100%"}
                 </span>
               </div>
               <div className={`w-full h-1.5 rounded-full mb-3 overflow-hidden bg-neutral-900`}>
@@ -213,7 +212,7 @@ export default function UploadView({ onSave, onBack }: Props) {
               </div>
               <div className="space-y-1 text-[11px]">
                 {consoleLogs.map((log, idx) => (
-                  <p key={idx} className={log.includes('BLOQUEO') || log.includes('ERROR') || log.includes('ALERTA') ? "text-rose-400 font-bold" : "text-neutral-300"}>
+                  <p key={idx} className={log.includes('ALERTA') || log.includes('BLOQUEO') ? "text-rose-400 font-bold" : "text-neutral-300"}>
                     {log}
                   </p>
                 ))}
